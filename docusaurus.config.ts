@@ -1,133 +1,154 @@
-import {themes as prismThemes} from 'prism-react-renderer';
-import type {Config} from '@docusaurus/types';
+import { themes as prismThemes } from 'prism-react-renderer';
+import type { Config } from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
+import tailwindPlugin from "./plugins/tailwind-config.js";
+import remarkgfm from "remark-gfm";
+
 
 const config: Config = {
-  title: 'My Site',
-  tagline: 'Dinosaurs are cool',
-  favicon: 'img/favicon.ico',
-
-  // Set the production url of your site here
-  url: 'https://your-docusaurus-site.example.com',
-  // Set the /<baseUrl>/ pathname under which your site is served
-  // For GitHub pages deployment, it is often '/<projectName>/'
+  markdown: {
+    mermaid: true,
+  },
+  title: 'MythicalSystems LTD',
+  tagline: 'We code the future.',
+  favicon: 'https://avatars.githubusercontent.com/u/117385445',
+  url: 'https://mythicalsystems.xyz',
   baseUrl: '/',
-
-  // GitHub pages deployment config.
-  // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'facebook', // Usually your GitHub org/user name.
-  projectName: 'docusaurus', // Usually your repo name.
-
+  organizationName: 'mythicalltd',
+  projectName: 'web', 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
-
-  // Even if you don't use internationalization, you can use this field to set
-  // useful metadata like html lang. For example, if your site is Chinese, you
-  // may want to replace "en" with "zh-Hans".
   i18n: {
     defaultLocale: 'en',
     locales: ['en'],
   },
-
+  themes: ["@docusaurus/theme-mermaid"],
   presets: [
     [
       'classic',
       {
         docs: {
           sidebarPath: './sidebars.ts',
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
+          remarkPlugins: [remarkgfm],
         },
         blog: {
           showReadingTime: true,
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
         },
         theme: {
-          customCss: './src/css/custom.css',
+          customCss: [
+            require.resolve('./src/css/custom.scss'),
+            require.resolve('./src/css/tailwind.css'),
+          ],
         },
       } satisfies Preset.Options,
     ],
   ],
 
   themeConfig: {
-    // Replace with your project's social card
-    image: 'img/docusaurus-social-card.jpg',
+      metadata: [
+      { name: 'keywords', content: 'mythicalsystems, mythicaldash, mythicalclient, mythicalbilling, mythicalsystems ltd, mythicalsystems info , mythicalsystems projects, mythicalsystems github, pterodactyl, stopabuse, nayskutuz, cassian gherman, nayskutzuftw, mythicaldoggo, mythicalsystems website, mythicalsystems info, mythicalsystems.xyz, oldmythicalsystems, mythicaldoggo, nayskutzu, nayskutzuftw, polartoflex, multyplay,noxlcraft,mythic-romania,mythic-craft, mysticcraft,mythicaldash, mythicalclient, mythicalframework, mythicalframework api, api, mythicalframework docs, mythicalframework github, mythicalframework info, mythicalframework projects, mythicalframework website, documenation mythical, mythicaldocs, mythical website, hurawatch, testing, mythic, holaclient, hellactyl, pterodactyl, hosting, cms' },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:site', content: '@mythicalsystems' },
+      { name: 'og:image', content: 'https://avatars.githubusercontent.com/u/117385445' },
+      { name: 'og:image:width', content: '200' },
+      { name: 'twitter:image', content: 'https://avatars.githubusercontent.com/u/117385445' },
+      { name: 'theme-color', content: '#953aa1' },
+    ],
+    image: 'https://avatars.githubusercontent.com/u/117385445',
     navbar: {
-      title: 'My Site',
+      title: 'MythicalSystems',
       logo: {
-        alt: 'My Site Logo',
-        src: 'img/logo.svg',
+        alt: 'MythicalSystems',
+        src: 'https://avatars.githubusercontent.com/u/117385445',
       },
       items: [
-        {
-          type: 'docSidebar',
-          sidebarId: 'tutorialSidebar',
-          position: 'left',
-          label: 'Tutorial',
-        },
-        {to: '/blog', label: 'Blog', position: 'left'},
-        {
-          href: 'https://github.com/facebook/docusaurus',
-          label: 'GitHub',
-          position: 'right',
-        },
+        { to: '/docs', label: 'Docs', position: 'left' },
+        { to: "/blog", label: "Blog", position: "left" },
+        { to: "/donate", label: "Donate", position: "left" },
+        { to: "https://status.mythicalsystems.xyz", label: "Status", position: "left" },
+        { to: "https://discord.mythicalsystems.xyz", label: "Discord", position: "left" },
+        { href: "https://github.com/mythicalltd", position: "right", className: "github-link", },
       ],
     },
+    colorMode: {
+      defaultMode: "dark",
+      disableSwitch: false,
+      respectPrefersColorScheme: true,
+    },
     footer: {
+      logo: {
+        src: "https://avatars.githubusercontent.com/u/117385445",
+        height: "64px",
+        width: "64px",
+      },
       style: 'dark',
       links: [
         {
-          title: 'Docs',
+          title: 'INFORMATION',
           items: [
             {
-              label: 'Tutorial',
-              to: '/docs/intro',
-            },
-          ],
-        },
-        {
-          title: 'Community',
-          items: [
-            {
-              label: 'Stack Overflow',
-              href: 'https://stackoverflow.com/questions/tagged/docusaurus',
+              label: 'Github',
+              href: 'https://github.com/mythicalltd',
             },
             {
               label: 'Discord',
-              href: 'https://discordapp.com/invite/docusaurus',
+              href: 'https://discord.mythicalsystems.xyz',
+            }
+          ],
+        },
+        {
+          title: 'SPONSORS',
+          items: [
+            {
+              label: 'AdSlice',
+              href: 'https://addslice.com/?crew=FgQTfkSz',
             },
             {
-              label: 'Twitter',
-              href: 'https://twitter.com/docusaurus',
+              label: 'DeinServerHost',
+              href: 'https://deinserverhost.de/store/aff.php?aff=5361',
+            }
+          ],
+        },
+        {
+          title: 'SUPPORT US',
+          items: [
+            {
+              label: 'Github Sponsor',
+              href: 'https://github.com/sponsors/nayskutzu',
+            },
+            {
+              label: 'PayPal',
+              href: 'https://paypal.me/nayskutzu',
             },
           ],
         },
         {
-          title: 'More',
+          title: 'LEGAL',
           items: [
             {
-              label: 'Blog',
-              to: '/blog',
+              label: 'Privacy Policy',
+              to: '/privacy',
             },
             {
-              label: 'GitHub',
-              href: 'https://github.com/facebook/docusaurus',
+              label: 'Terms of Service',
+              to: '/terms',
             },
           ],
-        },
+
+        }
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} My Project, Inc. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} MythicalSystems LTD`,
     },
     prism: {
       theme: prismThemes.github,
       darkTheme: prismThemes.dracula,
     },
   } satisfies Preset.ThemeConfig,
+  plugins: [
+    require.resolve('docusaurus-lunr-search'),
+    "docusaurus-plugin-sass",
+    tailwindPlugin,
+  ],
 };
 
 export default config;
