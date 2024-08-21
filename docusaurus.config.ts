@@ -33,6 +33,7 @@ const config: Config = {
         },
         blog: {
           showReadingTime: true,
+          onUntruncatedBlogPosts: 'ignore',
         },
         theme: {
           customCss: [
@@ -72,7 +73,7 @@ const config: Config = {
     },
     colorMode: {
       defaultMode: "dark",
-      disableSwitch: false,
+      disableSwitch: true,
       respectPrefersColorScheme: true,
     },
     footer: {

@@ -7,7 +7,9 @@ import Particles from 'react-particles';
 import styles from './index.module.css';
 import React from 'react';
 import MythicalComponent from '../components/MythicalComponent';
-
+import Sponsors from '../components/Sponsors';
+import Stats from '../components/Stats';
+import Projects from '../components/Projects';
 
 function HomepageHeader() {
     const { siteConfig } = useDocusaurusContext();
@@ -39,6 +41,13 @@ export default function Home(): JSX.Element {
         <HomepageHeader />
         <main>
             <MythicalComponent />
+            <br></br><br></br>
+            <Projects />
+            <br></br><br></br>
+            <Stats />
+            <br></br><br></br><br></br>
+            <Sponsors />
+            <br></br>
         </main>
       </Layout>
     );

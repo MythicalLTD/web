@@ -1,0 +1,115 @@
+---
+sidebar_position: 2
+---
+# Installing
+
+MythicalDash is designed to run on your own web server. You will need to have root access to your server in order to run and use this panel.
+You are expected to understand how to read documentation to use this client area. We have spent many hours detailing how to install or upgrade our software; take some time and read rather than copy and pasting and then complaining when things do not work. 
+
+# READ THIS
+MythicalDash does not support any type of migration from other client area!
+So please do not install it on your panel if you have more than 5 users due to panel desync!
+Also, please do not modify any data from inside the panel due to the dash not being able to sync with the panel!
+Every change you want to make, please make it from inside the dash!
+
+
+## Picking a Server OS
+MythicalDash runs on a small range of operating systems, so pick whichever you are most comfortable using.
+
+| Operating System | Version | Supported | Notes |
+| - | - | - | - |
+| [Ubuntu](/docs/MythicalDash/os/ubuntu.md) | 20.04 | ✅ | Documentation written assuming Ubuntu 20.04 as the base OS. |
+| [Ubuntu](/docs/MythicalDash/os/ubuntu.md)  | >=22.04 | ✅ | MariaDB can be installed without the repo setup script. |
+| [Debian](/docs/MythicalDash/os/debian.md) | 11 | ✅ | It can run, but we recommend using 12 for long-term usage! |
+| [Debian](/docs/MythicalDash/os/debian.md)  | >=12 | ✅ | The dash is developed on this os! |
+| CentOS | 7 | ❌ | It can run, but we don't provide support for it. |
+| CentOS | 8 | ❌ | It can run, but we don't provide support for it. |
+| AlamaLinux | 9 | ❌ | It can run, but we don't provide support for it. |
+| AlamaLinux | 8 | ❌ | It can run, but we don't provide support for it. |
+
+## Installing Composer
+Composer is a dependency manager for PHP that allows us to ship everything you'll need code wise to operate the dash. You'll need composer installed before continuing in this process.
+```bash 
+curl -sS https://getcomposer.org/installer | sudo php -- --install-dir=/usr/local/bin --filename=composer
+```
+
+## Download Files
+The first step in this process is to create the folder where the dashboard will live and then move ourselves into that newly created folder. Below is an example of how to perform this operation.
+```bash
+mkdir -p /var/www/mythicaldash
+cd /var/www/mythicaldash
+curl -Lo MythicalDash.zip https://github.com/mythicalltd/mythicaldash/releases/latest/download/MythicalDash.zip
+unzip -o MythicalDash.zip -d /var/www/mythicaldash
+```
+Once it is downloaded you'll need to unpack the archive and then set the correct permissions on the core/ and tmp/ directories. These directories allow us to store files as well as keep a speedy cache available to reduce load times.
+```bash
+chown -R www-data:www-data /var/www/mythicaldash/*
+```
+
+## Composer 
+After you've downloaded all of the files you will need to upgrade the core components of the client. To do this, simply run the commands below and follow any prompts.
+```bash
+cd /var/www/mythicaldash
+composer install --no-dev --optimize-autoloader
+
+```
+## Fixing MariaDB
+Since mariadb added a stupid ass setting in the latest version you have to switch the mariadb uft to the default one!
+```bash
+sudo sed -i '/^#collation-server/a collation-server = utf8mb4_general_ci' /etc/mysql/mariadb.conf.d/50-server.cnf
+sudo sed -i '/^character-set-server/s/^/#/g' /etc/mysql/mariadb.conf.d/50-server.cnf 
+sudo sed -i '/^#character-set-server/a character-set-server = utf8mb4' /etc/mysql/mariadb.conf.d/50-server.cnf
+
+sudo sed -i '/^character-set-collations/s/^/#/g' /etc/mysql/mariadb.conf.d/50-server.cnf 
+sudo sed -i '/^#character-set-collations/a character-set-collations = utf8mb4' /etc/mysql/mariadb.conf.d/50-server.cnf
+```
+## Installation
+Now that all of the files have been downloaded we need to configure some core aspects of the Dashboard.
+You will need a database setup and a user with the correct permissions created for that database before continuing any further.
+
+```sql
+mysql -u root -p
+CREATE USER 'mythicaldash'@'127.0.0.1' IDENTIFIED BY 'yourPassword';
+CREATE DATABASE mythicaldash;
+GRANT ALL PRIVILEGES ON mythicaldash.* TO 'mythicaldash'@'127.0.0.1' WITH GRANT OPTION;
+exit
+```
+
+## Environment Configuration
+MythicalDash's core environment is easily configured using a few different CLI commands built into the app. This step will cover setting up things such as settings and database credentials.
+```bash
+# Run this for our small checkup that we need to run for the cli to run
+cd /var/www/mythicaldash
+dos2unix arch.bash
+bash arch.bash
+chmod +x ./MythicalDash
+./MythicalDash -environment:newconfig # Generate a custom config file
+./MythicalDash -key:generate # Reset the encryption key
+./MythicalDash -environment:database # Setup the database connection
+./MythicalDash -migrate # Migrate the database
+./MythicalDash -environment:setup # Start a custom setup for the dash
+```
+## Adding MythicalDash CLI to path
+MythicalDash's cli is a tool you can use to manage your dash. This step is not `required` but it is very, very useful sometimes, so you won't have to go to the directory path itself, and we recommend doing those extra steps!
+```
+# Use the command 'cd' to go to the user home directory!
+cd
+# Edit the environment configuration file
+nano .bashrc
+# Add this to the bottom of the file
+alias mythicaldash='/var/www/mythicaldash/MythicalDash'
+alias mythicaldash='/var/www/mythicaldash/MythicalDash'
+```
+After that, you need to restart your server to have them inside your path!
+Or if you are lazy, just copy and paste this into your terminal!
+```
+alias mythicaldash='/var/www/mythicaldash/MythicalDash'
+alias mythicaldash='/var/www/mythicaldash/MythicalDash'
+```
+## Crontab Configuration
+Setting up cron jobs will be really important; this is not an optional step: the cron jobs will allow the dashboard to process data internally, and manage the queue system. First, check if crontab is installed by typing "crontab -e" in your terminal. Or, if you are using a hosting service, check if your host supports crontab. If you are on a terminal, run:
+```bash
+sudo crontab -e
+# Paste this in the first line
+* * * * * php /var/www/mythicaldash/crons/server.php >> /dev/null 2>&1
+```
