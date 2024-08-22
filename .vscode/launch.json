@@ -1,0 +1,10 @@
+{
+    "configurations": [
+        {
+            "name": "Launch",
+            "type": "node-terminal",
+            "command": "./start.bat",
+            "request": "launch",
+        }
+    ]
+}
