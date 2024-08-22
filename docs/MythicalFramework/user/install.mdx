@@ -38,8 +38,6 @@ If you are using a WebHosting panel your only way to install the framework is vi
 
 Welcome to our installation documents for MythicalFramework
 
-When you are installing you have to options to install it!
-
 
 ### Installing Composer
 
@@ -242,8 +240,6 @@ iptables -A INPUT -p tcp --dport 3306 -j ACCEPT # MySQL
 iptables -A INPUT -p tcp --dport 6379 -j ACCEPT # Redis-CLI
 
 # Block forward so no one can use your domain to login inside SSH
-iptables -A FORWARD -p tcp --dport 80 -j ACCEPT # HTTP
-iptables -A FORWARD -p tcp --dport 443 -j ACCEPT # HTTPS
 iptables -A FORWARD -p tcp --dport 22 -j DROP # SSH
 iptables -A FORWARD -p tcp --dport 3306 -j DROP # MySQL
 iptables -A FORWARD -p tcp --dport 6379 -j DROP # Redis-CLI
