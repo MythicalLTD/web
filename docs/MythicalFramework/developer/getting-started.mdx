@@ -5,3 +5,50 @@ pagination_prev: null
 import Admonition from '@theme/Admonition';
 
 # Getting started
+
+Welcome to the developer documenation of MythicalFramework
+
+This documenation goes on how MythicalFramework works and how you can use it in your advantages!
+
+Now if you are a developer there are 4 types of things you can base on
+
+- [API Developer](#api-developer) (Use the api for other projects)
+- [Plugin Developer] (Developer of plugins)
+- Frontend Developer (Developer of themes)
+- Backend Developer (Developer of the `/app` folder)
+
+
+## API Developer
+
+If you are an api developer your only and only job is to try to make a 3rd party app from outside the app without editing any components form inside the app
+this means that the only kind of documenation you need is a postman documenation witch you can find under here: https://www.postman.com/mythicalsystems/workspace/mythicalframework
+
+
+## Plugin Developer
+
+If you are a plugin developer it means that you are allowed to modify the components on how MythicalFramework works!
+
+This means that you can create your own plugins to add your own integration to this platform and maybe to some other ppl that use our framework!
+
+You as a plugin developer are responsible for handling everything whats inside the `storage/addons` & `storage/themes` folder!
+
+You are not allowed to touch or modify any of the core components of the framework on the user end!
+
+And even if you think so make sure that you know that you have something called `events` witch not a lot of apps have!
+
+### What are events?
+
+Events are the same thing as in minecraft basically, it means that there are actions performed while something happens an example of this is
+
+- OnUserLogin 
+- OnUserRegister
+- OnUserPageLoad
+- OnUserLogout
+
+Those are some simple self explaining events! 
+
+Make sure that you know that those events are triggered before or even after the framework code was executed and in some instances you may not be able to cancel that event!
+
+Every event has its own documenation and you should first look into it before you start coding any plugin ;)
+
+If you want to create your first plugin make sure to check this documenation out: [Creating your first plugin](/docs/MythicalFramework/developer/plugins/getting-started)

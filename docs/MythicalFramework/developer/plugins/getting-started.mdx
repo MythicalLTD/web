@@ -1,0 +1,149 @@
+---
+id: getting-started
+pagination_prev: null
+
+---
+import Admonition from '@theme/Admonition';
+
+# Getting started
+
+This tutorial will teach you on how to create a new plugin for MythicalFramework!
+
+First you have to learn php :)
+
+## Naming your plugin 
+
+Next after you have that you will have to go inside the `storage/addons` folder and create a new folder with the addon name you want to give it!
+Here are some rules about naming your plugin/addon:
+
+- You can't use spaces
+- You can use any special character
+- It can't contain swear words 
+- It can't impersonate another plugin name
+- It can't be named after a requirement for example (MythicalLicense) when MythicalLicense is a plugin used for licenses
+
+Now that you have that make sure you create that folder with the plugin name. 
+
+Now that you have the folder make sure you create 2 files:
+
+- `MythicalFramework.json`
+- `PluginName.php`
+
+After you create that here is how `MythicalFramework` should look like: 
+
+```json
+{
+    "name": "Example",
+    "description": "A framework for MythicalSystems",
+    "version": "1.0.0",
+    "homepage": "https://mythicalsystems.xyz",
+    "require": [
+        "Test"
+    ],
+    "license": "MIT",
+    "stability": "stable",
+    "authors": [
+        "NaysKutzu",
+        "MythicalDoggo"
+    ],
+    "support": "https://discord.mythicalsystems.xyz",
+    "funding": "https://github.com/sponsors/nayskutzu"
+}
+```
+
+Here is how the json file is built and what you should give:
+
+### Name (Required)
+This is the name of the plugin witch should always match the folder and the php file name!!!!!!
+
+### Description (Required)
+This is a brief up on what the plugin does and what it should do or how it should behave!
+
+### Version (Required)
+This is the version of the plugin and it is being used for auto updaters so make sure you do not fuck this up!
+
+### Stability (Required)
+This is what stability the plugin has and this can't be something random and has to be something from this list:
+
+- alpha
+- beta
+- dev
+- rc
+- stable
+
+If anything else is used the plugin will be marked as invalid!
+
+### Requires (Required)
+This is what the plugin requires in other to run its like a dependency for another plugin or a composer plugin or a php extension
+
+
+#### Composer 
+
+For composer packages make sure it starts with: 
+- `composer=mythicalsystems/core`
+
+#### PHP 
+
+This is more like to get just the version and should be used like: 
+
+- `php=>=8.2`
+
+#### PHP-Ext
+
+This is incase you need a php extension to be installed on the server and this can be used like: 
+- `php-ext=pdo`
+
+#### Anything else
+
+If anything else is given that will be taken as a plugin name so the plugin name given should be installed on the server!
+
+### Authors
+This is a list and there has to be at least 1 in order for the plugin to boot!
+
+### Homepage
+This should be the plugin's homepage
+
+### License 
+This is what type of license is getting used for the plugin: `MIT`
+
+### Support 
+This is the support link that will show on the plugin
+
+### Funding 
+This is the funding link for the plugin in case if you accept donations! :)
+
+
+## Creating the plugin
+
+The php file that you created has to be filled with some of the default values in order for our compiler to compile it: 
+
+```php
+<?php
+
+use MythicalSystemsFramework\Plugins\PluginBuilder;
+
+class Example implements PluginBuilder
+{
+    /**
+     * @inheritDoc
+     */
+    public function Main()
+    {
+        //TODO: Implement the main function
+    }
+    /**
+     * @inheritDoc
+     */
+    public function Route(\Router\Router $router, \Twig\Environment $renderer)
+    {
+        
+    }
+}
+```
+
+This is a example of the file.
+
+If any of the function is wrong or you added an argument or something else the plugin will not load this plugin and will mark this plugin as a violation!
+
+After you do that you need to go to the web interface and allow this plugin to work!
+
