@@ -1,0 +1,102 @@
+---
+id: database-event
+pagination_prev: null
+pagination_next: null
+---
+
+# DatabaseEvent
+
+Name: `database.`
+
+Description: `Database events are events that are fired when a database action happens.`
+
+Since: `1.0.0`
+
+## Events
+
+| Event Name                 | Description                                                            | Since |
+|----------------------------|------------------------------------------------------------------------|-------|
+| [onDatabaseConnect][1]     | This event is getting fired when the database is connected!            | 1.0.0 |
+| [onDatabaseTryConnection][2]| This event is getting fired when the database connection is being attempted.      | 1.0.0 |
+| [onDatabaseRequestLock][3]  | This event is getting fired when there is an outstanding lock request for a record.       | 1.0.0 |
+| [onDatabaseReleaseLock][4]  | This event is getting fired when a lock is released for a record.       | 1.0.0 |
+| [onDatabaseMigration][5]        | This event is getting fired when a database migration is being performed.                  | 1.0.0 |
+
+[1]: #ondatabaseconnect
+[2]: #ondatabasetryconnection
+[3]: #ondatabaserequestlock
+[4]: #ondatabasereleaselock
+[5]: #ondatabasemigration
+
+### `onDatabaseConnect`
+
+FullName: `database.onDatabaseConnect`
+
+Description: `This event is getting fired when the database is connected!`
+
+Since: `1.0.0`
+
+Args:
+- `$connection` - The database connection
+
+Run:
+- After the database is connected this event is fired!
+
+### `onDatabaseTryConnection`
+
+FullName: `database.onDatabaseTryConnection`
+
+Description: `This event is getting fired when the database connection is being attempted!`
+
+Since: `1.0.0`
+
+Args:
+- Nothing
+
+Run:
+- When the database connection is being attempted this event is fired!
+
+### `onDatabaseRequestLock`
+
+FullName: `database.onDatabaseRequestLock`
+
+Description: `This event is getting fired when there is an outstanding lock request for a record!`
+
+Since: `1.0.0`
+
+Args:
+- `$table` - The record that is being locked
+- `$record` - The record id that is being locked
+
+Run:
+- When a lock request is outstanding this event is fired!
+
+### `onDatabaseReleaseLock`
+
+FullName: `database.onDatabaseReleaseLock`
+
+Description: `This event is getting fired when a lock is released for a record!`
+
+Since: `1.0.0`
+
+Args:
+- `$table` - The record that is being unlocked
+- `$record` - The record id that is being unlocked
+
+Run:
+- When a lock is released this event is fired!
+
+### `onDatabaseMigration`
+
+FullName: `database.onDatabaseMigration`
+
+Description: `This event is getting fired when a database migration is being performed!`
+
+Since: `1.0.0`
+
+Args:
+- Nothing
+
+Run:
+- When a database migration is being performed this event is fired!
+
