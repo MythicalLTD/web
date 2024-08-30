@@ -1,0 +1,31 @@
+---
+id: app-event
+---
+
+import Admonition from '@theme/Admonition';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# App Event
+
+:::caution This is a core component
+Please do not mess around with those events since they get executed when the app loads!
+:::
+
+<Tabs>
+<TabItem value='onAppLoad' label='onAppLoad' default>
+    Name: `app.onAppLoad`
+
+    Description: `This is the first event that runs after the plugins are started!`
+
+    ```php title='Example'
+    $eventHandler->on('app.onAppLoad', function ($router, $renderer) {
+        $router->add('/example', function () {
+            //Or create another renderer instance :)
+            die($renderer->render('index.twig'));
+        });
+    });
+    ```
+</TabItem>
+
+</Tabs>

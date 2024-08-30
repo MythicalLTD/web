@@ -1,0 +1,72 @@
+---
+id: xchacha20-event
+---
+
+# XChaCHa20 Event
+
+import Admonition from '@theme/Admonition';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+:::caution This is a core component
+Avoid making plugins listen to this even or add code to it because it can lead to data corruption!
+:::
+
+<Tabs>
+<TabItem value='OnDecrypt' label='OnDecrypt' default>
+    Name: `xchacha20.OnDecrypt`
+
+    Description: `Decrypt a string.`
+
+    ```php title='Example'
+    $eventHandler->on('xchacha20.OnDecrypt', function ($text_encrypted, $text_decrypted) {
+        //Do whatever you think is good to do idk ;)!
+    });
+    ```
+
+    Arguments:
+
+    | Name | Description | Type |
+    |------|-------------|------|
+    | `$text_encrypted` | The encrypted text | string |
+    | `$text_decrypted` | The decrypted text | string |
+
+</TabItem>
+<TabItem value='OnEncrypt' label='OnEncrypt' default>
+    Name: `xchacha20.OnEncrypt`
+
+    Description: `Encrypt a string.`
+
+    ```php title='Example'
+    $eventHandler->on('xchacha20.OnEncrypt', function ($text_decrypted, $text_encrypted) {
+        //Do whatever you think is good to do idk ;)!
+    });
+    ```
+
+    Arguments:
+
+    | Name | Description | Type |
+    |------|-------------|------|
+    | `$text_decrypted` | The decrypted text | string |
+    | `$text_encrypted` | The encrypted text | string |
+
+</TabItem>
+<TabItem value='OnGenerateKey' label='OnGenerateKey' default>
+    Name: `xchacha20.OnGenerateKey`
+
+    Description: `When a new key gets generated.`
+
+    ```php title='Example'
+    $eventHandler->on('xchacha20.OnGenerateKey', function ($new_key) {
+        //Do whatever you think is good to do idk ;)!
+    });
+    ```
+
+    Arguments:
+
+    | Name | Description | Type |
+    |------|-------------|------|
+    | `$new_key` | The new key | string |
+
+</TabItem>
+</Tabs>

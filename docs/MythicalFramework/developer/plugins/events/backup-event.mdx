@@ -1,0 +1,73 @@
+---
+id: backup-event
+---
+
+# Backup Event
+
+import Admonition from '@theme/Admonition';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+:::caution This is a core component
+Avoid making plugins listen to this even or add code to it because it can lead to data corruption
+:::
+
+<Tabs>
+<TabItem value='onBackupTake' label='onBackupTake' default>
+    Name: `backup.onBackupTake`
+
+    Description: `This script runs when there is a backup being taken!`
+
+    ```php title='Example'
+    $eventHandler->on('backup.onBackupTake', function ($path, $id) {
+        // Do something with the path and the database id ;)
+    });
+    ```
+
+    Arguments:
+
+    | Name | Description | Type |
+    |------|-------------|------|
+    | `$path` | The path of where the sql dump will be saved! | string |
+    | `$id` | The id of the backup in the database| int|
+
+</TabItem>
+<TabItem value='onBackupRestore' label='onBackupRestore' default>
+    Name: `backup.onBackupRestore`
+
+    Description: `This script runs when the backup is getting restored!`
+
+    ```php title='Example'
+    $eventHandler->on('backup.onBackupRestore', function ($path, $backup_id) {
+        // Do something with the path and the database id ;)
+    });
+    ```
+
+    Arguments:
+
+    | Name | Description | Type |
+    |------|-------------|------|
+    | `$path` | The path of where the sql is!| string |
+    | `$backup_id` | The id of the backup in the database| int|
+
+</TabItem>
+<TabItem value='onBackupDelete' label='onBackupDelete' default>
+    Name: `backup.onBackupDelete`
+
+    Description: `This script runs when the backup is getting deleted!`
+
+    ```php title='Example'
+    $eventHandler->on('backup.onBackupDelete', function ($path, $backup_id) {
+        // Do something with the path and the database id ;)
+    });
+    ```
+
+    Arguments:
+
+    | Name | Description | Type |
+    |------|-------------|------|
+    | `$path` | The path of where the sql is!| string |
+    | `$backup_id` | The id of the backup in the database| int|
+</TabItem>
+
+</Tabs>
