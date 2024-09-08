@@ -1,0 +1,66 @@
+---
+id: logger-event
+---
+
+# Logger Event
+
+import Admonition from '@theme/Admonition';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+<Tabs>
+<TabItem value='Log' label='Log' default>
+    Name: `logger.Log`
+
+    Description: `Log something inside the kernel framework_logs.`
+
+    ```php title='Example'
+    $eventHandler->on('logger.Log', function (string $level, string $type, string $message) {
+        //Do whatever you think is good to do idk ;)!
+    });
+    ```
+
+    Arguments
+
+| Argument   | Type     | Description                 |
+| ---------- | -------- | --------------------------- |
+| `$level`   | `string` | The level of the logging    |
+| `$type`    | `string` | The type of log             |
+| `$message` | `string` | The message you want to log |
+
+</TabItem>
+<TabItem value='Delete' label='Delete' default>
+    :::tip
+        This even is getting executed before the log gets deleted so you can still grab its old content!
+    :::
+    Name: `logger.Delete`
+
+    Description: `Delete a log by ID.`
+
+    ```php title='Example'
+    $eventHandler->on('logger.Delete', function (int $id) {
+        //Do whatever you think is good to do idk ;)!
+    });
+    ```
+
+    Arguments
+
+| Argument | Type  | Description       |
+| -------- | ----- | ----------------- |
+| `$id`    | `int` | The id of the log |
+
+</TabItem>
+<TabItem value='DeleteAll' label='DeleteAll' default>
+
+    Name: `logger.DeleteAll`
+
+    Description: `Delete all framework_logs.`
+
+    ```php title='Example'
+    $eventHandler->on('logger.DeleteAll', function () {
+        //Do whatever you think is good to do idk ;)!
+    });
+    ```
+
+</TabItem>
+</Tabs>

@@ -86,7 +86,7 @@ For composer packages make sure it starts with:
 
 This is more like to get just the version and should be used like: 
 
-- `php=>=8.2`
+- `php=8.2`
 
 #### PHP-Ext
 
@@ -134,7 +134,7 @@ class Example implements PluginBuilder
     /**
      * @inheritDoc
      */
-    public function Route(\Router\Router $router, \Twig\Environment $renderer)
+    public function Event(MythicalSystemsFramework\Plugins\PluginEvent $eventHandler)
     {
         
     }

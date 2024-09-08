@@ -1,0 +1,55 @@
+---
+id: settings-event
+---
+
+# Settings Event
+
+import Admonition from '@theme/Admonition';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+<Tabs>
+<TabItem value='updateSetting' label='updateSetting' default>
+    :::tip
+        This even is getting executed before the log gets deleted so you can still grab its old content!
+    :::
+    Name: `settings.updateSetting`
+
+    Description: `Update a setting in the database.`
+
+    ```php title='Example'
+    $eventHandler->on('settings.updateSetting', function ($category, string $name, string $value, bool $updateCache) {
+        //Do whatever you think is good to do idk ;)!
+    });
+    ```
+
+    Arguments
+     * @param string $category The name of the category
+     * @param string $name The name of the setting
+     * @param string $value The value you want to replace with!
+     * @param bool $updateCache Update the cache after updating the setting
+
+</TabItem>
+<TabItem value='setSetting' label='setSetting' default>
+    :::tip
+        This even is getting executed before the log gets deleted so you can still grab its old content!
+    :::
+    Name: `settings.setSetting`
+
+    Description: `Update a setting in the database.`
+
+    ```php title='Example'
+    $eventHandler->on('settings.setSetting', function ($category, string $name, string $value, bool $updateCache) {
+        //Do whatever you think is good to do idk ;)!
+    });
+    ```
+
+    Arguments
+     * @param string $category The name of the category
+     * @param string $name The name of the setting
+     * @param string $value The value you want to set!
+     * @param bool $updateCache Update the cache after updating the setting
+
+</TabItem>
+
+</Tabs>

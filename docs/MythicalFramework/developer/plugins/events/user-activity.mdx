@@ -1,0 +1,62 @@
+---
+id: user-activity
+---
+
+# User Activity
+
+import Admonition from '@theme/Admonition';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+<Tabs>
+<TabItem value='onAdd' label='onAdd' default>
+    Name: `useractivity.onAdd`
+
+    Description: `Adds a new activity to the database.`
+
+    ```php title='Example'
+    $eventHandler->on('useractivity.onAdd', function ($userId, $description, $action, $ipv4, $time) {
+        //Do whatever you think is good to do idk ;)!
+    });
+    ```
+
+    Arguments:
+
+| Name           | Description              | Type   |
+| -------------- | ------------------------ | ------ |
+| `$userId`      | the user ID              | string |
+| `$description` | the activity description | string |
+| `$ipv4`        | the user ip              | string |
+| `$action`      | the action               | string |
+
+</TabItem>
+<TabItem value='onRemoveUserAll' label='onRemoveUserAll' default>
+    Name: `useractivity.onRemoveUserAll`
+
+    Description: `Purges any activity on a given user id!.`
+
+    ```php title='Example'
+    $eventHandler->on('useractivity.onRemoveUserAll', function ($userId) {
+        //Do whatever you think is good to do idk ;)!
+    });
+    ```
+
+    Arguments:
+| Name      | Description | Type   |
+| --------- | ----------- | ------ |
+| `$userId` | the user ID | string |
+
+</TabItem>
+<TabItem value='onRemoveAll' label='onRemoveAll' default>
+    Name: `useractivity.onRemoveAll`
+
+    Description: `Purge every user activity`
+
+    ```php title='Example'
+    $eventHandler->on('useractivity.onRemoveAll', function () {
+        //Do whatever you think is good to do idk ;)!
+    });
+    ```
+
+</TabItem>
+</Tabs>
