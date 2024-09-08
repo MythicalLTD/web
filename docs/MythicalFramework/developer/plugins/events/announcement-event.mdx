@@ -1,0 +1,127 @@
+---
+id: announcement-event
+---
+
+# Announcement Event
+
+import Admonition from '@theme/Admonition';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+<Tabs>
+
+<TabItem value='Create' label='Create' default>
+    Name: `announcements.Create`
+
+    Description: `Create a new announcement.`
+
+    ```php title='Example'
+    $eventHandler->on('announcements.Create', function (string $title, int $text,int $announcement_id) {
+        //Do whatever you think is good to do idk ;)!
+    });
+    ```
+
+    Arguments
+     * @param string $title The title of the announcement
+     * @param string $text The text of the announcement
+     * @param int $announcement_id The id of the announcement
+
+</TabItem>
+
+<TabItem value='Edit' label='Edit'>
+    :::tip
+        This event runs before the announcement gets edited!
+    :::
+    
+    Name: `announcements.edit`
+
+    Description: `Edit an existing announcement by ID.`
+
+    ```php title='Example'
+    $eventHandler->on('announcements.Edit', function (int $id, string $title,string $text) {
+        //Do whatever you think is good to do idk ;)!
+    });
+    ```
+
+
+    Arguments
+     * @param int $id The ID of the announcement
+     * @param string $title The new title of the announcement
+     * @param string $text The new text of the announcement
+
+</TabItem>
+
+<TabItem value="Delete" label="Delete"> 
+    :::tip
+        This event runs before the announcement gets deleted!
+    :::
+
+    Name: `announcements.delete`
+
+    Description: `Delete an announcement by ID.`
+
+    ```php title='Example'
+    $eventHandler->on('announcements.Delete', function (int $id) {
+        //Do whatever you think is good to do idk ;)!
+    });
+    ```
+
+    Arguments
+     * @param int $id The ID of the announcement
+
+</TabItem>
+
+<TabItem value="DeleteAll" label="DeleteAll"> 
+    Name: `announcements.DeleteAll`
+
+    Description: `Delete all announcements.`
+
+    ```php title='Example'
+    $eventHandler->on('announcements.DeleteAll', function () {
+        //Do whatever you think is good to do idk ;)!
+    });
+    ```
+
+</TabItem>
+
+<TabItem value="AddSocialInteraction" label="AddSocialInteraction"> 
+    Name: `announcements.AddSocialInteraction`
+
+    Description: `Add a social interaction to an announcement.`
+
+    ```php title='Example'
+     $eventHandler->on('announcements.AddSocialInteraction', function (int $announcement_id,string $user_uuid, string $type) {
+        //Do whatever you think is good to do idk ;)!
+    });
+    ```
+
+    Arguments
+     * @param string $announcement_id The ID of the announcement
+     * @param string $user_uuid The UUID of the user
+     * @param string $type The type of the social interaction
+
+</TabItem>
+
+<TabItem value="RemoveSocialInteraction" label="RemoveSocialInteraction"> 
+    :::tip
+        This event runs before a social interaction gets removed from an announcement!
+    :::
+
+    Name: `announcements.RemoveSocialInteraction`
+
+    Description: `Remove a social interaction from an announcement.`
+
+    ```php title='Example'
+     $eventHandler->on('announcements.AddSocialInteraction', function (int $announcement_id,string $user_uuid, string $type) {
+        //Do whatever you think is good to do idk ;)!
+    });
+    ```
+
+    Arguments
+     * @param string $announcement_id The ID of the announcement
+     * @param string $user_uuid The UUID of the user
+     * @param string $type The type of the social interaction
+
+</TabItem>
+
+</Tabs>
