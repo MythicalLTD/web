@@ -1,0 +1,74 @@
+---
+id: alerts
+---
+
+# Alerts
+
+Alerts are a powerful function from MythicalFramework and are used to display feedback to the user!
+
+If you are making a plugin and you need to display a error message you have to keep in mind that if you want to register the alerts
+you have to register them at the end of the page load and not before since added globals after the register alerts will not be registered!!!!
+
+If you are using the alert class you may already know that every alert message is a `GET` request at the end of the url!!
+
+All alerts messages are taken from the language file!!!!
+
+The alert library we use is `SweetAlert2` and is a requirement alongside the `JQuery` lib and many others!
+
+Here is a full list of alerts you can show the user!
+
+## Error Alerts
+
+| Code                          | Message                                  |
+| ----------------------------- | ---------------------------------------- |
+| `csrf`                        | CSRF verification failed                 |
+| `captcha`                     | Captcha error                            |
+| `user_not_found`              | User not found                           |
+| `user_banned`                 | User banned                              |
+| `user_not_verified`           | User not verified                        |
+| `code_invalid`                | Code invalid                             |
+| `code_expired`                | Code expired                             |
+| `code_not_exist`              | Code does not exist                      |
+| `user_deleted`                | User deleted                             |
+| `missing_fields`              | Please fill all fields                   |
+| `password_week`               | Password too weak                        |
+| `password_not_valid`          | Password not valid                       |
+| `email_not_valid`             | Email not valid                          |
+| `username_not_valid`          | Username not valid                       |
+| `first_name_not_valid`        | First name not valid                     |
+| `last_name_not_valid`         | Last name not valid                      |
+| `password_same_as_username`   | Password can't be same as username       |
+| `password_same_as_email`      | Password can't be same as email          |
+| `password_same_as_first_name` | Password can't be same as first name     |
+| `password_same_as_last_name`  | Password can't be same as last name      |
+| `username_exists`             | Username exists                          |
+| `email_exists`                | Email exists                             |
+| `2fa_already_setup`           | Two-factor authentication already set up |
+| `2fa_not_setup`               | Two-factor authentication not set up     |
+| `2fa_failed`                  | Two-factor authentication failed         |
+| `unknown`                     | Unknown error                            |
+| `mailserver_misconfiguration` | Mail server misconfiguration             |
+| `already_liked`               | Already liked                            |
+| `like_yourself`               | Cannot like yourself                     |
+| `user_not_own_object`         | User does not own target                 |
+| `password_mismatch`           | Passwords do not match                   |
+
+## Success Alerts
+
+| Code                     | Message                                           |
+| ------------------------ | ------------------------------------------------- |
+| `2fa_setup_success`      | Two-factor authentication setup successful        |
+| `2fa_setup_disabled`     | Two-factor authentication disabled                |
+| `2fa_setup_code_correct` | Two-factor authentication code correct            |
+| `login`                  | Login successful                                  |
+| `register`               | Registration successful                           |
+| `logout`                 | Logout successful                                 |
+| `password_reset`         | Password reset successful                         |
+| `password_forgot`        | Password reset email sent                         |
+| `mail_verify`            | Email verification successful                     |
+| `liked`                  | Liked successfully                                |
+| `disliked`               | Disliked successfully                             |
+
+## Warning Alerts
+
+SOON!

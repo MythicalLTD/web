@@ -1,0 +1,59 @@
+---
+id: language
+---
+
+# Language Manager
+
+The language functions are simple functions to list the messages from the language files!
+
+When using this function remember that the language is global and its not meant for the user to switch
+
+the language to another file so if the website is based on english then everyone is going to have english as the main language
+
+Remember this is a `.yml` file and its syntax should be respected and followed with paths like `Alerts.Success.Social.Liked.Message` to get a message!
+
+For that you can use the extension that we developed for the framework so you can just right click and copy the full yaml path to the message!
+
+-   https://marketplace.visualstudio.com/items?itemName=MythicalSystems.mythicalframework-utils
+
+With that installed you can just right click to the yaml message and click `Copy yaml path` and it will copy the full path string that you can use in php!
+
+# IMPORTANT
+
+If a message does not exist it will fall back to `null` and thats nothing so it will be empty so make sure the path is right!
+
+Same goes for the yaml syntax if there is a violation nothing will display!!
+
+## How to get a message?
+
+
+### PHP
+
+To get a message you can use the function: `\MythicalSystemsFramework\Language\Manager` class!
+
+Here is a example on how to get a language!
+
+```php
+$language = new \MythicalSystemsFramework\Language\Manager();
+
+$message = $language->get('Alerts.Success.Social.Liked.Message');
+
+echo $message;
+```
+### TWIG (Theme)
+This is an example in php but if you want to get a language inside twig (themes) you can use the twig function called `lang()`
+
+Here is a example on how to do that using twig
+
+```html
+<h4 class="mb-1">{{ lang('Alerts.Success.Social.Liked.Message') }}</h4>
+```
+
+This example will work in every theme file because its a global value!
+
+
+When using those examples make sure you replace `Alerts.Success.Social.Liked.Message` with the message you want to display in the code you need!
+
+## Plugin side Language Integration
+
+For now plugins can not add language messages to the app ;(

@@ -1,8 +1,8 @@
 ---
 id: getting-started
 pagination_prev: null
-
 ---
+
 import Admonition from '@theme/Admonition';
 
 # Getting started
@@ -11,41 +11,36 @@ This tutorial will teach you on how to create a new plugin for MythicalFramework
 
 First you have to learn php :)
 
-## Naming your plugin 
+## Naming your plugin
 
 Next after you have that you will have to go inside the `storage/addons` folder and create a new folder with the addon name you want to give it!
 Here are some rules about naming your plugin/addon:
 
-- You can't use spaces
-- You can use any special character
-- It can't contain swear words 
-- It can't impersonate another plugin name
-- It can't be named after a requirement for example (MythicalLicense) when MythicalLicense is a plugin used for licenses
+-   You can't use spaces
+-   You can use any special character
+-   It can't contain swear words
+-   It can't impersonate another plugin name
+-   It can't be named after a requirement for example (MythicalLicense) when MythicalLicense is a plugin used for licenses
 
-Now that you have that make sure you create that folder with the plugin name. 
+Now that you have that make sure you create that folder with the plugin name.
 
 Now that you have the folder make sure you create 2 files:
 
-- `MythicalFramework.json`
-- `PluginName.php`
+-   `MythicalFramework.json`
+-   `PluginName.php`
 
-After you create that here is how `MythicalFramework` should look like: 
+After you create that here is how `MythicalFramework` should look like:
 
 ```json
 {
-    "name": "Example",
+    "name": "Test",
     "description": "A framework for MythicalSystems",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "homepage": "https://mythicalsystems.xyz",
-    "require": [
-        "Test"
-    ],
     "license": "MIT",
     "stability": "stable",
-    "authors": [
-        "NaysKutzu",
-        "MythicalDoggo"
-    ],
+    "require": ["MythicalSystemsFramework"],
+    "authors": ["NaysKutzu", "MythicalDoggo"],
     "support": "https://discord.mythicalsystems.xyz",
     "funding": "https://github.com/sponsors/nayskutzu"
 }
@@ -54,89 +49,116 @@ After you create that here is how `MythicalFramework` should look like:
 Here is how the json file is built and what you should give:
 
 ### Name (Required)
+
 This is the name of the plugin witch should always match the folder and the php file name!!!!!!
 
 ### Description (Required)
+
 This is a brief up on what the plugin does and what it should do or how it should behave!
 
 ### Version (Required)
+
 This is the version of the plugin and it is being used for auto updaters so make sure you do not fuck this up!
 
 ### Stability (Required)
+
 This is what stability the plugin has and this can't be something random and has to be something from this list:
 
-- alpha
-- beta
-- dev
-- rc
-- stable
+-   alpha
+-   beta
+-   dev
+-   rc
+-   stable
 
 If anything else is used the plugin will be marked as invalid!
 
-### Requires (Required)
+### Require (Required)
+
 This is what the plugin requires in other to run its like a dependency for another plugin or a composer plugin or a php extension
 
+#### Composer
 
-#### Composer 
+For composer packages make sure it starts with:
 
-For composer packages make sure it starts with: 
-- `composer=mythicalsystems/core`
+-   `composer=mythicalsystems/core`
 
-#### PHP 
+#### PHP
 
-This is more like to get just the version and should be used like: 
+This is more like to get just the version and should be used like:
 
-- `php=8.2`
+-   `php=8.2`
 
 #### PHP-Ext
 
-This is incase you need a php extension to be installed on the server and this can be used like: 
-- `php-ext=pdo`
+This is incase you need a php extension to be installed on the server and this can be used like:
+
+-   `php-ext=pdo`
 
 #### Anything else
 
 If anything else is given that will be taken as a plugin name so the plugin name given should be installed on the server!
 
-### Authors
+### Authors (Required)
+ 
 This is a list and there has to be at least 1 in order for the plugin to boot!
 
 ### Homepage
+
 This should be the plugin's homepage
 
-### License 
+### License
+
 This is what type of license is getting used for the plugin: `MIT`
 
-### Support 
+### Support
+
 This is the support link that will show on the plugin
 
-### Funding 
-This is the funding link for the plugin in case if you accept donations! :)
+### Funding
 
+This is the funding link for the plugin in case if you accept donations! :)
 
 ## Creating the plugin
 
-The php file that you created has to be filled with some of the default values in order for our compiler to compile it: 
+The php file that you created has to be filled with some of the default values in order for our compiler to compile it:
 
 ```php
-<?php
 
 use MythicalSystemsFramework\Plugins\PluginBuilder;
 
-class Example implements PluginBuilder
+class Test implements PluginBuilder
 {
     /**
      * @inheritDoc
      */
-    public function Main()
+    public function Main(): void
     {
-        //TODO: Implement the main function
+        // TODO: Implement the main function
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function Event(MythicalSystemsFramework\Plugins\PluginEvent $eventHandler): void
+    {
+
     }
     /**
      * @inheritDoc
      */
-    public function Event(MythicalSystemsFramework\Plugins\PluginEvent $eventHandler)
-    {
-        
+    public function onInstall(): void {
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function onUninstall(): void {
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function onUpdate(): void {
     }
 }
 ```
@@ -147,3 +169,74 @@ If any of the function is wrong or you added an argument or something else the p
 
 After you do that you need to go to the web interface and allow this plugin to work!
 
+
+### Using Events
+
+Events are one of the most powerful thing that MythicalFramework has!
+
+Events are things that happen when something happens like 
+
+- When a user registered perform a action from plugin X 
+
+Events are also well documented and you can find all of them in this documenation or just click this link: 
+
+- [Example Event](/docs/MythicalFramework/developer/plugins/events/announcement-event)
+  
+
+### Adding Language files
+
+If your plugin has a GUI interface like a web interface you may want to display messages from your plugin specific
+
+For that you can just create a new folder called: `lang` and inside there you will need to add files like `en_US.yml` or 
+other languages that your plugin support's!
+
+On more info on how to use languages check this doc: 
+
+- [Link](/docs/MythicalFramework/developer/developers/components/language)
+
+### Displaying User feedback (Alerts)
+
+This is in case you need to display error's or successful messages to the user!
+
+You can do that by just redirecting the user to the path and appending `s` for successful or
+`e` for error messages at the end of the url!
+
+For more of that make sure you check this doc:
+
+- [Link](/docs/MythicalFramework/developer/developers/components/alerts)
+
+### Adding cron jobs
+
+Woah it looks like you want to add cron jobs to plugins :))
+
+For that you will have to create another folder called `crons` and inside you will need to place php files that look like this: 
+
+
+```php
+use MythicalSystemsFramework\Cli\Kernel;
+
+echo Kernel::translateColorsCode('Hello, World!&o');
+```
+
+This will be a native php file and does not require any class usage or what so ever so you can do what ever you want!
+
+
+REMEMBER!!! 
+
+This class runs every one minute so you will have to make your own logic behind it if you want the job to run every 24h or so on!
+
+
+### Adding CLI Commands
+
+Woah we are sorry but this future has been removed due to some compatibility issues and due to this function being very dangerous!
+
+
+Thats why onInstall and OnUninstall are a function in the plugin so it will compensate for the CLI!
+
+### Adding Template Modifications
+
+This is a future we are still working on and will take some time to release but for now you can use the `$renderer` event to figure something out!
+
+### Adding new pages!
+
+This is a event action and there is no built in function you can create pages but you can create pages using the `$event->emit('app.onAppLoad', [$router, $renderer]);`
