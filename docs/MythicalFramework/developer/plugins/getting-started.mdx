@@ -33,14 +33,23 @@ After you create that here is how `MythicalFramework` should look like:
 
 ```json
 {
-    "name": "Test",
-    "description": "A framework for MythicalSystems",
+    "name": "Core",
+    "description": "The core plugin for MythicalFramework",
+    "icon": "https://raw.githubusercontent.com/MythicalLTD/FrameworkBackup24/refs/heads/main/icon.png",
     "version": "1.0.1",
     "homepage": "https://mythicalsystems.xyz",
+    "require": [
+        "MythicalSystemsFramework",
+        "php=8.2.0",
+        "php-ext=mysqli",
+        "composer=mythicalsystems/core"
+    ],
     "license": "MIT",
     "stability": "stable",
-    "require": ["MythicalSystemsFramework"],
-    "authors": ["NaysKutzu", "MythicalDoggo"],
+    "authors": [
+        "NaysKutzu",
+        "MythicalDoggo"
+    ],
     "support": "https://discord.mythicalsystems.xyz",
     "funding": "https://github.com/sponsors/nayskutzu"
 }
