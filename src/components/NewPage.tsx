@@ -187,12 +187,12 @@ const Card = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => 
 
 // Live statistics component
 const LiveStatistics = () => {
-    const [stats, setStats] = React.useState({
+    const [stats] = React.useState({
         users: 1424226,
         projects: 55,
         uptime: 99.99
     })
-    
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
             {Object.entries(stats).map(([key, value]) => (
