@@ -72,7 +72,7 @@ const ResourceUsage = () => {
         disk: 0,
     })
     React.useEffect(() => {
-        const ws = new WebSocket('ws://45.83.245.217:9824');
+        const ws = new WebSocket('wss://45.83.245.217:9824');
 
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
