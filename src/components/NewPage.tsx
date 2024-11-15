@@ -192,19 +192,7 @@ const LiveStatistics = () => {
         projects: 55,
         uptime: 99.99
     })
-
-    React.useEffect(() => {
-        const interval = setInterval(() => {
-            setStats(prev => ({
-                users: prev.users + Math.floor(Math.random() * 10),
-                projects: prev.projects + Math.floor(Math.random() * 5),
-                uptime: Math.min(100, prev.uptime + Math.random() * 0.001)
-            }))
-        }, 5000)
-
-        return () => clearInterval(interval)
-    }, [])
-
+    
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
             {Object.entries(stats).map(([key, value]) => (
