@@ -7,7 +7,7 @@ Well done! You have successfully installed MythicalDash. You can now send out th
 
 ### What's next?
  - [Join the Discord](https://discord.gg/eWUYVEZVxz)
- - [Visit the Main Website](https://mythicalsystems.xyz)
+ - [Visit the Main Website](https://mythical.systems)
  - [Star us on GitHub](https://github.com/mythicalltd/mythicaldash)
  - [Support us](https://github.com/sponsors/nayskutzu)
  

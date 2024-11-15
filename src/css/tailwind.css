@@ -1,3 +1,53 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+/**
+  Tell the browser that this is a dark theme.
+**/
+:root {
+    color-scheme: dark;
+}
+
+/* Global Scrollbar Styles */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1e1e2e;
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #3f3f5f;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #8b5cf6;
+}
+
+/* For Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #3f3f5f #1e1e2e;
+}
+
+/* When the scrollbar is actively being used */
+::-webkit-scrollbar-thumb:active {
+    background: #9f7aea;
+}
+
+/* Styling for horizontal scrollbars */
+::-webkit-scrollbar-corner {
+    background: #1e1e2e;
+}
+
+/* Optional: Style for when the mouse is over the scrollable area */
+:hover::-webkit-scrollbar-thumb {
+    background: #4a4a6a;
+}

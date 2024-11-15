@@ -45,7 +45,7 @@ If you get an error like failed to connect to the panel, it can mean a lot of th
 - Someone is DDoSing your pterodactyl panel
 
 Remember if it was for the dash to not work other hosts would not work and this dash will not work:
-- https://mythicaldash.mythicalsystems.xyz
+- https://mythicaldash.mythical.systems
 
 So if you are sure that there is none of the listed method then you can proceed to ask us for help!
 
@@ -54,7 +54,7 @@ So if you are sure that there is none of the listed method then you can proceed 
 
 If the servers do not create here are some steps that you can take to fix!
 
-1) Check if mythicaldash is in crontab: https://docs.mythicalsystems.xyz/docs/MythicalDash/install#crontab-configuration
+1) Check if mythicaldash is in crontab: https://docs.mythical.systems/docs/MythicalDash/install#crontab-configuration
 2) Check the logs by just pressing (CTRL+D) on your keyboard! 
 A popup should come, and you will have to enter this id: `106` and there just go to the latest page! And if the page is empty, that just means you did not do step one! Next you can ask support with the error from the cron so we can help you!
 

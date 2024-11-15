@@ -100,7 +100,7 @@ const sidebars: SidebarsConfig = {
         {
             type: 'link',
             label: 'Discord Server',
-            href: 'https://discord.mythicalsystems.xyz',
+            href: 'https://discord.mythical.systems',
         },
         {
             type: 'link',
@@ -110,7 +110,7 @@ const sidebars: SidebarsConfig = {
         {
             type: 'link',
             label: 'Status',
-            href: 'https://status.mythicalsystems.xyz/',
+            href: 'https://status.mythical.systems/',
         },
         {
             type: 'link',

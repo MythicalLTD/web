@@ -12,7 +12,7 @@ const config: Config = {
   title: 'MythicalSystems LTD',
   tagline: 'We code the future.',
   favicon: 'https://avatars.githubusercontent.com/u/117385445',
-  url: 'https://mythicalsystems.xyz',
+  url: 'https://mythical.systems',
   baseUrl: '/',
   organizationName: 'mythicalltd',
   projectName: 'web', 
@@ -47,7 +47,7 @@ const config: Config = {
 
   themeConfig: {
       metadata: [
-      { name: 'keywords', content: 'mythicalsystems, mythicaldash, mythicalclient, mythicalbilling, mythicalsystems ltd, mythicalsystems info , mythicalsystems projects, mythicalsystems github, pterodactyl, stopabuse, nayskutuz, cassian gherman, nayskutzuftw, mythicaldoggo, mythicalsystems website, mythicalsystems info, mythicalsystems.xyz, oldmythicalsystems, mythicaldoggo, nayskutzu, nayskutzuftw, polartoflex, multyplay,noxlcraft,mythic-romania,mythic-craft, mysticcraft,mythicaldash, mythicalclient, mythicalframework, mythicalframework api, api, mythicalframework docs, mythicalframework github, mythicalframework info, mythicalframework projects, mythicalframework website, documenation mythical, mythicaldocs, mythical website, hurawatch, testing, mythic, holaclient, hellactyl, pterodactyl, hosting, cms' },
+      { name: 'keywords', content: 'mythicalsystems, mythicaldash, mythicalclient, mythicalbilling, mythicalsystems ltd, mythicalsystems info , mythicalsystems projects, mythicalsystems github, pterodactyl, stopabuse, nayskutuz, cassian gherman, nayskutzuftw, mythicaldoggo, mythicalsystems website, mythicalsystems info, mythical.systems, oldmythicalsystems, mythicaldoggo, nayskutzu, nayskutzuftw, polartoflex, multyplay,noxlcraft,mythic-romania,mythic-craft, mysticcraft,mythicaldash, mythicalclient, mythicalframework, mythicalframework api, api, mythicalframework docs, mythicalframework github, mythicalframework info, mythicalframework projects, mythicalframework website, documenation mythical, mythicaldocs, mythical website, hurawatch, testing, mythic, holaclient, hellactyl, pterodactyl, hosting, cms' },
       { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:site', content: '@mythicalsystems' },
       { name: 'og:image', content: 'https://avatars.githubusercontent.com/u/117385445' },
@@ -66,8 +66,8 @@ const config: Config = {
         { to: '/docs', label: 'Docs', position: 'left' },
         { to: "/blog", label: "Blog", position: "left" },
         { to: "/donate", label: "Donate", position: "left" },
-        { to: "https://status.mythicalsystems.xyz", label: "Status", position: "left" },
-        { to: "https://discord.mythicalsystems.xyz", label: "Discord", position: "left" },
+        { to: "https://status.mythical.systems", label: "Status", position: "left" },
+        { to: "https://discord.mythical.systems", label: "Discord", position: "left" },
         { href: "https://github.com/mythicalltd", position: "right", className: "github-link", },
       ],
     },
@@ -93,7 +93,7 @@ const config: Config = {
             },
             {
               label: 'Discord',
-              href: 'https://discord.mythicalsystems.xyz',
+              href: 'https://discord.mythical.systems',
             }
           ],
         },
