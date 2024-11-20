@@ -258,7 +258,7 @@ export default function Component() {
                     </motion.p>
                     <div className="flex flex-wrap justify-center gap-4">
                         <Button>
-                            <a href="/docs/index" className="flex items-center">
+                            <a href="/docs" className="flex items-center">
                                 Documentation
                                 <ArrowRight className="ml-2 h-4 w-4" />
                             </a>
