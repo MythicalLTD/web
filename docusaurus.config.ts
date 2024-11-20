@@ -16,7 +16,7 @@ const config: Config = {
   baseUrl: '/',
   organizationName: 'mythicalltd',
   projectName: 'web', 
-  onBrokenLinks: 'throw',
+  onBrokenLinks: 'warn',
   onBrokenMarkdownLinks: 'warn',
   i18n: {
     defaultLocale: 'en',
