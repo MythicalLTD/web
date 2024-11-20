@@ -1,0 +1,50 @@
+---
+id: 'uninstall'
+pagination_next: null
+pagination_prev: null
+---
+# Uninstall MythicalDash
+
+## Remove the Database
+
+First, remove the database and the MythicalDash user:
+
+```bash
+mysql -u root -p
+DROP DATABASE mythicaldash;
+DROP USER 'mythicaldash'@'127.0.0.1';
+exit
+```
+
+## Remove Directories
+
+Next, delete the MythicalDash directory:
+
+```bash
+rm -rf /var/www/mythicaldash
+```
+
+## Remove Crontab
+
+Edit the crontab to remove MythicalDash jobs:
+
+```bash
+sudo crontab -e
+```
+
+## Remove Nginx Config
+
+Delete the Nginx configuration files:
+
+```bash
+rm /etc/nginx/sites-available/MythicalDash.conf 
+rm /etc/nginx/sites-enabled/MythicalDash.conf
+```
+
+## Restart Nginx
+
+Finally, restart Nginx:
+
+```bash
+systemctl restart nginx --now
+```

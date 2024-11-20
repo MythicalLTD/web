@@ -1,5 +1,7 @@
 ---
-sidebar_position: 6
+id: 'upgrade'
+pagination_next: null
+pagination_prev: null
 ---
 # Update MythicalDash
 
@@ -16,7 +18,7 @@ zip -r clientbackup.zip mythicaldash/
 The first step in the update process is to download the new client files from GitHub. The command below will download the release archive for the most recent version of MythicalDash.
 ```bash
 cd /var/www/mythicaldash
-curl -Lo MythicalDash.zip https://github.com/mythicalltd/mythicaldash/releases/latest/download/MythicalDash.zip
+curl -Lo MythicalDash.zip https://github.com/MythicalLTD/MythicalDash/releases/download/3.2.3/MythicalDash.zip
 unzip -o MythicalDash.zip -d /var/www/mythicaldash
 dos2unix arch.bash
 sudo bash arch.bash

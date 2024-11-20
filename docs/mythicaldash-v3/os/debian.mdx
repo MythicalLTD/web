@@ -1,14 +1,10 @@
 ---
-id: deb
-pagination_prev: null
-pagination_next: null
+id: 'debian'
 ---
 
-import Link from "@docusaurus/Link";
+# Debian Installation
 
-# Dependency Installation (Debian)
 The commands below are simply an example of how you might install these dependencies. Please consult with your operating system's package manager to determine the correct packages to install.
-
 ```bash
 # Update the server
 apt update && apt upgrade -y
@@ -22,25 +18,16 @@ curl -fsSL https://packages.sury.org/php/apt.gpg | sudo gpg --dearmor -o /etc/ap
 # Update repositories list
 apt update
 
-# Add repository for Redis
-curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
-
-echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
-
 # Install PHP and required extensions
-apt -y install php8.3 php8.3-{common,cli,gd,mysql,mbstring,bcmath,xml,fpm,curl,zip,ssh2,sqlite3}
+apt install -y php8.2 php8.2-{common,cli,gd,mysql,mbstring,bcmath,xml,fpm,curl,zip}
 
 # MariaDB repo setup script
 curl -sS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo bash
 
 # Install the rest of dependencies
-apt install -y mariadb-server tar unzip git redis-server zip dos2unix sudo
+apt install -y mariadb-server nginx tar unzip git redis-server zip dos2unix
 ```
 
 # Continue 
 Now that you finished with everything that you had to install let's go to the next step 
-
-<Link
-    className="button button--primary text-base"
-    to="/docs/MythicalFramework/user/install#installing-composer"
->Continue</Link>
+- [Next](/docs/MythicalDash/install.md#installing-composer)

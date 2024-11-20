@@ -1,5 +1,5 @@
 ---
-sidebar_position: 2
+id: 'install'
 ---
 # Installing
 
@@ -18,10 +18,10 @@ MythicalDash runs on a small range of operating systems, so pick whichever you a
 
 | Operating System | Version | Supported | Notes |
 | - | - | - | - |
-| [Ubuntu](/docs/MythicalDash/os/ubuntu.md) | 20.04 | ✅ | Documentation written assuming Ubuntu 20.04 as the base OS. |
-| [Ubuntu](/docs/MythicalDash/os/ubuntu.md)  | >=22.04 | ✅ | MariaDB can be installed without the repo setup script. |
-| [Debian](/docs/MythicalDash/os/debian.md) | 11 | ✅ | It can run, but we recommend using 12 for long-term usage! |
-| [Debian](/docs/MythicalDash/os/debian.md)  | >=12 | ✅ | The dash is developed on this os! |
+| [Ubuntu](/docs/mythicaldash-v3/os/ubuntu) | 20.04 | ✅ | Documentation written assuming Ubuntu 20.04 as the base OS. |
+| [Ubuntu](/docs/mythicaldash-v3/os/ubuntu)  | >=22.04 | ✅ | MariaDB can be installed without the repo setup script. |
+| [Debian](/docs/mythicaldash-v3/os/debian) | 11 | ✅ | It can run, but we recommend using 12 for long-term usage! |
+| [Debian](/docs/mythicaldash-v3/os/debian)  | >=12 | ✅ | The dash is developed on this os! |
 | CentOS | 7 | ❌ | It can run, but we don't provide support for it. |
 | CentOS | 8 | ❌ | It can run, but we don't provide support for it. |
 | AlamaLinux | 9 | ❌ | It can run, but we don't provide support for it. |
@@ -38,7 +38,7 @@ The first step in this process is to create the folder where the dashboard will 
 ```bash
 mkdir -p /var/www/mythicaldash
 cd /var/www/mythicaldash
-curl -Lo MythicalDash.zip https://github.com/mythicalltd/mythicaldash/releases/latest/download/MythicalDash.zip
+curl -Lo MythicalDash.zip https://github.com/MythicalLTD/MythicalDash/releases/download/3.2.3/MythicalDash.zip
 unzip -o MythicalDash.zip -d /var/www/mythicaldash
 ```
 Once it is downloaded you'll need to unpack the archive and then set the correct permissions on the core/ and tmp/ directories. These directories allow us to store files as well as keep a speedy cache available to reduce load times.
@@ -51,7 +51,6 @@ After you've downloaded all of the files you will need to upgrade the core compo
 ```bash
 cd /var/www/mythicaldash
 composer install --no-dev --optimize-autoloader
-
 ```
 ## Fixing MariaDB
 Since mariadb added a stupid ass setting in the latest version you have to switch the mariadb uft to the default one!
@@ -89,23 +88,7 @@ chmod +x ./MythicalDash
 ./MythicalDash -migrate # Migrate the database
 ./MythicalDash -environment:setup # Start a custom setup for the dash
 ```
-## Adding MythicalDash CLI to path
-MythicalDash's cli is a tool you can use to manage your dash. This step is not `required` but it is very, very useful sometimes, so you won't have to go to the directory path itself, and we recommend doing those extra steps!
-```
-# Use the command 'cd' to go to the user home directory!
-cd
-# Edit the environment configuration file
-nano .bashrc
-# Add this to the bottom of the file
-alias mythicaldash='/var/www/mythicaldash/MythicalDash'
-alias mythicaldash='/var/www/mythicaldash/MythicalDash'
-```
-After that, you need to restart your server to have them inside your path!
-Or if you are lazy, just copy and paste this into your terminal!
-```
-alias mythicaldash='/var/www/mythicaldash/MythicalDash'
-alias mythicaldash='/var/www/mythicaldash/MythicalDash'
-```
+
 ## Crontab Configuration
 Setting up cron jobs will be really important; this is not an optional step: the cron jobs will allow the dashboard to process data internally, and manage the queue system. First, check if crontab is installed by typing "crontab -e" in your terminal. Or, if you are using a hosting service, check if your host supports crontab. If you are on a terminal, run:
 ```bash
