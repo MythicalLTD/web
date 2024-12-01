@@ -188,9 +188,9 @@ const Card = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => 
 // Live statistics component
 const LiveStatistics = () => {
     const [stats] = React.useState({
-        users: 1424226,
+        users: 1515221,
         projects: 55,
-        uptime: 99.99
+        uptime: 99.82
     })
 
     return (
@@ -397,7 +397,7 @@ export default function Component() {
                     className="text-center"
                 >
                     <h2 className="mb-4 text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl text-purple-300">
-                        Mythical Hosting
+                        Mythical Hosting (SOON)
                     </h2>
                     <p className="mx-auto mb-8 max-w-[42rem] text-purple-200">
                         Experience the power of Mythical hosting with our cutting-edge infrastructure and reliable services.
@@ -405,7 +405,7 @@ export default function Component() {
                     </p>
                     <Button>
                         <a href="https://billing.mythical.systems" target="_blank" className="flex items-center">
-                            Learn More
+                            Learn More (SOON)
                             <ArrowRight className="ml-2 h-4 w-4" />
                         </a>
                     </Button>

@@ -134,6 +134,10 @@ const config: Config = {
               label: 'Terms of Service',
               to: '/terms',
             },
+            {
+              label: 'Branding',
+              to: '/branding',
+            }
           ],
 
         }

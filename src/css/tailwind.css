@@ -51,3 +51,95 @@
 :hover::-webkit-scrollbar-thumb {
     background: #4a4a6a;
 }
+
+/* Docusaurus Footer Redesign */
+.footer {
+    background-color: #1e1e2e;
+    color: #ffffff;
+    padding: 2rem 0;
+    text-align: center;
+}
+
+.footer a {
+    color: #8b5cf6;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.footer a:hover {
+    color: #9f7aea;
+}
+
+.footer .footer__links {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.footer .footer__links a {
+    margin: 0 0.5rem;
+}
+
+.footer .footer__copyright {
+    font-size: 0.875rem;
+    color: #a0aec0;
+}
+
+/* Docusaurus Navbar Redesign */
+.navbar {
+    background-color: #1e1e2e;
+    color: #ffffff;
+    padding: 1rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.navbar a {
+    color: #8b5cf6;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.navbar a:hover {
+    color: #9f7aea;
+}
+
+.navbar .navbar__links {
+    display: flex;
+    gap: 1rem;
+}
+
+.navbar .navbar__links a {
+    margin: 0 0.5rem;
+}
+
+.navbar .navbar__brand {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #ffffff;
+}
+
+.navbar .navbar__toggle {
+    display: none;
+}
+
+/* Responsive Navbar */
+@media (max-width: 768px) {
+    .navbar .navbar__links {
+        display: none;
+    }
+
+    .navbar .navbar__toggle {
+        display: block;
+        cursor: pointer;
+    }
+
+    .navbar .navbar__toggle.active + .navbar__links {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
