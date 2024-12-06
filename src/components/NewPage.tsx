@@ -158,21 +158,38 @@ const ParticleAnimation = () => {
 }
 
 // Custom button component
-const Button = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'default' | 'outline' }>(
-    ({ className, variant = 'default', ...props }, ref) => {
-        const baseStyles = "px-4 py-2 rounded-md font-medium transition-transform focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 text-white"
-        const variantStyles = variant === 'default'
-            ? "bg-purple-600 border-none text-white"
-            : "border border-purple-500 text-white"
+const Button = React.forwardRef<
+    HTMLButtonElement | HTMLAnchorElement,
+    React.ButtonHTMLAttributes<HTMLButtonElement> & 
+    React.AnchorHTMLAttributes<HTMLAnchorElement> & {
+        variant?: 'default' | 'outline'
+        href?: string
+    }
+>(({ className, variant = 'default', href, ...props }, ref) => {
+    const baseStyles = "px-4 py-2 rounded-md font-medium transition-transform focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 text-white"
+    const variantStyles = variant === 'default'
+        ? "bg-purple-600 border-none text-white"
+        : "border border-purple-500 text-white"
+    
+    if (href) {
         return (
-            <button
-                ref={ref}
-                className={`${baseStyles} ${variantStyles} ${className} hover:scale-105`}
-                {...props}
+            <a
+                ref={ref as React.Ref<HTMLAnchorElement>}
+                href={href}
+                className={`${baseStyles} ${variantStyles} ${className} hover:scale-105 inline-flex items-center`}
+                {...(props as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
             />
         )
     }
-)
+
+    return (
+        <button
+            ref={ref as React.Ref<HTMLButtonElement>}
+            className={`${baseStyles} ${variantStyles} ${className} hover:scale-105 inline-flex items-center`}
+            {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
+        />
+    )
+})
 Button.displayName = "Button"
 
 // Custom card component
@@ -257,17 +274,13 @@ export default function Component() {
                         with our innovative solutions and magical experiences.
                     </motion.p>
                     <div className="flex flex-wrap justify-center gap-4">
-                        <Button>
-                            <a href="/docs" className="flex items-center">
-                                Documentation
-                                <ArrowRight className="ml-2 h-4 w-4" />
-                            </a>
+                        <Button href="/docs">
+                            Documentation
+                            <ArrowRight className="ml-2 h-4 w-4" />
                         </Button>
-                        <Button variant="outline">
-                            <a href="/discord" className="flex items-center">
-                                Join Discord
-                                <MessageSquare className="ml-2 h-4 w-4" />
-                            </a>
+                        <Button href="/discord">
+                            Join Discord
+                            <MessageSquare className="ml-2 h-4 w-4" />
                         </Button>
                     </div>
                 </motion.div>
@@ -362,11 +375,9 @@ export default function Component() {
                         Connect with fellow developers, get support, and stay updated on the latest Mythical news.
                         Our Discord server is the perfect place to share your ideas and collaborate on exciting projects.
                     </p>
-                    <Button>
-                        <a href="https://discord.mythical.systems" target="_blank" rel="noopener noreferrer" className="flex items-center">
-                            Join Our Discord
-                            <MessageSquare className="ml-2 h-4 w-4" />
-                        </a>
+                    <Button href="https://discord.mythical.systems">
+                        Join Our Discord
+                        <MessageSquare className="ml-2 h-4 w-4" />
                     </Button>
                 </motion.div>
             </section>
@@ -403,11 +414,9 @@ export default function Component() {
                         Experience the power of Mythical hosting with our cutting-edge infrastructure and reliable services.
                         Our hosting solutions are designed to provide optimal performance and uptime for your projects.
                     </p>
-                    <Button>
-                        <a href="https://billing.mythical.systems" target="_blank" className="flex items-center">
-                            Learn More (SOON)
-                            <ArrowRight className="ml-2 h-4 w-4" />
-                        </a>
+                    <Button href="https://billing.mythical.system">
+                        Learn More (SOON)
+                        <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                 </motion.div>
             </section>
