@@ -1,6 +1,6 @@
-import { JSX } from "react/jsx-runtime";
+import React from 'react';
+import { Redirect } from '@docusaurus/router';
 
-export default function Home(): JSX.Element {
-    window.location.href = "/docs";
-    return null;
+export default function Home() {
+    return <Redirect to="/docs" />;
 }

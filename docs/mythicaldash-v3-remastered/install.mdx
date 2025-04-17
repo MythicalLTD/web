@@ -1,6 +1,9 @@
 ---
 id: 'install'
+title: 'Installation Guide'
+sidebar_label: 'Installation'
 ---
+
 # Installation Guide
 
 MythicalDash is a powerful web-based control panel designed to run on your own server. This guide will walk you through the complete installation process. Please note that root access to your server is required to install and operate this panel.
@@ -110,18 +113,17 @@ php mythicaldash migrate
 ```
 
 ### Configuring Pterodactyl Connection
-Now that we have this, we have to configure the pterodactyl panel so we can use this dashboard.
-
+Configure the connection to your Pterodactyl panel:
 ```php
 php mythicaldash pterodactyl configure
 ```
 
-### Getting admin
-
-To get administrator on the first user you just have to run the command:
-
+### Setting Up Administrator Access
+To grant administrator privileges to your first user account, run:
 ```php
 php mythicaldash makeAdmin
 ```
 
-And it will grant you administrator user! Keep in mind you might have to press (CTRL+R) when you login
+:::note
+After running the administrator setup command, you may need to refresh your browser (Ctrl+R) when logging in to see the changes take effect.
+:::
