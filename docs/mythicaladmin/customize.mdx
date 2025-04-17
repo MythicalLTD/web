@@ -1,0 +1,37 @@
+---
+pagination_next: null
+---
+# Customize MythicalAdmin
+import Admonition from '@theme/Admonition';
+
+## Adding New Items
+To add a new item, copy the structure below and add it to the navigation array:
+
+```php
+@include('admin.partials.sidebar-section', [
+    'title' => 'Addons', // The title of the section
+            'items' => [
+                [
+                    'title' => 'Free Servers', // The title of the item
+                    'icon' => 'fa-calendar', // The icon name from font awesome
+                    'route' => 'admin.freeservers' // The route name in routes/admin.php
+                ]
+            ]
+        ]);
+```
+
+<Admonition type="caution">
+Make sure to create the corresponding route and controller for your new page.
+</Admonition>
+
+## Support Pterodactyl CSS
+To support Pterodactyl CSS, add the following line to your blade file:
+
+```php
+@include('admin.partials.pterodactylcss')
+```
+<Admonition type="caution">
+
+This will add support for the legacy CSS files of the Pterodactyl panel, applying their old styles to the specific page you choose. Please avoid including this in the main file, as it will degrade performance and negatively affect the theme's appearance.
+</Admonition>
+

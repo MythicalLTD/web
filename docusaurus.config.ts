@@ -15,7 +15,7 @@ const config: Config = {
   url: 'https://mythical.systems',
   baseUrl: '/',
   organizationName: 'mythicalltd',
-  projectName: 'web', 
+  projectName: 'web',
   onBrokenLinks: 'warn',
   onBrokenMarkdownLinks: 'warn',
   i18n: {
@@ -36,10 +36,9 @@ const config: Config = {
           onUntruncatedBlogPosts: 'ignore',
         },
         theme: {
-          customCss: [
-            require.resolve('./src/css/custom.scss'),
-            require.resolve('./src/css/tailwind.css'),
-          ],
+            customCss: [
+                require.resolve('./src/css/tailwind.css')
+            ]
         },
       } satisfies Preset.Options,
     ],
@@ -63,11 +62,6 @@ const config: Config = {
         src: 'https://avatars.githubusercontent.com/u/117385445',
       },
       items: [
-        { to: '/docs', label: 'Docs', position: 'left' },
-        { to: "/blog", label: "Blog", position: "left" },
-        { to: "/donate", label: "Donate", position: "left" },
-        { to: "https://status.mythical.systems", label: "Status", position: "left" },
-        { to: "https://discord.mythical.systems", label: "Discord", position: "left" },
         { href: "https://github.com/mythicalltd", position: "right", className: "github-link", },
       ],
     },
@@ -128,15 +122,15 @@ const config: Config = {
           items: [
             {
               label: 'Privacy Policy',
-              to: '/privacy',
+              to: 'https://www.mythical.systems/privacy',
             },
             {
               label: 'Terms of Service',
-              to: '/terms',
+              to: 'https://www.mythical.systems/terms',
             },
             {
               label: 'Branding',
-              to: '/branding',
+              to: 'https://www.mythical.systems/branding',
             }
           ],
 

@@ -1,0 +1,127 @@
+---
+id: 'install'
+---
+# Installation Guide
+
+MythicalDash is a powerful web-based control panel designed to run on your own server. This guide will walk you through the complete installation process. Please note that root access to your server is required to install and operate this panel.
+
+Before proceeding, we strongly recommend reading through this entire guide to ensure a smooth installation process. Taking the time to understand each step will help prevent common installation issues.
+
+## System Requirements
+
+MythicalDash supports a range of operating systems. Choose the one that best fits your needs and expertise:
+
+| Operating System | Version | Supported | Notes |
+| - | - | - | - |
+| [Ubuntu](/docs/mythicaldash-v3-remastered/os/ubuntu) | 20.04 | ✅ | Primary documentation reference OS |
+| [Ubuntu](/docs/mythicaldash-v3-remastered/os/ubuntu)  | >=22.04 | ✅ | MariaDB installation simplified |
+| [Debian](/docs/mythicaldash-v3-remastered/os/debian) | 11 | ✅ | Compatible, but Debian 12 recommended |
+| [Debian](/docs/mythicaldash-v3-remastered/os/debian)  | >=12 | ✅ | Primary development platform |
+| CentOS | 7 | ❌ | Limited support available |
+| CentOS | 8 | ❌ | Limited support available |
+| AlamaLinux | 9 | ❌ | Limited support available |
+| AlamaLinux | 8 | ❌ | Limited support available |
+
+## Prerequisites
+
+### Installing Composer
+Composer is PHP's dependency manager, essential for managing the panel's PHP packages:
+```bash
+curl -sS https://getcomposer.org/installer | sudo php -- --install-dir=/usr/local/bin --filename=composer
+```
+
+### Installing Yarn
+Yarn manages Node.js dependencies for the frontend components:
+```bash
+npm i -g yarn
+```
+
+## Initial Setup
+
+### Downloading and Extracting Files
+Create the installation directory and download the latest release:
+```bash
+mkdir -p /var/www/mythicaldash-v3
+cd /var/www/mythicaldash-v3
+curl -Lo MythicalDash.zip https://github.com/MythicalLTD/MythicalDash/releases/latest/download/MythicalDash.zip
+unzip -o MythicalDash.zip -d /var/www/mythicaldash-v3
+```
+
+Set appropriate permissions for the application directories:
+```bash
+chown -R www-data:www-data /var/www/mythicaldash-v3/*
+```
+
+### Installing Dependencies
+Install all required dependencies:
+```bash
+cd /var/www/mythicaldash-v3
+make install
+```
+
+## Database Configuration
+
+### MariaDB Character Set Configuration
+Configure MariaDB with the correct character set settings:
+```bash
+sudo sed -i '/^#collation-server/a collation-server = utf8mb4_general_ci' /etc/mysql/mariadb.conf.d/50-server.cnf
+sudo sed -i '/^character-set-server/s/^/#/g' /etc/mysql/mariadb.conf.d/50-server.cnf
+sudo sed -i '/^#character-set-server/a character-set-server = utf8mb4' /etc/mysql/mariadb.conf.d/50-server.cnf
+
+sudo sed -i '/^character-set-collations/s/^/#/g' /etc/mysql/mariadb.conf.d/50-server.cnf
+sudo sed -i '/^#character-set-collations/a character-set-collations = utf8mb4' /etc/mysql/mariadb.conf.d/50-server.cnf
+```
+
+### Creating Database and User
+Set up the database and create a user with appropriate permissions:
+```sql
+mariadb -u root -p
+CREATE USER 'mythicaldash_remastered'@'127.0.0.1' IDENTIFIED BY 'yourPassword';
+CREATE DATABASE mythicaldash_remastered;
+GRANT ALL PRIVILEGES ON mythicaldash_remastered.* TO 'mythicaldash_remastered'@'127.0.0.1' WITH GRANT OPTION;
+exit
+```
+
+## Application Build and Configuration
+
+### Building the Application
+Build the application to ensure all dependencies are properly installed:
+```bash
+make release
+```
+
+### Cron Job Configuration
+Configure the required cron jobs for background processing and queue management:
+```bash
+* * * * * bash /var/www/mythicaldash-v3/backend/storage/cron/runner.bash >> /dev/null 2>&1
+* * * * * php /var/www/mythicaldash-v3/backend/storage/cron/runner.php >> /dev/null 2>&1
+```
+
+### Database Connection Setup
+Configure the database connection settings:
+```php
+php mythicaldash setup
+```
+
+### Running Database Migrations
+Apply the database migrations to set up the required tables and structure:
+```php
+php mythicaldash migrate
+```
+
+### Configuring Pterodactyl Connection
+Now that we have this, we have to configure the pterodactyl panel so we can use this dashboard.
+
+```php
+php mythicaldash pterodactyl configure
+```
+
+### Getting admin
+
+To get administrator on the first user you just have to run the command:
+
+```php
+php mythicaldash makeAdmin
+```
+
+And it will grant you administrator user! Keep in mind you might have to press (CTRL+R) when you login

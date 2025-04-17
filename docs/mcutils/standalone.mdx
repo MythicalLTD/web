@@ -1,0 +1,85 @@
+---
+pagination_prev: mcutils/intro
+pagination_next: null
+---
+
+# Standalone Installation
+
+import Admonition from '@theme/Admonition';
+
+<Admonition type="warning">
+      We do not recommend standalone installation. It's highly recommended to use the Blueprint framework instead! However, if you proceed, we provide support for any issues through our Discord server.
+</Admonition>
+
+## Prerequisites
+
+Before proceeding, make sure you have completed the Pterodactyl panel customization prerequisites:
+
+[View Prerequisites](https://pterodactyl.io/community/customization/panel.html#install-dependencies)
+
+## Backend Routes
+
+Add the following imports to `routes/api-client.php`:
+
+```php
+use Pterodactyl\MythicalSystems\McUtils\PlayerList\MinecraftPlayerListController;
+use Pterodactyl\MythicalSystems\McUtils\ServerIcon\MinecraftServerIconController;
+```
+
+Then add these routes after the activity log route:
+
+```php
+Route::get('/icon', [MinecraftServerIconController::class, 'index']);
+Route::patch('/icon', [MinecraftServerIconController::class, 'update']);
+Route::get('/playerlist', [MinecraftPlayerListController::class, 'index']);
+```
+
+## Frontend Routes
+
+Add the following import to `resources/scripts/routers/routes.ts`:
+
+```typescript
+import MinecraftUtils from '@/components/server/mcutils/McUtilsContainer';
+```
+
+Then add the route configuration:
+
+```typescript
+{
+    path: '/mc-utils',
+    permission: null,
+    name: 'Minecraft Utils',
+    component: MinecraftUtils,
+}
+```
+
+
+## Server Icon Changer
+Add these modifications to `resources/scripts/components/server/settings/SettingsContainer.tsx`:
+
+```typescript
+import McIconButton from '@/components/server/mcutils/McIconButton';
+```
+
+Add the component before the closing `ServerContentBlock`:
+
+```typescript
+<McIconButton />
+```
+
+## Set Permissions
+Set the correct file permissions:
+```bash
+chmod -R 755 storage/* bootstrap/cache/
+chown -R www-data:www-data /var/www/pterodactyl/*
+```
+
+## Build Panel
+Finally, build the panel with these commands:
+
+```bash
+yarn
+export NODE_OPTIONS=--openssl-legacy-provider # for NodeJS v17+
+yarn lint --fix
+yarn build:production # Build panel
+```

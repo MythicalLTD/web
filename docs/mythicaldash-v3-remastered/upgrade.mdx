@@ -1,0 +1,55 @@
+---
+id: 'upgrade'
+pagination_next: null
+pagination_prev: null
+---
+# Upgrade
+
+This documentation covers the process for updating within the 3.x series of releases. This means updating from — for example — 3.0.0 to 3.1.0
+
+## Take a backup
+So first we are going to take a backup of the dash and the database structure using:
+```bash
+cd /var/www/mythicaldash-v3
+mariadb-dump -p mythicaldash_remastered > mythicaldash_backup.sql
+cd /var/www
+zip -r mythicaldash_backup.zip mythicaldash-v3/
+```
+
+## Download the Update
+The first step in the update process is to download the new client files from GitHub. The command below will download the release archive for the most recent version of MythicalDash.
+```bash
+cd /var/www/mythicaldash-v3
+curl -Lo MythicalDash.zip https://github.com/MythicalLTD/MythicalDash/releases/latest/download/MythicalDash.zip
+unzip -o MythicalDash.zip -d /var/www/mythicaldash-v3
+```
+
+## Update Dependencies
+After you've downloaded all of the new files you will need to upgrade the core components of the dash. To do this, simply run the commands below and follow any prompts.
+```bash
+make clean
+make install
+```
+
+## Database Updates
+You'll also need to update your database schema for the newest version of MythicalDash.
+```bash
+php mythicaldash migrate
+```
+
+
+## Building the Application
+
+Build the application to ensure all dependencies are properly installed:
+```bash
+make release
+```
+
+### Set Permissions
+The last step is to set the proper owner of the files to be the user that runs your webserver. In most cases this is www-data but can vary from system to system — sometimes being nginx, caddy, apache, or even nobody.
+```bash
+chown -R www-data:www-data /var/www/mythicaldash-v3/
+```
+
+## Done
+You are done, and now you should be running the latest version of MythicalDash.
