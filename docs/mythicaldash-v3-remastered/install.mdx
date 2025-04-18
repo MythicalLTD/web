@@ -100,6 +100,13 @@ Configure the required cron jobs for background processing and queue management:
 * * * * * php /var/www/mythicaldash-v3/backend/storage/cron/runner.php >> /dev/null 2>&1
 ```
 
+### Wipe the built in files
+Now we have to wipe the .env that we include for our unit tests: 
+```bash
+rm backend/storage/.env
+```
+
+
 ### Database Connection Setup
 Configure the database connection settings:
 ```php
