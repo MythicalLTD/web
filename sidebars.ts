@@ -19,6 +19,7 @@ const sidebars: SidebarsConfig = {
             collapsed: false,
             items: [
                 'mythicaldash-v3-remastered/welcome',
+                'mythicaldash-v3-remastered/os/pick',
                 'mythicaldash-v3-remastered/install',
                 'mythicaldash-v3-remastered/create_ssl',
                 'mythicaldash-v3-remastered/webserver',
