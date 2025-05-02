@@ -75,6 +75,9 @@ exit
 ### Building the Application
 Build the application to ensure all dependencies are properly installed:
 ```bash
+# Set your app into production (Disables DEBUG LOGS)!
+make set-prod
+# Build frontend and lint!
 make release
 ```
 
@@ -102,3 +105,22 @@ Configure the connection to your Pterodactyl panel:
 ```php
 php mythicaldash pterodactyl configure
 ```
+
+## License Activation
+
+MythicalDash V3-Remastered requires a license to operate. Get a free one-year license at:
+https://mymythicalid.mythical.systems
+
+After obtaining your license key, run:
+```php
+php mythicaldash init
+```
+
+Enter your license key and instance URL when prompted. Successful activation includes:
+
+- MythicalCloud: 1GB cloud backup storage
+- MythicalZeroTrust: Abuse prevention (5 actions/day)
+- MythicalLogs: Enhanced debugging
+- MythicalData: Performance optimization analytics
+
+Premium licenses (€5/month) offer additional features and higher limits.
