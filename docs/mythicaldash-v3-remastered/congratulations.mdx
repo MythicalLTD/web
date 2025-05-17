@@ -11,6 +11,14 @@ To grant administrator privileges to your first user account, run:
 php mythicaldash makeAdmin
 ```
 
+### Fix permissions 
+
+Set appropriate permissions for the application directories:
+```bash
+chown -R www-data:www-data /var/www/mythicaldash-v3/*
+```
+
+
 :::note
 After running the administrator setup command, you may need to refresh your browser (Ctrl+R) when logging in to see the changes take effect.
 :::
