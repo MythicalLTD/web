@@ -27,8 +27,8 @@ unzip -o MythicalDash.zip -d /var/www/mythicaldash-v3
 ## Update Dependencies
 After you've downloaded all of the new files you will need to upgrade the core components of the dash. To do this, simply run the commands below and follow any prompts.
 ```bash
-make clean
-make install # Or if you want to use only backend dependencies run: cd backend && composer install
+cd /var/www/mythicaldash-v3/backend
+COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader
 ```
 
 ## Database Updates
@@ -42,8 +42,6 @@ php mythicaldash migrate
 
 Build the application to ensure all dependencies are properly installed:
 ```bash
-make release
-# Or in case if this fails you can use our prebuilt frontend
 make get-frontend
 ```
 

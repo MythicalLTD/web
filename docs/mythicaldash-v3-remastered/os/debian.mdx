@@ -26,19 +26,6 @@ curl -sS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo bash
 
 # Install the rest of dependencies
 apt install -y mariadb-server nginx tar unzip git redis-server zip dos2unix
-
-# Install NVM
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.2/install.sh | bash
-
-# Enable NVM
-export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
-
-# Install NodeJS
-nvm install 24
-
-# Use NodeJS
-nvm use 24
 ```
 
 

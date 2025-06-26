@@ -43,8 +43,8 @@ chown -R www-data:www-data /var/www/mythicaldash-v3/*
 ### Installing Dependencies
 Install all required dependencies:
 ```bash
-cd /var/www/mythicaldash-v3
-make install # This will install frontend and backend dependencies but if you are looking for backend only dependencies (LITE VERSION) just run: cd backend && composer install
+cd /var/www/mythicaldash-v3/backend 
+COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader
 ```
 
 ## Database Configuration
@@ -77,9 +77,6 @@ Build the application to ensure all dependencies are properly installed:
 ```bash
 # Set your app into production (Disables DEBUG LOGS)!
 make set-prod
-
-# Build frontend and lint!
-make release
 
 # Incase if make release did not work you can download our prebuilt frontend!!!
 make get-frontend
