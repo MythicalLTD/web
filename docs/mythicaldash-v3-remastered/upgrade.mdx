@@ -37,18 +37,10 @@ You'll also need to update your database schema for the newest version of Mythic
 php mythicaldash migrate
 ```
 
-
-## Building the Application
-
-Build the application to ensure all dependencies are properly installed:
-```bash
-make get-frontend
-```
-
-### Set Permissions
+## Set Permissions
 The last step is to set the proper owner of the files to be the user that runs your webserver. In most cases this is www-data but can vary from system to system — sometimes being nginx, caddy, apache, or even nobody.
 ```bash
-chown -R www-data:www-data /var/www/mythicaldash-v3/
+chown -R www-data:www-data /var/www/mythicaldash-v3/*
 ```
 
 ## Force production
