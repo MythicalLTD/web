@@ -18,12 +18,6 @@ Composer is PHP's dependency manager, essential for managing the panel's PHP pac
 curl -sS https://getcomposer.org/installer | sudo php -- --install-dir=/usr/local/bin --filename=composer
 ```
 
-### Installing Yarn
-Yarn manages Node.js dependencies for the frontend components:
-```bash
-npm i -g yarn
-```
-
 ## Initial Setup
 
 ### Downloading and Extracting Files
@@ -70,11 +64,12 @@ GRANT ALL PRIVILEGES ON mythicaldash_remastered.* TO 'mythicaldash_remastered'@'
 exit
 ```
 
-## Application Build and Configuration
+## Application Configuration
 
 ### Building the Application
 Build the application to ensure all dependencies are properly installed:
 ```bash
+cd /var/www/mythicaldash-v3
 # Set your app into production (Disables DEBUG LOGS)!
 make set-prod
 ```
