@@ -1,0 +1,183 @@
+---
+id: 'docker'
+---
+
+# Docker Installation Upgrade
+
+This guide covers upgrading MythicalDash when you have installed it using Docker Compose.
+
+## Step 1: Create Backup
+
+Before starting the upgrade process, create a complete backup of your current installation:
+
+### Database Backup
+Create a database backup from the running container:
+
+```bash
+docker exec mythicaldash_v3_database mysqldump -u root -p mythicaldash_remastered > mythicaldash_backup.sql
+```
+
+### Files Backup
+Backup your installation directory:
+
+```bash
+cd /var/www
+zip -r mythicaldash_backup.zip mythicaldash-v3/
+```
+
+### Configuration Backup
+Ensure your Docker configuration is backed up:
+
+```bash
+cd /var/www/mythicaldash-v3
+cp docker-compose.yml docker-compose.yml.backup
+```
+
+## Step 2: Stop Containers
+
+Gracefully stop all running containers:
+
+```bash
+cd /var/www/mythicaldash-v3
+docker compose down
+```
+
+## Step 3: Download the Update
+
+Download the latest version from GitHub:
+
+```bash
+cd /var/www/mythicaldash-v3
+curl -Lo MythicalDash.zip https://github.com/MythicalLTD/MythicalDash/releases/latest/download/MythicalDash.zip
+unzip -o MythicalDash.zip -d /var/www/mythicaldash-v3
+```
+
+## Step 4: Rebuild and Start Containers
+
+Rebuild the containers with the new code and start them:
+
+```bash
+cd /var/www/mythicaldash-v3
+docker compose build --no-cache
+docker compose up -d
+```
+
+:::tip Why --no-cache?
+The `--no-cache` flag ensures Docker rebuilds the containers completely with the new files, preventing any caching issues.
+:::
+
+## Step 5: Wait for Initialization
+
+Wait for all containers to fully start and initialize:
+
+```bash
+# Check container status
+docker compose ps
+
+# Monitor logs until all services are ready
+docker compose logs -f
+```
+
+Press `Ctrl+C` when you see the containers are running successfully.
+
+## Verification
+
+After completing the upgrade:
+
+### Check Container Status
+```bash
+docker compose ps
+```
+
+All containers should show as "Up" or "healthy".
+
+### Test Web Access
+Visit your MythicalDash URL to ensure it loads properly.
+
+### Check Application Logs
+```bash
+docker exec -it mythicaldash_v3_backend php cli logs
+```
+
+### Verify Database Migration
+If there were database changes, they should be applied automatically. Check the logs for migration messages.
+
+## Troubleshooting
+
+If you encounter issues:
+
+### View Specific Container Logs
+```bash
+# Backend logs
+docker compose logs mythicaldash_v3_backend
+
+# Database logs
+docker compose logs mythicaldash_v3_database
+
+# All logs
+docker compose logs
+```
+
+### Restart Individual Containers
+```bash
+# Restart specific container
+docker compose restart mythicaldash_v3_backend
+
+# Restart all containers
+docker compose restart
+```
+
+### Complete Reset (if needed)
+```bash
+docker compose down
+docker compose build --no-cache
+docker compose up -d
+```
+
+### Restore from Backup
+If you need to restore:
+
+```bash
+# Stop containers
+docker compose down
+
+# Restore files
+cd /var/www
+rm -rf mythicaldash-v3
+unzip mythicaldash_backup.zip
+
+# Restore database (start database container first)
+docker compose up -d mythicaldash_v3_database
+# Wait for database to be ready, then:
+docker exec -i mythicaldash_v3_database mysql -u root -p mythicaldash_remastered < mythicaldash_backup.sql
+
+# Start all containers
+docker compose up -d
+```
+
+## Post-Upgrade Maintenance
+
+### Update Container Images
+Occasionally update your base images:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+### Clean Up Old Images
+Remove unused Docker images to save space:
+
+```bash
+docker image prune -f
+```
+
+## Done
+
+You are now running the latest version of MythicalDash with Docker! The upgrade process is complete.
+
+Your containers will automatically handle:
+- Database migrations
+- Dependency updates
+- Configuration changes
+- Service restarts

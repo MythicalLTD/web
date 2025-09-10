@@ -3,48 +3,36 @@ id: 'uninstall'
 pagination_next: null
 pagination_prev: null
 ---
-# Uninstall
 
-## Remove the Database
+# Uninstall MythicalDash
 
-First, remove the database and the MythicalDash user:
+This guide will help you completely remove MythicalDash from your server.
 
-```bash
-mariadb -u root -p
-DROP DATABASE mythicaldash_remastered;
-DROP USER 'mythicaldash_remastered'@'127.0.0.1';
-exit
-```
+:::warning Data Loss Warning
+Uninstalling MythicalDash will permanently delete all data including:
+- User accounts and settings
+- Server configurations
+- Application databases
+- Log files
 
-## Remove Directories
+**Create a backup before proceeding if you might want to restore later.**
+:::
 
-Next, delete the MythicalDash directory:
+## Choose Your Installation Method
 
-```bash
-rm -rf /var/www/mythicaldash-v3
-```
+Select the uninstall method that matches how you originally installed MythicalDash:
 
-## Remove Crontab
+### Manual Installation
+If you installed MythicalDash directly on your server without Docker, follow the manual uninstall guide.
 
-Edit the crontab to remove MythicalDash jobs:
+[Manual Uninstall Guide →](/docs/mythicaldash-v3-remastered/uninstall/manual)
 
-```bash
-sudo crontab -e
-```
+### Docker Installation
+If you installed MythicalDash using Docker Compose, follow the Docker uninstall guide.
 
-## Remove Nginx Config
+[Docker Uninstall Guide →](/docs/mythicaldash-v3-remastered/uninstall/docker)
 
-Delete the Nginx configuration files:
-
-```bash
-rm /etc/nginx/sites-available/MythicalDashRemastered.conf
-rm /etc/nginx/sites-enabled/MythicalDashRemastered.conf
-```
-
-## Restart Nginx
-
-Finally, restart Nginx:
-
-```bash
-systemctl restart nginx --now
-```
+:::info Not Sure Which Method You Used?
+- If you have a `/var/www/mythicaldash-v3/docker-compose.yml` file, you used **Docker**
+- If you have PHP files directly on your server and use Nginx/Apache, you used **Manual** installation
+:::

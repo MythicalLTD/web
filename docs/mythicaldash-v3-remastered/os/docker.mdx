@@ -1,0 +1,350 @@
+---
+id: 'docker'
+---
+
+# Docker Installation
+
+Docker provides a containerized environment that simplifies the installation and management of MythicalDash. This method is recommended for users who want a quick setup with minimal configuration.
+
+:::warning System Requirements
+MythicalDash requires docker to function properly.
+
+- **Supported Systems**: Ubuntu 20.04+, Debian 11+, RHEL/Rocky/AlmaLinux 8+
+- **NOT Supported**: Windows, Virtuozzo, OpenVZ (OVZ), or LXC virtualization
+- **Required**: KVM virtualization or dedicated hardware
+
+Check your virtualization type: `systemd-detect-virt`
+- If the result contains `OpenVZ` or `LXC`, Wings will NOT work
+- Result of `none` indicates dedicated hardware (guaranteed to work)
+:::
+
+## Prerequisites
+
+Ensure you have Docker and Docker Compose installed on your system:
+
+### System Compatibility Check
+First, verify your system is compatible with docker:
+```bash
+# Check virtualization type (must NOT be OpenVZ or LXC)
+systemd-detect-virt
+
+# Alternative check - verify system manufacturer
+sudo dmidecode -s system-manufacturer
+
+# Check kernel version
+uname -r
+```
+
+### Install Docker
+Use recommended Docker installation:
+```bash
+# Quick install using recommended method
+curl -sSL https://get.docker.com/ | CHANNEL=stable bash
+
+# Start and enable Docker on boot
+sudo systemctl enable --now docker
+
+# Add your user to docker group (optional, allows running docker without sudo)
+sudo usermod -aG docker $USER
+```
+
+### Enable Swap Support (Recommended)
+Enable swap accounting for better container management:
+```bash
+# Check if swap is already enabled (kernel 6.1+ has it by default)
+uname -r
+
+# For older kernels, enable swap accounting
+sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="/GRUB_CMDLINE_LINUX_DEFAULT="swapaccount=1 /' /etc/default/grub
+sudo update-grub
+sudo reboot
+```
+
+### Verify Docker Installation
+```bash
+# Check Docker info and look for any warnings
+docker info
+```
+
+## Installation Steps
+
+<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+  <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-700">
+    <div className="flex items-center mb-3">
+      <div className="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">1</div>
+      <h3 className="font-semibold text-green-900 dark:text-green-100">Download & Extract</h3>
+    </div>
+    <pre className="bg-green-100 dark:bg-green-900/30 p-3 rounded text-xs overflow-x-auto"><code>{`mkdir -p /var/www/mythicaldash-v3
+cd /var/www/mythicaldash-v3
+curl -Lo MythicalDash.zip https://github.com/MythicalLTD/MythicalDash/releases/latest/download/MythicalDash.zip
+unzip -o MythicalDash.zip -d /var/www/mythicaldash-v3`}</code></pre>
+  </div>
+
+  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
+    <div className="flex items-center mb-3">
+      <div className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">2</div>
+      <h3 className="font-semibold text-blue-900 dark:text-blue-100">Start Containers</h3>
+    </div>
+    <pre className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded text-xs overflow-x-auto"><code>{`cd /var/www/mythicaldash-v3
+docker compose up -d
+
+# Check status
+docker compose ps`}</code></pre>
+  </div>
+
+  <div className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-700">
+    <div className="flex items-center mb-3">
+      <div className="bg-purple-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">3</div>
+      <h3 className="font-semibold text-purple-900 dark:text-purple-100">Monitor Logs</h3>
+    </div>
+    <pre className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded text-xs overflow-x-auto"><code>{`# Wait for healthy status
+docker compose logs -f
+
+# Press Ctrl+C when ready`}</code></pre>
+  </div>
+</div>
+
+<div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-lg p-6 mb-8 border border-orange-200 dark:border-orange-700">
+  <div className="flex items-center mb-4">
+    <div className="bg-orange-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">4</div>
+    <h3 className="text-xl font-semibold text-orange-900 dark:text-orange-100">Configure MythicalDash</h3>
+  </div>
+
+  <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4 mb-4 border border-blue-200 dark:border-blue-700">
+    <div className="flex items-start">
+      <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+      </svg>
+      <div>
+        <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">📋 Prerequisites Required</h4>
+        <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+          <li>✅ <strong>Pterodactyl Panel 1.x</strong> installed and running</li>
+          <li>✅ <strong>Pterodactyl Wings</strong> installed on your game server nodes</li>
+          <li>✅ <strong>Panel API credentials</strong> ready for configuration</li>
+        </ul>
+        <p className="text-sm text-blue-700 dark:text-blue-300 mt-3">
+          📖 Haven't installed Pterodactyl yet? Visit the <a href="https://pterodactyl.io/docs/" className="font-semibold underline hover:text-blue-600">official documentation</a> first.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div className="bg-orange-100 dark:bg-orange-900/30 rounded-lg p-4">
+    <h4 className="font-medium text-orange-800 dark:text-orange-200 mb-3">🔧 Run Configuration Command</h4>
+    <pre className="bg-orange-200 dark:bg-orange-900/50 p-3 rounded text-sm"><code>docker exec -it mythicaldash_v3_backend php cli pterodactyl configure</code></pre>
+
+    <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="bg-white dark:bg-gray-800 rounded p-3 border border-orange-300 dark:border-orange-600">
+        <h5 className="font-medium text-gray-700 dark:text-gray-300 mb-2">🌐 Panel URL</h5>
+        <p className="text-sm text-gray-600 dark:text-gray-400">Your Pterodactyl Panel's full URL<br/>
+        <code className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">https://panel.yourdomain.com</code></p>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded p-3 border border-orange-300 dark:border-orange-600">
+        <h5 className="font-medium text-gray-700 dark:text-gray-300 mb-2">🔑 Application API Key</h5>
+        <p className="text-sm text-gray-600 dark:text-gray-400">API key for server management<br/>
+        <code className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">ptla_xxxxxxxxxx</code></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+### 5. Set Up Access Method
+
+:::tip Cloudflare Tunnels Recommended
+**We strongly recommend using [Cloudflare Tunnels](/docs/mythicaldash-v3-remastered/cloudflare-tunnels) instead of a traditional reverse proxy.**
+
+Cloudflare Tunnels provide:
+- **Automatic SSL** - No certificate management needed
+- **Enhanced security** - No open ports, DDoS protection
+- **Better performance** - Global CDN and smart routing
+- **Easier setup** - No complex Nginx/Apache configuration
+- **Dynamic IP support** - Perfect for home servers
+
+[Get started with Cloudflare Tunnels →](/docs/mythicaldash-v3-remastered/cloudflare-tunnels)
+:::
+
+#### Traditional Reverse Proxy (Alternative)
+
+If you prefer a traditional reverse proxy setup, configure your web server to proxy requests to port 4830.
+
+:::note SSL Certificate Setup
+For production deployments with reverse proxy, SSL certificates are strongly recommended. Follow our [SSL Certificate Guide](/docs/mythicaldash-v3-remastered/createssl) to set up certificates before configuring the reverse proxy.
+:::
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+    <div className="flex items-center mb-4">
+      <img src="https://cdn.worldvectorlogo.com/logos/nginx-1.svg" alt="Nginx" className="w-8 h-8 mr-3" />
+      <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Nginx Configuration</h4>
+    </div>
+
+    <div className="space-y-4">
+      <div>
+        <h5 className="font-medium text-gray-700 dark:text-gray-300 mb-2">HTTP Only (Development)</h5>
+        <pre className="bg-gray-100 dark:bg-gray-900 p-3 rounded text-sm overflow-x-auto"><code>{`server {
+    listen 80;
+    server_name your-domain.com;
+
+    location / {
+        proxy_pass http://localhost:4830;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+    }
+}`}</code></pre>
+      </div>
+
+      <div>
+        <h5 className="font-medium text-gray-700 dark:text-gray-300 mb-2">HTTPS (Production)</h5>
+        <pre className="bg-gray-100 dark:bg-gray-900 p-3 rounded text-sm overflow-x-auto"><code>{`server {
+    listen 80;
+    server_name your-domain.com;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name your-domain.com;
+
+    ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
+    ssl_session_cache shared:le_nginx_SSL:10m;
+    ssl_session_timeout 1440m;
+    ssl_session_tickets off;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
+
+    location / {
+        proxy_pass http://localhost:4830;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+
+        # WebSocket support
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}`}</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+    <div className="flex items-center mb-4">
+      <img src="https://cdn.worldvectorlogo.com/logos/apache.svg" alt="Apache" className="w-8 h-8 mr-3" />
+      <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Apache Configuration</h4>
+    </div>
+
+    <div className="space-y-4">
+      <div>
+        <h5 className="font-medium text-gray-700 dark:text-gray-300 mb-2">HTTP Only (Development)</h5>
+        <pre className="bg-gray-100 dark:bg-gray-900 p-3 rounded text-sm overflow-x-auto"><code>{`<VirtualHost *:80>
+    ServerName your-domain.com
+
+    ProxyPreserveHost On
+    ProxyPass / http://localhost:4830/
+    ProxyPassReverse / http://localhost:4830/
+</VirtualHost>`}</code></pre>
+      </div>
+
+      <div>
+        <h5 className="font-medium text-gray-700 dark:text-gray-300 mb-2">HTTPS (Production)</h5>
+        <pre className="bg-gray-100 dark:bg-gray-900 p-3 rounded text-sm overflow-x-auto"><code>{`<VirtualHost *:80>
+    ServerName your-domain.com
+    Redirect permanent / https://your-domain.com/
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerName your-domain.com
+
+    SSLEngine on
+    SSLCertificateFile /etc/letsencrypt/live/your-domain.com/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/your-domain.com/privkey.pem
+
+    ProxyPreserveHost On
+    ProxyPass / http://localhost:4830/
+    ProxyPassReverse / http://localhost:4830/
+
+    # WebSocket support
+    ProxyPass /ws/ ws://localhost:4830/ws/
+    ProxyPassReverse /ws/ ws://localhost:4830/ws/
+</VirtualHost>`}</code></pre>
+      </div>
+
+      <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded border border-yellow-200 dark:border-yellow-700">
+        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+          <strong>Enable Apache Modules:</strong>
+        </p>
+        <pre className="text-xs mt-2 text-yellow-700 dark:text-yellow-300"><code>sudo a2enmod ssl proxy proxy_http proxy_wstunnel
+sudo systemctl restart apache2</code></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+## Management Commands
+
+<div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 mb-8">
+  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+    Useful Docker Commands
+  </h3>
+
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="space-y-3">
+      <div>
+        <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-2">📋 View Logs</h4>
+        <pre className="bg-gray-100 dark:bg-gray-900 p-3 rounded text-sm"><code>ocker exec -it mythicaldash_v3_backend php cli logs</code></pre>
+      </div>
+
+      <div>
+        <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-2">🛑 Stop Containers</h4>
+        <pre className="bg-gray-100 dark:bg-gray-900 p-3 rounded text-sm"><code>docker compose down</code></pre>
+      </div>
+    </div>
+
+    <div className="space-y-3">
+      <div>
+        <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-2">🔄 Restart</h4>
+        <pre className="bg-gray-100 dark:bg-gray-900 p-3 rounded text-sm"><code>docker compose restart</code></pre>
+      </div>
+
+      <div>
+        <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-2">⬆️ Update</h4>
+        <pre className="bg-gray-100 dark:bg-gray-900 p-3 rounded text-sm"><code>docker compose pull && docker compose up -d</code></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div className="mt-12 flex justify-center">
+  <a
+    href="/docs/mythicaldash-v3-remastered/congratulations"
+    className="group inline-flex items-center px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-indigo-500/50"
+  >
+    Complete Installation
+    <svg
+      className="ml-3 w-6 h-6 transform group-hover:translate-x-1 transition-transform duration-300"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2.5}
+        d="M13 7l5 5m0 0l-5 5m5-5H6"
+      />
+    </svg>
+  </a>
+</div>

@@ -3,52 +3,33 @@ id: 'upgrade'
 pagination_next: null
 pagination_prev: null
 ---
-# Upgrade
+
+# Upgrade MythicalDash
 
 This documentation covers the process for updating within the 3.x series of releases. This means updating from — for example — 3.0.0 to 3.1.0
 
-## Take a backup
-So first we are going to take a backup of the dash and the database structure using:
-```bash
-cd /var/www/mythicaldash-v3
-mariadb-dump -p mythicaldash_remastered > mythicaldash_backup.sql
-cd /var/www
-zip -r mythicaldash_backup.zip mythicaldash-v3/
-```
+:::warning Important Before Upgrading
+- **Always create a backup** before upgrading
+- **Test in a staging environment** if possible
+- **Check the release notes** for breaking changes
+- **Ensure sufficient disk space** for the upgrade process
+:::
 
-## Download the Update
-The first step in the update process is to download the new client files from GitHub. The command below will download the release archive for the most recent version of MythicalDash.
-```bash
-cd /var/www/mythicaldash-v3
-curl -Lo MythicalDash.zip https://github.com/MythicalLTD/MythicalDash/releases/latest/download/MythicalDash.zip
-unzip -o MythicalDash.zip -d /var/www/mythicaldash-v3
-```
+## Choose Your Installation Method
 
-## Update Dependencies
-After you've downloaded all of the new files you will need to upgrade the core components of the dash. To do this, simply run the commands below and follow any prompts.
-```bash
-cd /var/www/mythicaldash-v3/backend
-COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader
-```
+Select the upgrade method that matches how you originally installed MythicalDash:
 
-## Database Updates
-You'll also need to update your database schema for the newest version of MythicalDash.
-```bash
-cd /var/www/mythicaldash-v3
-php mythicaldash migrate
-```
+### Manual Installation
+If you installed MythicalDash directly on your server without Docker, follow the manual upgrade guide.
 
-## Set Permissions
-The last step is to set the proper owner of the files to be the user that runs your webserver. In most cases this is www-data but can vary from system to system — sometimes being nginx, caddy, apache, or even nobody.
-```bash
-chown -R www-data:www-data /var/www/mythicaldash-v3/*
-```
+[Manual Upgrade Guide →](/docs/mythicaldash-v3-remastered/upgrade/manual)
 
-## Force production
-This is the step where you will tell mythicaldash to run into production mode and be fast overall.
-```bash
-make set-prod
-```
+### Docker Installation
+If you installed MythicalDash using Docker Compose, follow the Docker upgrade guide.
 
-## Done
-You are done, and now you should be running the latest version of MythicalDash.
+[Docker Upgrade Guide →](/docs/mythicaldash-v3-remastered/upgrade/docker)
+
+:::info Not Sure Which Method You Used?
+- If you have a `/var/www/mythicaldash-v3/docker-compose.yml` file, you used **Docker**
+- If you have PHP files directly on your server and use Nginx/Apache, you used **Manual** installation
+:::

@@ -18,9 +18,15 @@ Composer is PHP's dependency manager, essential for managing the panel's PHP pac
 curl -sS https://getcomposer.org/installer | sudo php -- --install-dir=/usr/local/bin --filename=composer
 ```
 
+:::info Docker Installation
+If you're using the Docker installation method, you can skip the following manual setup steps. The Docker containers will handle the application setup automatically. Please refer to the [Docker installation guide](/docs/mythicaldash-v3-remastered/os/docker) for specific Docker instructions.
+:::
+
 ## Initial Setup
 
 ### Downloading and Extracting Files
+
+#### For Manual Installation
 Create the installation directory and download the latest release:
 ```bash
 mkdir -p /var/www/mythicaldash-v3
@@ -34,10 +40,25 @@ Set appropriate permissions for the application directories:
 chown -R www-data:www-data /var/www/mythicaldash-v3/*
 ```
 
+#### For Docker Installation
+If using Docker, follow these steps instead:
+```bash
+mkdir -p /var/www/mythicaldash-v3
+cd /var/www/mythicaldash-v3
+curl -Lo MythicalDash.zip https://github.com/MythicalLTD/MythicalDash/releases/latest/download/MythicalDash.zip
+unzip -o MythicalDash.zip -d /var/www/mythicaldash-v3
+
+# Start Docker containers
+docker compose up -d
+
+# Wait for containers to initialize
+docker compose logs -f
+```
+
 ### Installing Dependencies
 Install all required dependencies:
 ```bash
-cd /var/www/mythicaldash-v3/backend 
+cd /var/www/mythicaldash-v3/backend
 COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader
 ```
 
@@ -94,26 +115,66 @@ php mythicaldash migrate
 ```
 
 ### Configuring Pterodactyl Connection
+
+#### For Manual Installation
 Configure the connection to your Pterodactyl panel:
 ```php
 php mythicaldash pterodactyl configure
 ```
 
-## License Activation
-
-MythicalDash V3-Remastered requires a license to operate. Get a free one-year license at:
-https://mymythicalid.mythical.systems
-
-After obtaining your license key, run:
-```php
-php mythicaldash init
+#### For Docker Installation
+Configure the connection using Docker exec:
+```bash
+docker exec -it mythicaldash_v3_backend php cli pterodactyl configure
 ```
 
-Enter your license key and instance URL when prompted. Successful activation includes:
+## Reverse Proxy Configuration (Docker Only)
 
-- MythicalCloud: 1GB cloud backup storage
-- MythicalZeroTrust: Abuse prevention (5 actions/day)
-- MythicalLogs: Enhanced debugging
-- MythicalData: Performance optimization analytics
+If you're using the Docker installation, you'll need to set up a reverse proxy to access MythicalDash through port 4830.
 
-Premium licenses (€5/month) offer additional features and higher limits.
+### Nginx Reverse Proxy
+Create or update your Nginx configuration file:
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    location / {
+        proxy_pass http://localhost:4830;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering off;
+
+        # WebSocket support
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+```
+
+### Apache Reverse Proxy
+If using Apache, ensure mod_proxy is enabled and add this to your virtual host:
+```apache
+<VirtualHost *:80>
+    ServerName your-domain.com
+
+    ProxyPreserveHost On
+    ProxyPass / http://localhost:4830/
+    ProxyPassReverse / http://localhost:4830/
+
+    # WebSocket support
+    ProxyPass /ws/ ws://localhost:4830/ws/
+    ProxyPassReverse /ws/ ws://localhost:4830/ws/
+</VirtualHost>
+```
+
+### Enable Apache Modules (if using Apache)
+```bash
+sudo a2enmod proxy
+sudo a2enmod proxy_http
+sudo a2enmod proxy_wstunnel
+sudo systemctl restart apache2
+```

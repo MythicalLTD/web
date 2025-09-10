@@ -1,0 +1,332 @@
+---
+id: 'cloudflare-tunnels'
+---
+
+# Cloudflare Tunnels for MythicalDash
+
+Cloudflare Tunnels provide a secure, easy way to expose your MythicalDash installation to the internet without opening ports or configuring complex reverse proxy setups.
+
+## Why Use Cloudflare Tunnels?
+
+### Security Benefits
+- **No open ports** - Your server doesn't need to expose ports 80/443
+- **DDoS protection** - Cloudflare's network protects against attacks
+- **WAF protection** - Web Application Firewall blocks malicious requests
+- **Zero trust access** - Control who can access your dashboard
+
+### Ease of Use
+- **No reverse proxy needed** - Skip Nginx/Apache configuration
+- **Automatic SSL** - Cloudflare handles certificates automatically
+- **Dynamic IP support** - Works even if your server IP changes
+- **Simple setup** - One command to get started
+
+### Performance
+- **Global CDN** - Cloudflare's edge network accelerates your site
+- **Smart routing** - Traffic routed through optimal paths
+- **Compression** - Automatic content optimization
+
+## Prerequisites
+
+Before starting, you'll need:
+
+1. **Domain name** managed by Cloudflare
+2. **Cloudflare account** (free tier works fine)
+3. **Running MythicalDash** installation (Docker or manual)
+
+:::tip Domain Setup
+If your domain isn't on Cloudflare yet:
+1. Sign up at [cloudflare.com](https://www.cloudflare.com/)
+2. Add your domain to Cloudflare
+3. Update your domain's nameservers to Cloudflare's
+:::
+
+## Step 1: Install Cloudflared
+
+Install the Cloudflare Tunnel daemon on your server:
+
+### Ubuntu/Debian
+```bash
+# Download and install cloudflared
+curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+sudo dpkg -i cloudflared.deb
+```
+
+### Alternative Installation (Universal)
+```bash
+# Download binary directly
+curl -L --output /usr/local/bin/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+sudo chmod +x /usr/local/bin/cloudflared
+```
+
+### Verify Installation
+```bash
+cloudflared --version
+```
+
+## Step 2: Authenticate with Cloudflare
+
+Log in to your Cloudflare account:
+
+```bash
+cloudflared tunnel login
+```
+
+This will:
+1. Open a browser window
+2. Ask you to select your domain
+3. Download a certificate to your server
+
+## Step 3: Create a Tunnel
+
+Create a new tunnel for your MythicalDash:
+
+```bash
+# Create tunnel (replace 'mythicaldash' with your preferred name)
+cloudflared tunnel create mythicaldash
+```
+
+This creates a tunnel and generates a UUID. Save this UUID - you'll need it!
+
+## Step 4: Configure the Tunnel
+
+Create a configuration file for your tunnel:
+
+```bash
+sudo mkdir -p /etc/cloudflared
+sudo nano /etc/cloudflared/config.yml
+```
+
+Add the following configuration:
+
+### For Docker Installation
+```yaml
+tunnel: YOUR_TUNNEL_UUID
+credentials-file: /root/.cloudflared/YOUR_TUNNEL_UUID.json
+
+ingress:
+  - hostname: your-domain.com
+    service: http://localhost:4830
+  - hostname: www.your-domain.com
+    service: http://localhost:4830
+  - service: http_status:404
+```
+
+Replace:
+- `YOUR_TUNNEL_UUID` with your actual tunnel UUID
+- `your-domain.com` with your actual domain
+
+## Step 5: Create DNS Records
+
+Route traffic to your tunnel:
+
+```bash
+# Create DNS record (replace with your domain and tunnel UUID)
+cloudflared tunnel route dns mythicaldash your-domain.com
+cloudflared tunnel route dns mythicaldash www.your-domain.com
+```
+
+## Step 6: Test the Tunnel
+
+Test your configuration:
+
+```bash
+cloudflared tunnel run mythicaldash
+```
+
+Visit your domain - you should see MythicalDash loading through the tunnel!
+
+Press `Ctrl+C` to stop the test.
+
+## Step 7: Install as Service
+
+Make the tunnel run automatically:
+
+```bash
+# Install the service
+sudo cloudflared service install
+
+# Copy your config to the system location
+sudo cp /etc/cloudflared/config.yml /etc/cloudflared/config.yml
+
+# Start and enable the service
+sudo systemctl start cloudflared
+sudo systemctl enable cloudflared
+```
+
+## Step 8: Verify Everything Works
+
+Check the service status:
+
+```bash
+# Check service status
+sudo systemctl status cloudflared
+
+# View logs
+sudo journalctl -u cloudflared -f
+```
+
+## Advanced Configuration
+
+### Access Control
+Restrict access to your dashboard:
+
+```yaml
+tunnel: YOUR_TUNNEL_UUID
+credentials-file: /root/.cloudflared/YOUR_TUNNEL_UUID.json
+
+ingress:
+  - hostname: your-domain.com
+    service: http://localhost:4830
+    originRequest:
+      # Add Cloudflare Access
+      access:
+        required: true
+        teamName: your-team-name
+  - service: http_status:404
+```
+
+### Multiple Services
+Route different subdomains to different services:
+
+```yaml
+tunnel: YOUR_TUNNEL_UUID
+credentials-file: /root/.cloudflared/YOUR_TUNNEL_UUID.json
+
+ingress:
+  - hostname: dashboard.your-domain.com
+    service: http://localhost:4830
+  - hostname: panel.your-domain.com
+    service: http://localhost:8080
+  - hostname: monitoring.your-domain.com
+    service: http://localhost:3000
+  - service: http_status:404
+```
+
+### Load Balancing
+Distribute traffic across multiple servers:
+
+```yaml
+tunnel: YOUR_TUNNEL_UUID
+credentials-file: /root/.cloudflared/YOUR_TUNNEL_UUID.json
+
+ingress:
+  - hostname: your-domain.com
+    service: http://load-balancer
+    originRequest:
+      loadBalancer:
+        - http://server1:4830
+        - http://server2:4830
+        - http://server3:4830
+  - service: http_status:404
+```
+
+## Troubleshooting
+
+### Common Issues
+
+#### Tunnel Not Connecting
+```bash
+# Check tunnel status
+cloudflared tunnel info mythicaldash
+
+# Check logs
+sudo journalctl -u cloudflared -n 50
+```
+
+#### DNS Not Resolving
+```bash
+# Verify DNS records
+dig your-domain.com
+nslookup your-domain.com
+```
+
+#### Service Not Starting
+```bash
+# Check config syntax
+cloudflared tunnel ingress validate
+
+# Test configuration
+cloudflared tunnel --config /etc/cloudflared/config.yml run mythicaldash
+```
+
+### Useful Commands
+
+```bash
+# List all tunnels
+cloudflared tunnel list
+
+# Delete a tunnel
+cloudflared tunnel delete mythicaldash
+
+# Update cloudflared
+sudo cloudflared update
+
+# View tunnel info
+cloudflared tunnel info mythicaldash
+
+# Test connectivity
+cloudflared tunnel --config /etc/cloudflared/config.yml ingress url https://your-domain.com
+```
+
+## Security Best Practices
+
+### Enable Cloudflare Security Features
+
+1. **SSL/TLS Settings**
+   - Go to SSL/TLS → Overview
+   - Set to "Full (strict)" mode
+
+2. **Firewall Rules**
+   - Create rules to block suspicious traffic
+   - Rate limit requests to prevent abuse
+
+3. **DDoS Protection**
+   - Enable "Under Attack Mode" if needed
+   - Configure challenge pages
+
+4. **Access Control**
+   - Use Cloudflare Access for authentication
+   - Set up IP allowlists if needed
+
+### Server Security
+Even with tunnels, secure your server:
+
+```bash
+# Block direct IP access (optional)
+sudo ufw enable
+sudo ufw default deny incoming
+sudo ufw allow ssh
+
+# Only allow local connections to your app
+# For Docker, bind to 127.0.0.1:4830 instead of 0.0.0.0:4830
+```
+
+## Benefits Summary
+
+### For MythicalDash Users
+- **Instant SSL** - No certificate management needed
+- **Global performance** - Fast loading worldwide
+- **Advanced security** - Protection against attacks
+- **Easy updates** - No reverse proxy reconfiguration
+
+### For Server Administrators
+- **Simplified networking** - No port forwarding or firewall rules
+- **Dynamic IP support** - Perfect for home servers or changing IPs
+- **Zero-trust architecture** - Enhanced security model
+- **Easy scaling** - Add multiple servers easily
+
+## Migration from Traditional Setup
+
+If you're currently using Nginx/Apache:
+
+1. **Set up tunnel** following this guide
+2. **Test thoroughly** with tunnel running
+3. **Update DNS** to point to tunnel
+4. **Disable old reverse proxy** once confirmed working
+5. **Close ports 80/443** on your firewall (optional)
+
+## Conclusion
+
+Cloudflare Tunnels provide a modern, secure, and easy way to expose MythicalDash to the internet. They eliminate many traditional networking challenges while adding enterprise-grade security and performance features.
+
+The setup is straightforward, and the benefits - including automatic SSL, DDoS protection, and global CDN - make it an excellent choice for both home labs and production deployments.

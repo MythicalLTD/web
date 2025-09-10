@@ -1,0 +1,143 @@
+---
+id: 'manual'
+---
+
+# Manual Installation Uninstall
+
+This guide covers completely removing MythicalDash when you have installed it manually without Docker.
+
+:::danger Complete Removal
+This process will permanently delete all MythicalDash data. Make sure you have backups if you need them.
+:::
+
+## Step 1: Create Backup (Optional)
+
+If you might want to restore MythicalDash later, create a backup first:
+
+### Database Backup
+```bash
+cd /var/www/mythicaldash-v3
+mariadb-dump -p mythicaldash_remastered > mythicaldash_final_backup.sql
+```
+
+### Files Backup
+```bash
+cd /var/www
+zip -r mythicaldash_final_backup.zip mythicaldash-v3/
+```
+
+## Step 2: Remove Crontab Jobs
+
+Remove any scheduled tasks for MythicalDash:
+
+```bash
+sudo crontab -e
+```
+
+Remove these lines if they exist:
+```
+* * * * * bash /var/www/mythicaldash-v3/backend/storage/cron/runner.bash >> /dev/null 2>&1
+* * * * * php /var/www/mythicaldash-v3/backend/storage/cron/runner.php >> /dev/null 2>&1
+```
+
+## Step 3: Remove Web Server Configuration
+
+### For Nginx
+Remove the Nginx configuration files:
+
+```bash
+# Remove site configuration
+sudo rm -f /etc/nginx/sites-available/MythicalDashRemastered.conf
+sudo rm -f /etc/nginx/sites-enabled/MythicalDashRemastered.conf
+
+# Or if you used a different naming convention
+sudo rm -f /etc/nginx/sites-available/mythicaldash*
+sudo rm -f /etc/nginx/sites-enabled/mythicaldash*
+```
+
+### For Apache
+Remove the Apache virtual host:
+
+```bash
+# Disable the site
+sudo a2dissite mythicaldash
+
+# Remove configuration files
+sudo rm -f /etc/apache2/sites-available/mythicaldash*.conf
+sudo rm -f /etc/apache2/sites-enabled/mythicaldash*.conf
+```
+
+## Step 4: Remove SSL Certificates (Optional)
+
+If you created SSL certificates specifically for MythicalDash:
+
+```bash
+# Remove Let's Encrypt certificates (replace with your domain)
+sudo certbot delete --cert-name your-domain.com
+```
+
+## Step 5: Remove the Database
+
+Remove the database and user:
+
+```bash
+mariadb -u root -p
+```
+
+Execute these SQL commands:
+```sql
+DROP DATABASE mythicaldash_remastered;
+DROP USER 'mythicaldash_remastered'@'127.0.0.1';
+FLUSH PRIVILEGES;
+exit
+```
+
+## Step 6: Remove Application Files
+
+Delete the MythicalDash directory:
+
+```bash
+sudo rm -rf /var/www/mythicaldash-v3
+```
+
+## Step 7: Restart Web Server
+
+Restart your web server to apply configuration changes:
+
+### For Nginx
+```bash
+sudo systemctl restart nginx
+```
+
+### For Apache
+```bash
+sudo systemctl restart apache2
+```
+
+## Step 8: Clean Up Dependencies (Optional)
+
+If you installed dependencies specifically for MythicalDash and don't need them for other applications:
+
+### Remove PHP packages (be careful with this)
+```bash
+# Only run this if you're sure other applications don't need these packages
+sudo apt remove php8.3-{gd,mysql,mbstring,bcmath,xml,fpm,curl,zip,redis}
+```
+
+### Remove Composer (optional)
+```bash
+sudo rm -f /usr/local/bin/composer
+```
+
+## Verification
+
+After completing the uninstall:
+
+1. **Check web access** - Your domain should no longer serve MythicalDash
+2. **Verify database removal** - Login to MariaDB and confirm the database is gone
+3. **Check processes** - Ensure no MythicalDash processes are running
+4. **Verify file removal** - Confirm `/var/www/mythicaldash-v3` is deleted
+
+## Complete
+
+MythicalDash has been completely removed from your server. All application files, databases, and configurations have been deleted.

@@ -19,13 +19,39 @@ const sidebars: SidebarsConfig = {
             collapsed: false,
             items: [
                 'mythicaldash-v3-remastered/welcome',
-                'mythicaldash-v3-remastered/os/pick',
-                'mythicaldash-v3-remastered/install',
+                {
+                    type: 'category',
+                    label: 'Installation',
+                    items: [
+                        'mythicaldash-v3-remastered/os/pick',
+                        'mythicaldash-v3-remastered/os/docker',
+                        'mythicaldash-v3-remastered/os/ubuntu',
+                        'mythicaldash-v3-remastered/os/debian',
+                        'mythicaldash-v3-remastered/install',
+                    ]
+                },
                 'mythicaldash-v3-remastered/create_ssl',
                 'mythicaldash-v3-remastered/webserver',
                 'mythicaldash-v3-remastered/congratulations',
-                'mythicaldash-v3-remastered/upgrade',
-                'mythicaldash-v3-remastered/uninstall',
+                'mythicaldash-v3-remastered/cloudflare-tunnels',
+                {
+                    type: 'category',
+                    label: 'Upgrade',
+                    items: [
+                        'mythicaldash-v3-remastered/upgrade',
+                        'mythicaldash-v3-remastered/upgrade/manual',
+                        'mythicaldash-v3-remastered/upgrade/docker',
+                    ]
+                },
+                {
+                    type: 'category',
+                    label: 'Uninstall',
+                    items: [
+                        'mythicaldash-v3-remastered/uninstall',
+                        'mythicaldash-v3-remastered/uninstall/manual',
+                        'mythicaldash-v3-remastered/uninstall/docker',
+                    ]
+                },
             ]
         },
         {
@@ -78,6 +104,14 @@ const sidebars: SidebarsConfig = {
                     ]
                 },
                 "mythicaldash-v3/faq",
+            ]
+        },
+        {
+            type: 'category',
+            label: 'FeatherPanel',
+            collapsed: true,
+            items: [
+                'featherpanel/welcome',
             ]
         },
     ]

@@ -1,0 +1,200 @@
+---
+id: 'docker'
+---
+
+# Docker Installation Uninstall
+
+This guide covers completely removing MythicalDash when you have installed it using Docker Compose.
+
+:::danger Complete Removal
+This process will permanently delete all MythicalDash data including containers, volumes, and networks. Make sure you have backups if you need them.
+:::
+
+## Step 1: Create Backup (Optional)
+
+If you might want to restore MythicalDash later, create a backup first:
+
+### Database Backup
+```bash
+docker exec mythicaldash_v3_database mysqldump -u root -p mythicaldash_remastered > mythicaldash_final_backup.sql
+```
+
+### Files Backup
+```bash
+cd /var/www
+zip -r mythicaldash_final_backup.zip mythicaldash-v3/
+```
+
+### Export Container Data (Optional)
+```bash
+cd /var/www/mythicaldash-v3
+docker compose exec mythicaldash_v3_backend tar czf - /app > mythicaldash_container_backup.tar.gz
+```
+
+## Step 2: Stop and Remove Containers
+
+Stop all running containers and remove them:
+
+```bash
+cd /var/www/mythicaldash-v3
+docker compose down
+```
+
+Remove containers completely (including volumes):
+
+```bash
+docker compose down -v --remove-orphans
+```
+
+## Step 3: Remove Docker Images
+
+Remove the MythicalDash Docker images:
+
+```bash
+# List MythicalDash related images
+docker images | grep mythicaldash
+
+# Remove specific images (replace with actual image names)
+docker rmi $(docker images "mythicaldash*" -q)
+
+# Or remove all unused images
+docker image prune -a
+```
+
+## Step 4: Remove Docker Volumes
+
+Remove any persistent volumes created by MythicalDash:
+
+```bash
+# List volumes
+docker volume ls | grep mythicaldash
+
+# Remove specific volumes (replace with actual volume names)
+docker volume rm $(docker volume ls -q | grep mythicaldash)
+
+# Or remove all unused volumes
+docker volume prune
+```
+
+## Step 5: Remove Docker Networks
+
+Remove any custom networks created by MythicalDash:
+
+```bash
+# List networks
+docker network ls | grep mythicaldash
+
+# Remove specific networks (replace with actual network names)
+docker network rm $(docker network ls -q | grep mythicaldash)
+
+# Or remove all unused networks
+docker network prune
+```
+
+## Step 6: Remove Web Server Configuration
+
+### For Nginx (Reverse Proxy)
+Remove the Nginx configuration for MythicalDash:
+
+```bash
+# Remove site configuration
+sudo rm -f /etc/nginx/sites-available/mythicaldash*
+sudo rm -f /etc/nginx/sites-enabled/mythicaldash*
+
+# Restart Nginx
+sudo systemctl restart nginx
+```
+
+### For Apache (Reverse Proxy)
+Remove the Apache virtual host:
+
+```bash
+# Disable the site
+sudo a2dissite mythicaldash
+
+# Remove configuration files
+sudo rm -f /etc/apache2/sites-available/mythicaldash*.conf
+sudo rm -f /etc/apache2/sites-enabled/mythicaldash*.conf
+
+# Restart Apache
+sudo systemctl restart apache2
+```
+
+## Step 7: Remove SSL Certificates (Optional)
+
+If you created SSL certificates specifically for MythicalDash:
+
+```bash
+# Remove Let's Encrypt certificates (replace with your domain)
+sudo certbot delete --cert-name your-domain.com
+```
+
+## Step 8: Remove Application Files
+
+Delete the MythicalDash directory:
+
+```bash
+sudo rm -rf /var/www/mythicaldash-v3
+```
+
+## Step 9: Clean Up Docker System (Optional)
+
+Perform a complete Docker cleanup to remove all unused resources:
+
+```bash
+# Remove all unused containers, networks, images, and build cache
+docker system prune -a --volumes
+
+# Warning: This will remove ALL unused Docker resources, not just MythicalDash
+```
+
+## Verification
+
+After completing the uninstall:
+
+### Check Docker Resources
+```bash
+# Verify no MythicalDash containers
+docker ps -a | grep mythicaldash
+
+# Verify no MythicalDash images
+docker images | grep mythicaldash
+
+# Verify no MythicalDash volumes
+docker volume ls | grep mythicaldash
+```
+
+### Check Web Access
+Visit your domain to ensure MythicalDash is no longer accessible.
+
+### Check File System
+```bash
+# Verify directory is removed
+ls -la /var/www/ | grep mythicaldash
+```
+
+## Docker Cleanup Commands Reference
+
+If you need to force remove anything:
+
+```bash
+# Force remove all containers
+docker rm -f $(docker ps -aq)
+
+# Remove all images
+docker rmi -f $(docker images -q)
+
+# Remove all volumes
+docker volume rm $(docker volume ls -q)
+
+# Remove all networks (except default ones)
+docker network rm $(docker network ls -q)
+```
+
+:::warning
+The commands above will remove ALL Docker resources, not just MythicalDash. Use with caution if you have other Docker applications.
+:::
+
+## Complete
+
+MythicalDash has been completely removed from your server. All containers, images, volumes, networks, and application files have been deleted.

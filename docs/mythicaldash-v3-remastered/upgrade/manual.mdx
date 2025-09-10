@@ -1,0 +1,92 @@
+---
+id: 'manual'
+---
+
+# Manual Installation Upgrade
+
+This guide covers upgrading MythicalDash when you have installed it manually without Docker.
+
+## Step 1: Create Backup
+
+Before starting the upgrade process, create a complete backup of your current installation:
+
+### Database Backup
+```bash
+cd /var/www/mythicaldash-v3
+mariadb-dump -p mythicaldash_remastered > mythicaldash_backup.sql
+```
+
+### Files Backup
+```bash
+cd /var/www
+zip -r mythicaldash_backup.zip mythicaldash-v3/
+```
+
+## Step 2: Download the Update
+
+Download the latest version from GitHub:
+
+```bash
+cd /var/www/mythicaldash-v3
+curl -Lo MythicalDash.zip https://github.com/MythicalLTD/MythicalDash/releases/latest/download/MythicalDash.zip
+unzip -o MythicalDash.zip -d /var/www/mythicaldash-v3
+```
+
+## Step 3: Update Dependencies
+
+Update the core components of the dashboard:
+
+```bash
+cd /var/www/mythicaldash-v3/backend
+COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader
+```
+
+## Step 4: Database Updates
+
+Update your database schema for the newest version:
+
+```bash
+cd /var/www/mythicaldash-v3
+php mythicaldash migrate
+```
+
+## Step 5: Set Permissions
+
+Set the proper owner of the files to your webserver user:
+
+```bash
+chown -R www-data:www-data /var/www/mythicaldash-v3/*
+```
+
+:::note
+The webserver user may vary by system. Common users include `www-data`, `nginx`, `apache`, or `nobody`.
+:::
+
+## Step 6: Set Production Mode
+
+Enable production mode for optimal performance:
+
+```bash
+cd /var/www/mythicaldash-v3
+make set-prod
+```
+
+## Verification
+
+After completing the upgrade:
+
+1. **Check your website** - Visit your MythicalDash URL to ensure it loads properly
+2. **Verify functionality** - Test key features like server management
+3. **Check logs** - Review application logs for any errors
+
+## Troubleshooting
+
+If you encounter issues:
+
+- **Check permissions**: Ensure all files have correct ownership
+- **Review logs**: Check `/var/www/mythicaldash-v3/storage/logs/` for errors
+- **Restore backup**: If needed, restore from your backup files
+
+## Done
+
+You are now running the latest version of MythicalDash! The upgrade process is complete.
