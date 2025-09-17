@@ -84,6 +84,7 @@ unzip -o MythicalDash.zip -d /var/www/mythicaldash-v3
 ### Restore Preserved Files
 
 ```bash
+cd /var/www
 # Restore the preserved files back to their original locations
 mv upgrade_backup/public/* backend/public/
 mv upgrade_backup/storage/backups backend/storage/
