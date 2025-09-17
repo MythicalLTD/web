@@ -65,6 +65,14 @@ const sidebars: SidebarsConfig = {
         },
         {
             type: 'category',
+            label: 'FeatherEggs-Store',
+            collapsed: true,
+            items: [
+                'feathereggs/install',
+            ]
+        },
+        {
+            type: 'category',
             label: 'McUtils',
             collapsed: true,
             items: [
