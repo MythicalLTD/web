@@ -126,7 +126,7 @@ If there were database changes, they should be applied automatically. Check the 
 docker compose --project-directory "$MD_DIR" logs mythicaldash_v3_backend
 
 # Database logs
-docker compose --project-directory "$MD_DIR" logs mythicaldash_v3_database
+docker compose --project-directory "$MD_DIR" logs mythicaldash_v3_mysql
 
 # All logs
 docker compose --project-directory "$MD_DIR" logs
@@ -160,9 +160,9 @@ rm -rf "$MD_DIR"
 unzip /var/www/mythicaldash_backup.zip -d /var/www
 
 # Restore database (start database container first)
-docker compose --project-directory "$MD_DIR" up -d mythicaldash_v3_database
+docker compose --project-directory "$MD_DIR" up -d mythicaldash_v3_mysql
 # Wait for database to be ready, then:
-docker exec -i mythicaldash_v3_database mysql -u root -p mythicaldash_remastered < /var/www/mythicaldash_backup.sql
+docker exec -i mythicaldash_v3_mysql mysql -u root -p mythicaldash_remastered < /var/www/mythicaldash_backup.sql
 
 # Start all containers
 docker compose --project-directory "$MD_DIR" up -d
