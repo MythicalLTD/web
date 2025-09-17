@@ -14,7 +14,7 @@ Before starting the upgrade process, create a complete backup of your current in
 Create a database backup from the running container:
 
 ```bash
-docker exec mythicaldash_v3_database mysqldump -u root -p mythicaldash_remastered > mythicaldash_backup.sql
+docker exec mythicaldash_v3_mysql mariadb-dump -u mythicaldash_v3 -pmythicaldash_v3_password mythicaldash_v3 > mythicaldash_backup.sql
 ```
 
 ### Files Backup
@@ -42,14 +42,52 @@ cd /var/www/mythicaldash-v3
 docker compose down
 ```
 
-## Step 3: Download the Update
+## Step 3: Download the Update and Preserve Existing Files
+
+### Preserve Important Existing Files
+
+Create a temporary folder to store files you want to keep:
+
+```bash
+mkdir -p /var/www/mythicaldash-v3/upgrade_backup/public
+mkdir -p /var/www/mythicaldash-v3/upgrade_backup/storage
+```
+
+Move the directories and files that must be preserved:
+
+```bash
+# Move public files
+mv backend/public/* upgrade_backup/public/
+
+# Move storage subfolders and .env
+mv backend/storage/backups upgrade_backup/storage/
+mv backend/storage/addons upgrade_backup/storage/
+mv backend/storage/.env upgrade_backup/storage/
+```
 
 Download the latest version from GitHub:
 
 ```bash
-cd /var/www/mythicaldash-v3
+cd /var/www
+rm -rf /var/www/mythicaldash-v3
+mkdir -p /var/www/mythicaldash-v3/
 curl -Lo MythicalDash.zip https://github.com/MythicalLTD/MythicalDash/releases/latest/download/MythicalDash.zip
+```
+
+### Unzip the Update
+
+```bash
 unzip -o MythicalDash.zip -d /var/www/mythicaldash-v3
+```
+
+### Restore Preserved Files
+
+```bash
+# Restore the preserved files back to their original locations
+mv upgrade_backup/public/* backend/public/
+mv upgrade_backup/storage/backups backend/storage/
+mv upgrade_backup/storage/addons backend/storage/
+mv upgrade_backup/storage/.env backend/storage/
 ```
 
 ## Step 4: Rebuild and Start Containers
@@ -181,3 +219,4 @@ Your containers will automatically handle:
 - Dependency updates
 - Configuration changes
 - Service restarts
+
