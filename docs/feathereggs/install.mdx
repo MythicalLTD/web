@@ -1,0 +1,181 @@
+# 🥚 FeatherEggs - Premium Pterodactyl Extension
+
+[![License](https://img.shields.io/badge/license-Premium-gold.svg)](#)
+
+> **Transform your Pterodactyl Panel with the ultimate egg management solution**
+
+FeatherEggs revolutionizes how you manage server templates (eggs) in your Pterodactyl Panel. Say goodbye to manual JSON uploads and embrace a beautiful, intuitive egg store that connects directly to our curated repository.
+
+---
+
+## ✨ What is FeatherEggs?
+
+FeatherEggs is a **premium Pterodactyl Panel extension** that replaces the tedious process of manually uploading egg JSON files with a sleek, modern egg store interface. Browse, search, and install server templates with just one click.
+
+### 🎯 Key Benefits
+
+- **🚀 One-Click Installation** - Install eggs instantly without manual JSON uploads
+- **🎨 Beautiful Modern UI** - Professional gradient design that matches modern standards
+- **🔍 Smart Search & Filtering** - Find exactly what you need with advanced search
+- **📦 Curated Repository** - Access to 100% Pterodactyl-compatible eggs
+- **🔄 Auto-Updates** - Always stay in sync with the latest egg versions
+- **💡 Community Support** - Join our Discord for help and custom requests
+
+---
+
+## 🖼️ Features
+
+### 🏪 **Egg Store Interface**
+- **Professional Design**: Modern gradient UI with glassmorphism effects
+- **Live Statistics**: Real-time display of available eggs and compatibility info
+- **Search & Pagination**: Advanced filtering to find eggs quickly
+- **Category Organization**: Eggs organized by game types and applications
+
+### 🔧 **Admin Integration**
+- **Seamless Integration**: Injects directly into existing Pterodactyl admin pages
+- **Enhanced Nest Management**: Improved nest list and import modals
+- **Custom Sidebar**: Quick access to egg store from admin panel
+- **Responsive Design**: Works perfectly on desktop and mobile
+
+### 🌐 **API-Powered**
+- **FeatherPanel API**: Connected to our robust egg repository
+- **Real-time Data**: Always up-to-date with latest eggs
+- **Version Control**: Track egg versions and updates
+- **Compatibility Checks**: Automatic Pterodactyl version compatibility
+
+---
+
+## 📦 What's Included
+
+### 📁 **Package Contents**
+
+#### **Blueprint Version** (Latest)
+- `feathereggs.blueprint` - Modern Blueprint-compatible installation file
+- One-click installation through Blueprint framework
+
+#### **Legacy Version** (For older installations)
+- Complete source code package
+- Manual installation files
+- Detailed installation guide
+- Legacy Pterodactyl.zip backup
+
+---
+
+## 🎮 Supported Applications
+
+FeatherEggs includes eggs for popular game servers and applications:
+
+- **Minecraft** (Java, Bedrock, Modded)
+- **Discord Bots** (Various languages)
+- **Web Applications** (Node.js, Python, PHP)
+- **Game Servers** (CS2, Rust, ARK, and more)
+- **Databases** (MySQL, PostgreSQL, Redis)
+- **And many more...**
+
+*New eggs are added regularly based on community requests!*
+
+---
+
+## 🚀 Quick Start
+
+### Option 1: Blueprint Installation (Recommended)
+```bash
+blueprint install feathereggs
+# Done! ✨
+```
+
+### Option 2: Manual Installation
+
+## 1. Extract the Files
+Unzip the FeatherEggs folder into your Pterodactyl directory.
+
+---
+
+## 2. Add the Assets
+Open:
+```
+resources/views/layouts/scripts.blade.php
+```
+
+Scroll to the end of the file and paste the following:
+
+```html
+<script src="/extensions/feathereggs/inject-admin-nest-list.js"></script>
+<script src="/extensions/feathereggs/inject-admin-nest-import-modal.js"></script>
+<script src="/extensions/feathereggs/inject-admin-sidebar.js"></script>
+<script src="/extensions/feathereggs/inject-admin-nest-page.js"></script>
+```
+
+✅ This enables the panel to inject everything FeatherEggs needs.
+
+---
+
+## 3. Add the Admin Routes
+Next, open:
+```
+routes/admin.php
+```
+
+Go to the bottom of the file and add:
+
+```php
+Route::group(['prefix' => 'extensions'], function () {
+    Route::get('/feathereggs', [Admin\Extensions\FeatherEggsController::class, 'index'])->name('admin.extensions.feathereggs');
+    Route::post('/feathereggs', [Admin\Extensions\FeatherEggsController::class, 'post'])->name('admin.extensions.feathereggs.post');
+});
+```
+
+---
+
+## 💎 Why Choose FeatherEggs?
+
+| Traditional Method | FeatherEggs |
+|-------------------|-------------|
+| ❌ Manual JSON uploads | ✅ One-click installation |
+| ❌ Outdated egg versions | ✅ Always up-to-date |
+| ❌ Limited egg sources | ✅ Curated repository |
+| ❌ Basic admin interface | ✅ Beautiful modern UI |
+| ❌ No community support | ✅ Discord community |
+---
+
+## 📞 Support & Community
+
+### 💬 **Get Help**
+- **Discord Support**: Instant help from our community
+- **Custom Egg Requests**: Need a specific egg? We'll create it!
+- **Installation Support**: Step-by-step assistance
+- **Feature Requests**: Suggest new features
+
+### 🔗 **Links**
+- 💬 [Join Discord Community](https://discord.mythical.systems)
+- 🌐 [Visit Our Website](https://mythical.systems)
+- 🦋 [Try FeatherPanel](https://featherpanel.com) - Next-gen panel alternative
+
+---
+
+## 📝 License & Pricing
+
+**FeatherEggs** is a premium extension with **one-time payment**.
+
+- ✅ Lifetime updates included
+- ✅ Commercial usage allowed
+- ✅ Community support
+- ✅ Custom egg requests
+
+---
+
+<div align="center">
+
+## 🚀 Ready to Transform Your Pterodactyl Panel?
+
+**Get FeatherEggs today and revolutionize your egg management experience!**
+
+*One-time purchase • Lifetime updates • Premium support*
+
+[💎 **Purchase Now**](#) | [💬 **Join Discord**](https://discord.mythical.systems) | [📖 **View Docs**](#)
+
+---
+
+*Made with ❤️ by the MythicalSystems Team*
+
+</div>
