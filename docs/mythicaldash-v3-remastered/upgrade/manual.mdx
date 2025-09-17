@@ -6,70 +6,102 @@ id: 'manual'
 
 This guide covers upgrading MythicalDash when you have installed it manually without Docker.
 
+To keep it simple and safe, we will:
+- Use absolute paths with variables
+- Preserve critical data in a temporary upgrade directory
+- Clear old application files before restoring and updating
+
+Set these variables once (adjust if your path differs):
+
+```bash
+MD_DIR=/var/www/mythicaldash-v3
+UPG_DIR=/var/www/mythicaldash_upgrade_dir
+```
+
 ## Step 1: Create Backup
 
-Before starting the upgrade process, create a complete backup of your current installation:
+Before starting the upgrade process, create a complete backup of your current installation.
 
 ### Database Backup
 ```bash
-cd /var/www/mythicaldash-v3
-mariadb-dump -p mythicaldash_remastered > mythicaldash_backup.sql
+cd "$MD_DIR"
+mariadb-dump -p mythicaldash_remastered > /var/www/mythicaldash_backup.sql
 ```
 
 ### Files Backup
 ```bash
-cd /var/www
-zip -r mythicaldash_backup.zip mythicaldash-v3/
+zip -r /var/www/mythicaldash_backup.zip "$MD_DIR"/
 ```
 
-## Step 2: Download the Update
+## Step 2: Prepare and Preserve Important Files
 
-Download the latest version from GitHub:
+Create an upgrade directory and move critical items you want to keep:
 
 ```bash
-cd /var/www/mythicaldash-v3
-curl -Lo MythicalDash.zip https://github.com/MythicalLTD/MythicalDash/releases/latest/download/MythicalDash.zip
-unzip -o MythicalDash.zip -d /var/www/mythicaldash-v3
+mkdir -p "$UPG_DIR"/public "$UPG_DIR"/storage
+mv "$MD_DIR"/backend/public/* "$UPG_DIR"/public/ 2>/dev/null || true
+mv "$MD_DIR"/backend/storage/backups "$UPG_DIR"/storage/ 2>/dev/null || true
+mv "$MD_DIR"/backend/storage/addons "$UPG_DIR"/storage/ 2>/dev/null || true
+mv "$MD_DIR"/backend/storage/.env "$UPG_DIR"/storage/ 2>/dev/null || true
 ```
 
-## Step 3: Update Dependencies
+## Step 3: Download the Update
+
+Download the latest version from GitHub without changing directories:
+
+```bash
+curl -Lo /tmp/MythicalDash.zip https://github.com/MythicalLTD/MythicalDash/releases/latest/download/MythicalDash.zip
+```
+
+## Step 4: Clear Old Files and Install New Version
+
+Remove old files and unzip the new release:
+
+```bash
+rm -rf "$MD_DIR"
+mkdir -p "$MD_DIR"
+unzip -o /tmp/MythicalDash.zip -d "$MD_DIR"
+```
+
+## Step 5: Restore Preserved Files
+
+```bash
+mkdir -p "$MD_DIR"/backend/public "$MD_DIR"/backend/storage
+mv "$UPG_DIR"/public/* "$MD_DIR"/backend/public/ 2>/dev/null || true
+mv "$UPG_DIR"/storage/backups "$MD_DIR"/backend/storage/ 2>/dev/null || true
+mv "$UPG_DIR"/storage/addons "$MD_DIR"/backend/storage/ 2>/dev/null || true
+mv "$UPG_DIR"/storage/.env "$MD_DIR"/backend/storage/ 2>/dev/null || true
+```
+
+## Step 6: Update Dependencies
 
 Update the core components of the dashboard:
 
 ```bash
-cd /var/www/mythicaldash-v3/backend
+cd "$MD_DIR"/backend
 COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader
 ```
 
-## Step 4: Database Updates
+## Step 7: Database Updates
 
 Update your database schema for the newest version:
 
 ```bash
-cd /var/www/mythicaldash-v3
+cd "$MD_DIR"
 php mythicaldash migrate
 ```
 
-## Step 5: Set Permissions
+## Step 8: Set Permissions
 
 Set the proper owner of the files to your webserver user:
 
 ```bash
-chown -R www-data:www-data /var/www/mythicaldash-v3/*
+chown -R www-data:www-data "$MD_DIR"/*
 ```
 
-:::note
+::::note
 The webserver user may vary by system. Common users include `www-data`, `nginx`, `apache`, or `nobody`.
-:::
-
-## Step 6: Set Production Mode
-
-Enable production mode for optimal performance:
-
-```bash
-cd /var/www/mythicaldash-v3
-make set-prod
-```
+::::
 
 ## Verification
 
@@ -84,7 +116,7 @@ After completing the upgrade:
 If you encounter issues:
 
 - **Check permissions**: Ensure all files have correct ownership
-- **Review logs**: Check `/var/www/mythicaldash-v3/storage/logs/` for errors
+- **Review logs**: Check `"$MD_DIR"/storage/logs/` for errors
 - **Restore backup**: If needed, restore from your backup files
 
 ## Done
