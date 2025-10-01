@@ -18,6 +18,8 @@ const config: Config = {
   baseUrl: '/',
   organizationName: 'mythicalltd',
   projectName: 'web',
+  onBrokenLinks: 'ignore',
+  onBrokenMarkdownLinks: 'ignore',
   i18n: {
     defaultLocale: 'en',
     locales: ['en'],

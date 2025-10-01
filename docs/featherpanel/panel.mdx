@@ -42,56 +42,6 @@ Example output:
 VMware, Inc.
 ```
 
-## Dependencies
-
-- curl
-- Docker
-
-## Installing Docker
-
-For a quick install of Docker CE, you can execute the command below:
-
-```bash
-curl -sSL https://get.docker.com/ | CHANNEL=stable bash
-```
-
-If you would rather do a manual installation, please reference the [official Docker documentation](https://docs.docker.com/engine/install/) for how to install Docker CE on your server.
-
-## Check your Kernel
-
-Please be aware that some hosts install a modified kernel that does not support important docker features. Please check your kernel by running `uname -r`. If your kernel ends in `-xxxx-grs-ipv6-64` or `-xxxx-mod-std-ipv6-64` you're probably using a non-supported kernel.
-
-## Start Docker on Boot
-
-If you are on an operating system with systemd (Ubuntu 16+, Debian 8+, CentOS 7+) run the command below to have Docker start when you boot your machine.
-
-```bash
-sudo systemctl enable --now docker
-```
-
-## Enabling Swap
-
-### Recent Linux kernel
-
-Since the version 6.1 of the Linux kernel, swap is enabled by default. If you are running a kernel version 6.1 or newer, you can skip this step. To check your kernel version, run `uname -r`.
-
-On most systems, Docker will be unable to setup swap space by default. You can confirm this by running `docker info` and looking for the output of `WARNING: No swap limit support` near the bottom.
-
-Enabling swap is entirely optional, but we recommended doing it if you will be hosting for others and to prevent OOM errors.
-
-To enable swap, open `/etc/default/grub` as a root user and find the line starting with `GRUB_CMDLINE_LINUX_DEFAULT`. Make sure the line includes `swapaccount=1` somewhere inside the double-quotes.
-
-After that, run `sudo update-grub` followed by `sudo reboot` to restart the server and have swap enabled. Below is an example of what the line should look like, do not copy this line verbatim. It often has additional OS-specific parameters.
-
-```
-GRUB_CMDLINE_LINUX_DEFAULT="swapaccount=1"
-```
-
-### GRUB Configuration
-
-Some Linux distros may ignore `GRUB_CMDLINE_LINUX_DEFAULT`. Therefore you might have to use `GRUB_CMDLINE_LINUX` instead should the default one not work for you.
-
-
 ## Installing FeatherPanel (Canary)
 
 :::warning Canary Release
