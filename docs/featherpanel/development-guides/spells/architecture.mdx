@@ -1,0 +1,344 @@
+---
+id: architecture
+title: Spell Architecture
+description: How FeatherPanel spells work and are structured
+---
+
+# Spell Architecture
+
+FeatherPanel's spell system is built on a flexible architecture that allows for custom server configurations, Docker container management, and dynamic configuration parsing.
+
+## Core Components
+
+### 1. Spell Definition
+The spell configuration that defines:
+- **Server type** and metadata
+- **Docker image** and container settings
+- **Startup commands** and parameters
+- **File management** rules
+- **Environment variables** and defaults
+- **Installation scripts** and dependencies
+
+### 2. Docker Container Management
+- **Container lifecycle** (create, start, stop, remove)
+- **Resource allocation** (CPU, memory, disk, network)
+- **Volume mounting** and file system access
+- **Network configuration** and port mapping
+- **Environment variable** injection
+
+### 3. Configuration File Parser
+- **Multi-format support** (JSON, YAML, INI, Properties, XML)
+- **Dynamic value replacement** with variables
+- **File modification** before server startup
+- **Validation and error handling**
+
+### 4. Process Management
+- **Server startup** and shutdown procedures
+- **Health monitoring** and status checking
+- **Log management** and output handling
+- **Resource monitoring** and limits
+
+## Spell Structure
+
+### Basic Spell Configuration
+```json
+{
+  "id": "minecraft-vanilla",
+  "name": "Minecraft Vanilla",
+  "description": "Standard Minecraft server",
+  "docker_image": "ghcr.io/featherpanel/minecraft:latest",
+  "startup": "java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar {{SERVER_JARFILE}}",
+  "stop": "stop",
+  "file_denylist": [
+    "*.log",
+    "*.tmp"
+  ],
+  "config_files": {
+    "server.properties": {
+      "parser": "properties",
+      "find": {
+        "server-port": "{{SERVER_PORT}}",
+        "server-ip": "0.0.0.0"
+      }
+    }
+  },
+  "variables": [
+    {
+      "name": "Server JAR File",
+      "description": "The JAR file to run",
+      "env_variable": "SERVER_JARFILE",
+      "default_value": "server.jar",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|between:1,255"
+    }
+  ]
+}
+```
+
+### Spell Components
+
+#### 1. Metadata
+- **ID**: Unique identifier for the spell
+- **Name**: Display name for the spell
+- **Description**: Brief description of what the spell does
+- **Author**: Spell creator information
+- **Version**: Spell version for updates
+
+#### 2. Docker Configuration
+- **Image**: Docker image to use for containers
+- **Startup Command**: Command to start the server
+- **Stop Command**: Command to safely stop the server
+- **Working Directory**: Container working directory
+- **User**: Container user (must be 'container')
+
+#### 3. File Management
+- **Config Files**: Files to parse and modify
+- **File Denylist**: Files to exclude from backups
+- **File Permissions**: File and directory permissions
+- **Volume Mounts**: Persistent storage locations
+
+#### 4. Environment Variables
+- **System Variables**: Built-in FeatherPanel variables
+- **Custom Variables**: User-defined variables
+- **Variable Validation**: Rules and constraints
+- **Default Values**: Fallback values
+
+## Docker Container Architecture
+
+### Container Requirements
+All FeatherPanel containers must follow specific requirements:
+
+#### User Configuration
+```dockerfile
+# Must create a user named 'container'
+RUN adduser --disabled-password --home /home/container container
+
+# Must set user and home directory
+USER container
+ENV USER=container HOME=/home/container
+
+# Must set working directory
+WORKDIR /home/container
+```
+
+#### Entrypoint Script
+```bash
+#!/bin/bash
+cd /home/container
+
+# Replace startup variables
+MODIFIED_STARTUP=`eval echo $(echo ${STARTUP} | sed -e 's/{{/${/g' -e 's/}}/}/g')`
+echo ":/home/container$ ${MODIFIED_STARTUP}"
+
+# Run the server
+${MODIFIED_STARTUP}
+```
+
+### Container Lifecycle
+
+#### 1. Container Creation
+- **Image Pull**: Download Docker image if not cached
+- **Container Create**: Create container with specified settings
+- **Volume Mount**: Mount persistent storage volumes
+- **Network Setup**: Configure network and port mapping
+- **Environment Setup**: Inject environment variables
+
+#### 2. Container Startup
+- **File Processing**: Parse and modify configuration files
+- **Permission Setup**: Set file and directory permissions
+- **Command Execution**: Run startup command
+- **Health Check**: Monitor server startup process
+- **Status Update**: Mark server as running
+
+#### 3. Container Monitoring
+- **Process Monitoring**: Track server process status
+- **Resource Monitoring**: Monitor CPU, memory, disk usage
+- **Log Collection**: Collect and store server logs
+- **Health Checks**: Periodic health verification
+
+#### 4. Container Shutdown
+- **Graceful Stop**: Send stop command to server
+- **Timeout Handling**: Force stop if graceful stop fails
+- **Cleanup**: Remove temporary files and processes
+- **Status Update**: Mark server as stopped
+
+## Configuration File Parsing
+
+### Supported Parsers
+
+#### 1. Properties Parser
+For Java properties files and similar formats:
+```json
+{
+  "server.properties": {
+    "parser": "properties",
+    "find": {
+      "server-port": "{{SERVER_PORT}}",
+      "server-ip": "0.0.0.0",
+      "max-players": "{{MAX_PLAYERS}}"
+    }
+  }
+}
+```
+
+#### 2. YAML Parser
+For YAML configuration files with wildcard support:
+```json
+{
+  "config.yml": {
+    "parser": "yaml",
+    "find": {
+      "server.port": "{{SERVER_PORT}}",
+      "server.host": "0.0.0.0",
+      "players.*.name": "{{PLAYER_NAME}}"
+    }
+  }
+}
+```
+
+#### 3. JSON Parser
+For JSON configuration files with wildcard support:
+```json
+{
+  "config.json": {
+    "parser": "json",
+    "find": {
+      "server.port": "{{SERVER_PORT}}",
+      "server.host": "0.0.0.0",
+      "plugins.*.enabled": true
+    }
+  }
+}
+```
+
+#### 4. INI Parser
+For INI configuration files:
+```json
+{
+  "config.ini": {
+    "parser": "ini",
+    "find": {
+      "server.port": "{{SERVER_PORT}}",
+      "server.host": "0.0.0.0"
+    }
+  }
+}
+```
+
+#### 5. XML Parser
+For XML configuration files:
+```json
+{
+  "config.xml": {
+    "parser": "xml",
+    "find": {
+      "server.port": "{{SERVER_PORT}}",
+      "server.host": "0.0.0.0"
+    }
+  }
+}
+```
+
+### Variable Replacement
+
+#### System Variables
+Built-in variables available to all spells:
+- `{{SERVER_MEMORY}}` - Allocated memory in MB
+- `{{SERVER_PORT}}` - Primary server port
+- `{{SERVER_IP}}` - Server IP address
+- `{{TZ}}` - Timezone setting
+- `{{P_SERVER_UUID}}` - Server UUID
+- `{{P_SERVER_LOCATION}}` - Server location
+
+#### Custom Variables
+User-defined variables from spell configuration:
+- `{{SERVER_JARFILE}}` - JAR file name
+- `{{MAX_PLAYERS}}` - Maximum players
+- `{{WORLD_NAME}}` - World name
+- `{{DIFFICULTY}}` - Game difficulty
+
+## Process Management
+
+### Startup Process
+1. **Container Creation** - Create Docker container
+2. **File Processing** - Parse and modify configuration files
+3. **Command Preparation** - Replace variables in startup command
+4. **Process Execution** - Start server process
+5. **Health Monitoring** - Monitor startup progress
+6. **Status Update** - Mark server as running
+
+### Shutdown Process
+1. **Graceful Stop** - Send stop command to server
+2. **Timeout Handling** - Wait for graceful shutdown
+3. **Force Stop** - Kill process if timeout exceeded
+4. **Cleanup** - Remove temporary files
+5. **Status Update** - Mark server as stopped
+
+### Health Monitoring
+- **Process Status** - Check if server process is running
+- **Port Availability** - Verify server is listening on ports
+- **Resource Usage** - Monitor CPU and memory usage
+- **Log Analysis** - Parse logs for error conditions
+
+## Security Architecture
+
+### Container Security
+- **User Isolation** - Run as non-root user
+- **Resource Limits** - CPU and memory constraints
+- **Network Isolation** - Restricted network access
+- **File System** - Limited file system access
+
+### File Security
+- **Permission Management** - Proper file permissions
+- **Access Control** - Restrict file access
+- **Backup Security** - Secure backup storage
+- **Log Security** - Protect sensitive log data
+
+### Network Security
+- **Port Management** - Controlled port exposure
+- **Firewall Rules** - Network access restrictions
+- **SSL/TLS** - Encrypted communications
+- **DDoS Protection** - Attack mitigation
+
+## Performance Considerations
+
+### Container Optimization
+- **Image Size** - Minimize Docker image size
+- **Layer Caching** - Optimize Docker layer structure
+- **Resource Allocation** - Efficient resource usage
+- **Startup Time** - Minimize container startup time
+
+### File System Performance
+- **Volume Mounting** - Efficient storage access
+- **File Caching** - Cache frequently accessed files
+- **Backup Optimization** - Efficient backup processes
+- **Log Rotation** - Manage log file sizes
+
+### Network Performance
+- **Port Management** - Efficient port allocation
+- **Connection Pooling** - Reuse network connections
+- **Bandwidth Management** - Control network usage
+- **Latency Optimization** - Minimize network latency
+
+## Error Handling
+
+### Container Errors
+- **Image Pull Failures** - Handle missing images
+- **Container Creation Errors** - Handle creation failures
+- **Startup Failures** - Handle startup errors
+- **Runtime Errors** - Handle runtime exceptions
+
+### Configuration Errors
+- **File Parsing Errors** - Handle malformed files
+- **Variable Replacement Errors** - Handle missing variables
+- **Validation Errors** - Handle invalid configurations
+- **Permission Errors` - Handle file permission issues
+
+### Process Errors
+- **Startup Timeouts** - Handle slow startups
+- **Shutdown Failures** - Handle shutdown errors
+- **Health Check Failures** - Handle health issues
+- **Resource Exhaustion** - Handle resource limits
+
+This architecture provides a robust, secure, and flexible foundation for managing diverse server types and applications in FeatherPanel.

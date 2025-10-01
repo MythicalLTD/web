@@ -1,0 +1,370 @@
+---
+id: installation
+title: Plugin Installation & Management
+description: Installing, managing, and distributing FeatherPanel plugins
+---
+
+# Plugin Installation & Management
+
+This guide covers how to install, manage, and distribute FeatherPanel plugins through various methods and best practices.
+
+## Installation Methods
+
+### 1. Online Registry Installation
+
+The easiest way to install plugins is through the FeatherPanel packages registry:
+
+#### Using the Admin Interface
+1. Navigate to **Admin → Plugins**
+2. Click **"Browse Online Plugins"**
+3. Search for the plugin you want
+4. Click **"Install"** on the desired plugin
+5. Wait for installation to complete
+
+#### Plugin Registry Features
+- **Search and filter** plugins by category, author, or functionality
+- **Plugin information** including description, version, and dependencies
+- **Automatic dependency resolution** during installation
+- **Version management** with update notifications
+- **User reviews and ratings** for plugin quality
+
+### 2. File Upload Installation
+
+Install plugins from `.fpa` (FeatherPanel Addon) files:
+
+#### Using the Admin Interface
+1. Navigate to **Admin → Plugins**
+2. Click **"Upload Plugin"**
+3. Select your `.fpa` file
+4. Click **"Install"**
+5. Wait for installation to complete
+
+#### FPA File Format
+`.fpa` files are password-protected ZIP archives containing:
+- Plugin configuration (`conf.yml`)
+- Plugin source code and files
+- Database migrations
+- Frontend assets
+- Documentation
+
+### 3. URL Installation
+
+Install plugins directly from remote URLs:
+
+#### Using the Admin Interface
+1. Navigate to **Admin → Plugins**
+2. Click **"Install from URL"**
+3. Enter the plugin download URL
+4. Click **"Install"**
+5. Wait for download and installation to complete
+
+#### Supported URL Types
+- **Direct download links** to `.fpa` files
+- **GitHub releases** with direct file links
+- **CDN links** to plugin packages
+- **Private repositories** with authentication
+
+### 4. Manual Installation
+
+For development or custom plugins:
+
+#### Manual Installation Steps
+1. **Extract plugin files** to `storage/addons/{plugin_identifier}/`
+2. **Verify file structure** matches requirements
+3. **Check configuration** in `conf.yml`
+4. **Install dependencies** if required
+5. **Run migrations** if database changes are needed
+6. **Enable plugin** in admin interface
+
+#### File Structure Requirements
+```
+storage/addons/my_plugin/
+├── conf.yml                    # Required: Plugin configuration
+├── MyPlugin.php               # Required: Main plugin class
+├── Migrations/                # Optional: Database migrations
+├── Cron/                      # Optional: Scheduled tasks
+├── Commands/                  # Optional: CLI commands
+├── Events/                    # Optional: Event handlers
+├── Frontend/                  # Optional: Frontend assets
+├── Public/                    # Optional: Public assets
+└── Controllers/               # Optional: API controllers
+```
+
+## Plugin Management
+
+### 1. Plugin Status
+
+Plugins can have different statuses:
+
+#### Active Plugins
+- **Loaded in memory** and ready to use
+- **Event listeners registered** and functional
+- **Dependencies met** and configuration complete
+- **Available in admin interface** and frontend
+
+#### Inactive Plugins
+- **Installed but not loaded** due to issues
+- **Missing dependencies** or configuration
+- **Configuration errors** preventing loading
+- **Disabled by administrator**
+
+#### Error State Plugins
+- **Failed to load** due to critical errors
+- **Syntax errors** in plugin code
+- **Missing required files** or classes
+- **Database connection issues**
+
+### 2. Plugin Configuration
+
+#### Viewing Plugin Configuration
+1. Navigate to **Admin → Plugins**
+2. Click on the plugin you want to configure
+3. View **Configuration** tab
+4. See current settings and values
+
+#### Updating Plugin Settings
+1. Navigate to **Admin → Plugins**
+2. Click on the plugin
+3. Go to **Settings** tab
+4. Update configuration values
+5. Click **"Save Settings"**
+
+#### Required Configuration
+Some plugins require configuration before they can function:
+- **API keys** for external services
+- **Database connections** for data storage
+- **Webhook URLs** for notifications
+- **Feature toggles** for functionality
+
+### 3. Plugin Dependencies
+
+#### Dependency Management
+- **Automatic checking** during installation
+- **Dependency resolution** for missing components
+- **Version compatibility** checking
+- **Update notifications** for outdated dependencies
+
+#### Common Dependencies
+- **Other plugins** that provide required functionality
+- **PHP extensions** for specific features
+- **Composer packages** for external libraries
+- **System requirements** (PHP version, etc.)
+
+#### Resolving Dependency Issues
+1. **Check dependency status** in plugin details
+2. **Install missing dependencies** through appropriate channels
+3. **Update existing dependencies** to compatible versions
+4. **Contact plugin author** for support if needed
+
+### 4. Plugin Updates
+
+#### Automatic Updates
+- **Update notifications** in admin interface
+- **One-click updates** for compatible versions
+- **Backup creation** before updating
+- **Rollback capability** if issues occur
+
+#### Manual Updates
+1. **Download new version** from registry or source
+2. **Backup current plugin** and data
+3. **Install new version** over existing installation
+4. **Run any required migrations**
+5. **Test functionality** after update
+
+#### Update Best Practices
+- **Read release notes** before updating
+- **Backup plugin data** before major updates
+- **Test in development environment** first
+- **Update dependencies** if required
+- **Monitor for issues** after update
+
+## Plugin Distribution
+
+### 1. Creating Plugin Packages
+
+#### Using Plugin Manager
+1. **Develop your plugin** using the Plugin Manager
+2. **Test thoroughly** with validation tools
+3. **Export plugin** as `.fpa` file
+4. **Test installation** on clean system
+5. **Distribute** through registry or direct download
+
+#### Manual Packaging
+1. **Create plugin directory** with all files
+2. **Verify file structure** and permissions
+3. **Test plugin functionality** completely
+4. **Create ZIP archive** with password protection
+5. **Rename to `.fpa`** extension
+
+### 2. Plugin Registry Submission
+
+#### Registry Requirements
+- **Complete plugin information** (name, description, author)
+- **Valid configuration** with all required fields
+- **Working functionality** with proper testing
+- **Documentation** including installation and usage
+- **License information** and terms of use
+
+#### Submission Process
+1. **Create registry account** and verify identity
+2. **Upload plugin package** with metadata
+3. **Complete submission form** with all details
+4. **Wait for review** by registry moderators
+5. **Address feedback** if required
+6. **Publish plugin** after approval
+
+#### Registry Guidelines
+- **Follow coding standards** and best practices
+- **Provide clear documentation** and examples
+- **Test on multiple environments** before submission
+- **Respect intellectual property** and licensing
+- **Maintain plugin quality** and security
+
+### 3. Private Distribution
+
+#### Direct Distribution
+- **Share `.fpa` files** directly with users
+- **Host on private servers** with download links
+- **Use version control** for development versions
+- **Provide installation instructions** and support
+
+#### Enterprise Distribution
+- **Internal plugin registry** for organization
+- **Custom authentication** and access control
+- **Version management** and deployment pipelines
+- **Support and maintenance** agreements
+
+## Plugin Security
+
+### 1. Installation Security
+
+#### Security Checks
+- **File integrity verification** during installation
+- **Malware scanning** of plugin packages
+- **Permission validation** for file operations
+- **Sandboxed installation** to prevent system damage
+
+#### Best Practices
+- **Only install from trusted sources** (official registry, known authors)
+- **Verify plugin signatures** when available
+- **Review plugin code** before installation
+- **Use development environment** for testing
+- **Keep plugins updated** with security patches
+
+### 2. Runtime Security
+
+#### Plugin Isolation
+- **Separate namespaces** for plugin code
+- **Limited file system access** to plugin directories
+- **Database access restrictions** to plugin tables
+- **Network access controls** for external requests
+
+#### Security Monitoring
+- **Activity logging** for plugin operations
+- **Error monitoring** for suspicious behavior
+- **Performance monitoring** for resource abuse
+- **Access control** for sensitive operations
+
+### 3. Data Protection
+
+#### Plugin Data Security
+- **Encrypted storage** for sensitive settings
+- **Access control** for plugin data
+- **Backup and recovery** procedures
+- **Data retention** policies
+
+#### User Privacy
+- **Data collection transparency** in plugin documentation
+- **User consent** for data processing
+- **Data minimization** principles
+- **Right to deletion** for user data
+
+## Troubleshooting
+
+### 1. Installation Issues
+
+#### Common Problems
+- **File permission errors** during installation
+- **Dependency conflicts** with existing plugins
+- **Insufficient disk space** for plugin files
+- **Network issues** during download
+
+#### Solutions
+- **Check file permissions** on addons directory
+- **Resolve dependency conflicts** by updating or removing conflicting plugins
+- **Free up disk space** before installation
+- **Check network connectivity** and firewall settings
+
+### 2. Plugin Loading Issues
+
+#### Common Problems
+- **Configuration errors** in conf.yml
+- **Missing dependencies** or incompatible versions
+- **Syntax errors** in plugin code
+- **Database connection issues**
+
+#### Solutions
+- **Validate configuration** using built-in tools
+- **Install missing dependencies** or update existing ones
+- **Check PHP syntax** and fix errors
+- **Verify database connectivity** and permissions
+
+### 3. Runtime Issues
+
+#### Common Problems
+- **Plugin crashes** during execution
+- **Performance issues** with resource usage
+- **Compatibility problems** with other plugins
+- **Security vulnerabilities** in plugin code
+
+#### Solutions
+- **Check error logs** for specific error messages
+- **Monitor resource usage** and optimize code
+- **Test plugin compatibility** with other plugins
+- **Update plugin** to latest secure version
+
+### 4. Getting Help
+
+#### Support Resources
+- **Plugin documentation** and README files
+- **Community forums** and discussion boards
+- **Plugin author support** channels
+- **FeatherPanel documentation** and guides
+
+#### Debugging Tools
+- **Plugin Manager validation** tools
+- **Error logging** and monitoring
+- **Performance profiling** tools
+- **Database query analysis**
+
+## Best Practices
+
+### 1. Installation Best Practices
+- **Read plugin documentation** before installation
+- **Check system requirements** and compatibility
+- **Backup system** before installing plugins
+- **Test in development environment** first
+- **Install from trusted sources** only
+
+### 2. Management Best Practices
+- **Keep plugins updated** regularly
+- **Monitor plugin performance** and resource usage
+- **Review plugin settings** periodically
+- **Remove unused plugins** to reduce system load
+- **Document custom configurations** for future reference
+
+### 3. Security Best Practices
+- **Use strong passwords** for plugin packages
+- **Verify plugin integrity** before installation
+- **Limit plugin permissions** to minimum required
+- **Monitor plugin activity** for suspicious behavior
+- **Keep security patches** up to date
+
+### 4. Development Best Practices
+- **Follow coding standards** and best practices
+- **Test thoroughly** before distribution
+- **Provide clear documentation** and examples
+- **Maintain backward compatibility** when possible
+- **Respond to user feedback** and bug reports
+
+This comprehensive guide covers all aspects of plugin installation and management, ensuring a secure and efficient plugin ecosystem for FeatherPanel.

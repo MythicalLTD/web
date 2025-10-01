@@ -1,0 +1,422 @@
+---
+id: chat
+pagination_next: null
+pagination_prev: null
+---
+
+# Chat Directory - Database Models
+
+The `Chat` directory contains all the database models and data access layers for FeatherPanel. These classes define the database structure, relationships, and provide CRUD operations for all entities in the system.
+
+## Overview
+
+The Chat directory serves as FeatherPanel's **data access layer** and contains:
+
+- **Database Models**: Classes that represent database tables and their operations
+- **CRUD Operations**: Create, Read, Update, Delete functionality for all entities
+- **Database Structure**: Defines table schemas, relationships, and constraints
+- **Data Validation**: Ensures data integrity and proper field validation
+- **Security**: SQL injection prevention through whitelisted fields and prepared statements
+
+## Core Models
+
+### User Management
+
+#### `User.php` - User Accounts
+- **Table**: `featherpanel_users`
+- **Purpose**: Manages user accounts, authentication, and user data
+- **Key Fields**: username, email, password, uuid, role_id, 2FA settings
+
+```php
+use App\Chat\User;
+
+// Create a new user
+$userId = User::createUser([
+    'username' => 'john_doe',
+    'email' => 'john@example.com',
+    'password' => 'hashed_password',
+    'uuid' => 'unique-uuid',
+    'first_name' => 'John',
+    'last_name' => 'Doe'
+]);
+
+// Get user by ID
+$user = User::getUserById($userId);
+
+// Update user
+User::updateUser($userId, ['first_name' => 'Johnny']);
+```
+
+#### `Role.php` - User Roles
+- **Table**: `featherpanel_roles`
+- **Purpose**: Defines user roles and permissions
+- **Key Fields**: name, description, permissions
+
+#### `Permission.php` - Permissions
+- **Table**: `featherpanel_permissions`
+- **Purpose**: Manages permission nodes and access controls
+- **Key Fields**: name, description, category
+
+### Server Management
+
+#### `Server.php` - Game Servers
+- **Table**: `featherpanel_servers`
+- **Purpose**: Manages game servers, resources, and configurations
+- **Key Fields**: uuid, name, node_id, owner_id, memory, disk, cpu
+
+```php
+use App\Chat\Server;
+
+// Create a new server
+$serverId = Server::createServer([
+    'uuid' => 'server-uuid',
+    'uuidShort' => 'short-uuid',
+    'node_id' => 1,
+    'name' => 'My Minecraft Server',
+    'owner_id' => 1,
+    'memory' => 1024,
+    'disk' => 5120,
+    'cpu' => 100
+]);
+
+// Get server by UUID
+$server = Server::getServerByUuid('server-uuid');
+
+// Update server resources
+Server::updateServer($serverId, ['memory' => 2048]);
+```
+
+#### `Node.php` - Server Nodes
+- **Table**: `featherpanel_nodes`
+- **Purpose**: Manages physical/virtual servers that host game servers
+- **Key Fields**: uuid, name, fqdn, location_id, resources, daemon settings
+
+```php
+use App\Chat\Node;
+
+// Create a new node
+$nodeId = Node::createNode([
+    'uuid' => 'node-uuid',
+    'name' => 'US-East-1',
+    'fqdn' => 'node1.example.com',
+    'location_id' => 1,
+    'memory' => 16384,
+    'disk' => 1000000
+]);
+
+// Get node by UUID
+$node = Node::getNodeByUuid('node-uuid');
+```
+
+#### `Allocation.php` - IP Allocations
+- **Table**: `featherpanel_allocations`
+- **Purpose**: Manages IP addresses and ports for servers
+- **Key Fields**: ip, port, node_id, server_id
+
+### Database Management
+
+#### `Database.php` - Database Connection
+- **Purpose**: Handles database connections and basic operations
+- **Features**: PDO wrapper, connection management, query execution
+
+```php
+use App\Chat\Database;
+
+// Database connection is handled by App class
+$db = App::getInstance(true)->getDatabase();
+$pdo = $db->getPdo();
+
+// Execute queries
+$stmt = $pdo->prepare("SELECT * FROM featherpanel_users WHERE id = ?");
+$stmt->execute([$userId]);
+$user = $stmt->fetch();
+```
+
+#### `DatabaseInstance.php` - Database Instances
+- **Table**: `featherpanel_database_instances`
+- **Purpose**: Manages database instances for servers
+- **Key Fields**: name, username, password, server_id
+
+### Additional Models
+
+#### `Location.php` - Server Locations
+- **Table**: `featherpanel_locations`
+- **Purpose**: Geographic locations for nodes
+- **Key Fields**: name, description, country, city
+
+#### `Backup.php` - Server Backups
+- **Table**: `featherpanel_backups`
+- **Purpose**: Manages server backups
+- **Key Fields**: uuid, server_id, name, size, completed_at
+
+#### `Task.php` - Scheduled Tasks
+- **Table**: `featherpanel_tasks`
+- **Purpose**: Manages scheduled tasks and cron jobs
+- **Key Fields**: name, description, cron_expression, is_active
+
+#### `ServerSchedule.php` - Server Schedules
+- **Table**: `featherpanel_server_schedules`
+- **Purpose**: Manages server-specific scheduled tasks
+- **Key Fields**: server_id, name, cron_expression, is_active
+
+## Database Structure
+
+### Table Naming Convention
+
+All tables follow the `featherpanel_` prefix:
+
+- `featherpanel_users` - User accounts
+- `featherpanel_servers` - Game servers
+- `featherpanel_nodes` - Server nodes
+- `featherpanel_roles` - User roles
+- `featherpanel_permissions` - Permission nodes
+- `featherpanel_allocations` - IP/Port allocations
+- `featherpanel_locations` - Geographic locations
+- `featherpanel_backups` - Server backups
+- `featherpanel_tasks` - Scheduled tasks
+- `featherpanel_database_instances` - Database instances
+
+### Common Patterns
+
+#### UUID Fields
+Most entities have UUID fields for external identification:
+- `uuid` - Full UUID (36 characters)
+- `uuidShort` - Short UUID (8 characters)
+
+#### Timestamps
+Standard timestamp fields:
+- `created_at` - Record creation time
+- `updated_at` - Last update time
+- `deleted_at` - Soft delete timestamp
+
+#### Foreign Keys
+Relationships between entities:
+- `user_id` - References `featherpanel_users.id`
+- `server_id` - References `featherpanel_servers.id`
+- `node_id` - References `featherpanel_nodes.id`
+- `role_id` - References `featherpanel_roles.id`
+
+## Model Structure
+
+### Standard Methods
+
+Each model typically provides:
+
+```php
+class ModelName
+{
+    private static string $table = 'featherpanel_table_name';
+
+    // Create operations
+    public static function createModel(array $data): int|false
+
+    // Read operations
+    public static function getModelById(int $id): array|false
+    public static function getModelByUuid(string $uuid): array|false
+    public static function getAllModels(): array
+
+    // Update operations
+    public static function updateModel(int $id, array $data): bool
+    public static function updateModelByUuid(string $uuid, array $data): bool
+
+    // Delete operations
+    public static function deleteModel(int $id): bool
+    public static function deleteModelByUuid(string $uuid): bool
+
+    // Utility methods
+    public static function getColumns(): array
+    public static function modelExists(int $id): bool
+}
+```
+
+### Security Features
+
+#### Field Whitelisting
+Models use whitelisted fields to prevent SQL injection:
+
+```php
+private static array $allowedFields = [
+    'name',
+    'description',
+    'email',
+    'username'
+    // Only these fields can be used in queries
+];
+```
+
+#### Required Fields
+Models define required fields for creation:
+
+```php
+private static array $requiredFields = [
+    'username',
+    'email',
+    'password',
+    'uuid'
+];
+```
+
+## Usage Examples
+
+### Creating a Complete Server Setup
+
+```php
+use App\Chat\User;
+use App\Chat\Node;
+use App\Chat\Server;
+use App\Chat\Allocation;
+
+// 1. Create a user
+$userId = User::createUser([
+    'username' => 'server_owner',
+    'email' => 'owner@example.com',
+    'password' => password_hash('secure_password', PASSWORD_DEFAULT),
+    'uuid' => 'user-uuid-here',
+    'first_name' => 'Server',
+    'last_name' => 'Owner'
+]);
+
+// 2. Create a node
+$nodeId = Node::createNode([
+    'uuid' => 'node-uuid-here',
+    'name' => 'Production Node',
+    'fqdn' => 'node.example.com',
+    'location_id' => 1,
+    'memory' => 32768,
+    'disk' => 2000000
+]);
+
+// 3. Create an allocation
+$allocationId = Allocation::createAllocation([
+    'ip' => '192.168.1.100',
+    'port' => 25565,
+    'node_id' => $nodeId
+]);
+
+// 4. Create a server
+$serverId = Server::createServer([
+    'uuid' => 'server-uuid-here',
+    'uuidShort' => 'srv12345',
+    'node_id' => $nodeId,
+    'name' => 'My Minecraft Server',
+    'description' => 'A great Minecraft server',
+    'owner_id' => $userId,
+    'memory' => 4096,
+    'disk' => 10240,
+    'cpu' => 200,
+    'allocation_id' => $allocationId
+]);
+```
+
+### Querying Related Data
+
+```php
+use App\Chat\Server;
+use App\Chat\User;
+use App\Chat\Node;
+
+// Get server with owner information
+$server = Server::getServerByUuid('server-uuid');
+$owner = User::getUserById($server['owner_id']);
+$node = Node::getNodeById($server['node_id']);
+
+// Get all servers for a user
+$userServers = Server::getServersByOwner($userId);
+
+// Get all servers on a node
+$nodeServers = Server::getServersByNode($nodeId);
+```
+
+## Best Practices
+
+### 1. Use Model Methods
+
+Always use the provided model methods instead of raw SQL:
+
+```php
+// ✅ Good - Use model methods
+$user = User::getUserById($userId);
+User::updateUser($userId, ['email' => 'new@example.com']);
+
+// ❌ Bad - Raw SQL
+$stmt = $pdo->prepare("SELECT * FROM featherpanel_users WHERE id = ?");
+```
+
+### 2. Handle Return Values
+
+Always check return values from model methods:
+
+```php
+// ✅ Good - Check return values
+$userId = User::createUser($userData);
+if ($userId === false) {
+    // Handle creation failure
+    throw new Exception('Failed to create user');
+}
+
+// ✅ Good - Check if record exists
+if (User::userExists($userId)) {
+    $user = User::getUserById($userId);
+}
+```
+
+### 3. Use UUIDs for External References
+
+Use UUIDs when referencing entities from external systems:
+
+```php
+// ✅ Good - Use UUID for external reference
+$server = Server::getServerByUuid($externalServerUuid);
+
+// ✅ Good - Use ID for internal operations
+$server = Server::getServerById($internalServerId);
+```
+
+### 4. Validate Required Fields
+
+Always validate required fields before creating records:
+
+```php
+// ✅ Good - Validate required fields
+$requiredFields = ['username', 'email', 'password'];
+$missingFields = array_diff($requiredFields, array_keys($userData));
+
+if (!empty($missingFields)) {
+    throw new Exception('Missing required fields: ' . implode(', ', $missingFields));
+}
+```
+
+### 5. Use Transactions for Related Operations
+
+Use database transactions for operations that affect multiple tables:
+
+```php
+// ✅ Good - Use transactions
+$pdo = App::getInstance(true)->getDatabase()->getPdo();
+$pdo->beginTransaction();
+
+try {
+    $userId = User::createUser($userData);
+    $serverId = Server::createServer(array_merge($serverData, ['owner_id' => $userId]));
+    $pdo->commit();
+} catch (Exception $e) {
+    $pdo->rollback();
+    throw $e;
+}
+```
+
+## Schema Interface
+
+The `Schema.php` interface defines the contract for all models:
+
+```php
+interface Schema
+{
+    /**
+     * Get the name of the table.
+     */
+    public static function getTableName(): string;
+}
+```
+
+All models should implement this interface to provide consistent table name access.

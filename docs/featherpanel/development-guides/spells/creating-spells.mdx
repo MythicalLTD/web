@@ -1,0 +1,485 @@
+---
+id: creating-spells
+title: Creating Custom Spells
+description: Step-by-step guide to creating custom spells for FeatherPanel
+---
+
+# Creating Custom Spells
+
+This guide walks you through the complete process of creating custom spells in FeatherPanel, from initial setup to deployment.
+
+## Prerequisites
+
+Before creating a spell, ensure you have:
+
+- **Admin access** to FeatherPanel
+- **Docker knowledge** for container management
+- **Understanding of the target application** you're creating a spell for
+- **Basic scripting knowledge** for entrypoint scripts
+
+## Step 1: Create New Spell
+
+### Using the Admin Interface
+
+1. **Navigate to Spells**
+   - Go to **Admin → Spells**
+   - Click **"Create New Spell"**
+
+2. **Basic Information**
+   - **Spell Name**: Descriptive name (e.g., "Minecraft Forge")
+   - **Description**: Brief description of what the spell does
+   - **Author**: Your name or organization
+   - **Version**: Starting version (e.g., "1.0.0")
+
+3. **Docker Configuration**
+   - **Docker Image**: Full image name (e.g., `ghcr.io/featherpanel/minecraft-forge:latest`)
+   - **Startup Command**: Command to start the server
+   - **Stop Command**: Command to safely stop the server
+
+### Example Basic Configuration
+
+```json
+{
+  "name": "Minecraft Forge Server",
+  "description": "Minecraft server with Forge modloader support",
+  "docker_image": "ghcr.io/featherpanel/minecraft-forge:latest",
+  "startup": "java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar {{SERVER_JARFILE}} --nogui",
+  "stop": "stop"
+}
+```
+
+## Step 2: Configure Process Management
+
+### Stop Command Configuration
+
+The stop command tells FeatherPanel how to safely stop your server:
+
+```json
+{
+  "stop": "stop"
+}
+```
+
+**Common Stop Commands:**
+- `stop` - Standard Minecraft stop command
+- `end` - Alternative stop command
+- `^C` - Send SIGINT signal (Ctrl+C)
+- `quit` - Application-specific quit command
+- `exit` - Simple exit command
+
+### Log Storage Configuration
+
+Configure how logs are handled:
+
+```json
+{
+  "logs": "{}"
+}
+```
+
+Logs are handled by the daemon using Docker logs to output complete server output.
+
+### Configuration Files
+
+Define which files to parse and modify before server startup:
+
+```json
+{
+  "config_files": {
+    "server.properties": {
+      "parser": "properties",
+      "find": {
+        "server-ip": "0.0.0.0",
+        "enable-query": "true",
+        "server-port": "{{SERVER_PORT}}",
+        "query.port": "{{SERVER_PORT}}"
+      }
+    }
+  }
+}
+```
+
+#### Supported Parsers
+
+1. **Properties Parser**
+   ```json
+   {
+     "server.properties": {
+       "parser": "properties",
+       "find": {
+         "server-port": "{{SERVER_PORT}}",
+         "max-players": "{{MAX_PLAYERS}}"
+       }
+     }
+   }
+   ```
+
+2. **YAML Parser** (supports wildcards)
+   ```json
+   {
+     "config.yml": {
+       "parser": "yaml",
+       "find": {
+         "server.port": "{{SERVER_PORT}}",
+         "listeners[0].query_port": "{{SERVER_PORT}}",
+         "servers.*.address": {
+           "127.0.0.1": "{{config.docker.interface}}",
+           "localhost": "{{config.docker.interface}}"
+         }
+       }
+     }
+   }
+   ```
+
+3. **JSON Parser** (supports wildcards)
+   ```json
+   {
+     "config.json": {
+       "parser": "json",
+       "find": {
+         "server.port": "{{SERVER_PORT}}",
+         "plugins.*.enabled": true
+       }
+     }
+   }
+   ```
+
+4. **INI Parser**
+   ```json
+   {
+     "config.ini": {
+       "parser": "ini",
+       "find": {
+         "server.port": "{{SERVER_PORT}}",
+         "server.host": "0.0.0.0"
+       }
+     }
+   }
+   ```
+
+5. **XML Parser**
+   ```json
+   {
+     "config.xml": {
+       "parser": "xml",
+       "find": {
+         "server.port": "{{SERVER_PORT}}",
+         "server.host": "0.0.0.0"
+       }
+     }
+   }
+   ```
+
+### Start Configuration
+
+Define when the server is ready for players:
+
+```json
+{
+  "start_config": {
+    "done": ")! For help, type "
+  }
+}
+```
+
+This tells FeatherPanel what output indicates the server is ready.
+
+## Step 3: Copy Settings From
+
+You can copy settings from existing spells to avoid duplicating configuration:
+
+```json
+{
+  "copy_settings_from": "minecraft-vanilla"
+}
+```
+
+**Benefits:**
+- **Inherit common settings** from parent spell
+- **Override specific settings** as needed
+- **Maintain consistency** across similar spells
+- **Reduce configuration** duplication
+
+**Limitations:**
+- **No nested copying** - only one level deep
+- **Parent must not copy** from another spell
+- **Override takes precedence** over inherited settings
+
+## Step 4: Define Spell Variables
+
+Spell variables allow users to customize server settings without modifying the startup command.
+
+### Creating Variables
+
+1. **Navigate to Variables Tab**
+2. **Click "Add Variable"**
+3. **Configure Variable Settings**
+
+### Variable Configuration
+
+```json
+{
+  "name": "Server JAR File",
+  "description": "The JAR file to run for the server",
+  "env_variable": "SERVER_JARFILE",
+  "default_value": "forge-server.jar",
+  "user_viewable": true,
+  "user_editable": true,
+  "rules": "required|string|between:1,255"
+}
+```
+
+#### Variable Properties
+
+- **Name**: Display name for the variable
+- **Description**: Help text for users
+- **Environment Variable**: Variable name (uppercase, alphanumeric + underscores)
+- **Default Value**: Default value if not set
+- **User Viewable**: Can users see this variable?
+- **User Editable**: Can users modify this variable?
+- **Rules**: Validation rules (Laravel validation)
+
+#### Variable Types
+
+1. **String Variables**
+   ```json
+   {
+     "name": "World Name",
+     "env_variable": "WORLD_NAME",
+     "default_value": "world",
+     "rules": "required|string|between:1,32"
+   }
+   ```
+
+2. **Numeric Variables**
+   ```json
+   {
+     "name": "Max Players",
+     "env_variable": "MAX_PLAYERS",
+     "default_value": "20",
+     "rules": "required|integer|min:1|max:100"
+   }
+   ```
+
+3. **Boolean Variables**
+   ```json
+   {
+     "name": "Enable PvP",
+     "env_variable": "ENABLE_PVP",
+     "default_value": "false",
+     "rules": "required|boolean"
+   }
+   ```
+
+4. **Select Variables**
+   ```json
+   {
+     "name": "Difficulty",
+     "env_variable": "DIFFICULTY",
+     "default_value": "normal",
+     "rules": "required|in:peaceful,easy,normal,hard"
+   }
+   ```
+
+### Using Variables
+
+Variables can be used in:
+
+1. **Startup Commands**
+   ```bash
+   java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar {{SERVER_JARFILE}}
+   ```
+
+2. **Configuration Files**
+   ```json
+   {
+     "server.properties": {
+       "parser": "properties",
+       "find": {
+         "max-players": "{{MAX_PLAYERS}}",
+         "level-name": "{{WORLD_NAME}}"
+       }
+     }
+   }
+   ```
+
+3. **Environment Variables**
+   ```bash
+   export SERVER_NAME="{{SERVER_NAME}}"
+   export MAX_PLAYERS="{{MAX_PLAYERS}}"
+   ```
+
+## Step 5: Advanced Configuration
+
+### File Denylist
+
+Exclude files from backups and transfers:
+
+```json
+{
+  "file_denylist": [
+    "*.log",
+    "*.tmp",
+    "cache/",
+    "logs/",
+    "*.pid"
+  ]
+}
+```
+
+### Installation Script
+
+Define installation steps for new servers:
+
+```json
+{
+  "install_script": {
+    "entrypoint": "install.sh",
+    "container": "ghcr.io/featherpanel/installer:latest"
+  }
+}
+```
+
+### Resource Limits
+
+Set default resource limits:
+
+```json
+{
+  "resource_limits": {
+    "memory": 1024,
+    "cpu": 100,
+    "disk": 5120,
+    "io": 1000
+  }
+}
+```
+
+## Step 6: Testing Your Spell
+
+### 1. Create Test Server
+
+1. **Navigate to Servers**
+2. **Click "Create New Server"**
+3. **Select your spell** from the dropdown
+4. **Configure server settings**
+5. **Create the server**
+
+### 2. Test Server Functionality
+
+1. **Start the server** and monitor logs
+2. **Verify configuration** files are parsed correctly
+3. **Test variable replacement** in commands and files
+4. **Check server connectivity** and functionality
+5. **Test stop/start** procedures
+
+### 3. Validate Configuration
+
+1. **Check file permissions** and ownership
+2. **Verify environment variables** are set correctly
+3. **Test backup/restore** functionality
+4. **Validate resource limits** are enforced
+5. **Check log output** for errors
+
+## Step 7: Deployment
+
+### 1. Export Spell
+
+1. **Navigate to your spell**
+2. **Click "Export"**
+3. **Download spell file**
+4. **Test import** on another instance
+
+### 2. Distribute Spell
+
+1. **Share spell file** with other administrators
+2. **Upload to spell repository** (if available)
+3. **Document spell usage** and requirements
+4. **Provide support** for spell users
+
+### 3. Version Management
+
+1. **Version your spells** using semantic versioning
+2. **Document changes** in version notes
+3. **Test updates** before distribution
+4. **Maintain backward compatibility** when possible
+
+## Best Practices
+
+### Spell Design
+
+1. **Use descriptive names** and descriptions
+2. **Provide clear documentation** for users
+3. **Set sensible defaults** for all variables
+4. **Validate user input** with appropriate rules
+5. **Test thoroughly** before distribution
+
+### Docker Images
+
+1. **Use official base images** when possible
+2. **Minimize image size** with multi-stage builds
+3. **Follow security best practices** (non-root user)
+4. **Include necessary dependencies** only
+5. **Document image requirements** clearly
+
+### Configuration
+
+1. **Use appropriate parsers** for file types
+2. **Validate configuration** before applying
+3. **Handle missing variables** gracefully
+4. **Provide fallback values** for optional settings
+5. **Test file parsing** with various configurations
+
+### Variables
+
+1. **Use descriptive variable names** and descriptions
+2. **Set appropriate validation rules** for each variable
+3. **Provide helpful default values**
+4. **Group related variables** logically
+5. **Document variable usage** and effects
+
+### Testing
+
+1. **Test on clean systems** to ensure dependencies
+2. **Verify all file types** are parsed correctly
+3. **Test edge cases** and error conditions
+4. **Validate resource usage** and limits
+5. **Check compatibility** with different FeatherPanel versions
+
+## Troubleshooting
+
+### Common Issues
+
+#### Spell Not Loading
+- Check spell JSON syntax
+- Verify Docker image exists
+- Ensure all required fields are present
+- Check file permissions
+
+#### Configuration Not Applied
+- Verify file parser is correct
+- Check variable names match exactly
+- Ensure files exist in container
+- Validate JSON syntax in config_files
+
+#### Server Not Starting
+- Check startup command syntax
+- Verify all variables are defined
+- Check Docker image compatibility
+- Review container logs for errors
+
+#### Variables Not Working
+- Ensure variable names are uppercase
+- Check validation rules are correct
+- Verify default values are set
+- Test variable replacement manually
+
+### Debugging Tips
+
+1. **Enable debug logging** in FeatherPanel
+2. **Check container logs** for detailed errors
+3. **Test variable replacement** manually
+4. **Validate file parsing** with sample files
+5. **Use Docker exec** to inspect running containers
+
+This comprehensive guide should help you create robust, well-tested spells for FeatherPanel that provide a great user experience and reliable server management.

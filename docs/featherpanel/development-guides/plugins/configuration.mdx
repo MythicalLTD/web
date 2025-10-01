@@ -1,0 +1,387 @@
+---
+id: configuration
+title: Plugin Configuration
+description: Plugin configuration system, conf.yml, and settings management
+---
+
+# Plugin Configuration
+
+Every FeatherPanel plugin requires a `conf.yml` file that defines the plugin's metadata, capabilities, and configuration schema.
+
+## Basic Configuration Structure
+
+```yaml
+plugin:
+  name: "My Plugin"                    # Display name
+  identifier: "my_plugin"              # Unique identifier (alphanumeric + _)
+  description: "Plugin description"    # Brief description
+  version: "1.0.0"                    # Semantic version
+  target: "v2"                        # Target FeatherPanel version
+  author: ["Developer Name"]          # Author(s)
+  icon: "https://example.com/icon.png" # Plugin icon URL
+  flags:                              # Plugin capabilities
+    - "hasEvents"
+    - "hasInstallScript"
+  dependencies:                       # Required dependencies
+    - "plugin=required_plugin"
+    - "php=8.1"
+    - "php-ext=gd"
+    - "composer=vendor/package:^1.0"
+  requiredConfigs:                    # Required configuration keys
+    - "api_key"
+    - "webhook_url"
+```
+
+## Required Fields
+
+| Field | Type | Description | Example |
+|-------|------|-------------|---------|
+| `name` | string | Plugin display name | `"My Awesome Plugin"` |
+| `identifier` | string | Unique plugin identifier | `"my_plugin"` |
+| `description` | string | Plugin description | `"Adds awesome features"` |
+| `flags` | array | Plugin capability flags | `["hasEvents", "hasInstallScript"]` |
+| `version` | string | Plugin version | `"1.0.0"` |
+| `target` | string | Target FeatherPanel version | `"v2"` |
+| `author` | array | Plugin authors | `["John Doe", "Jane Smith"]` |
+| `icon` | string | Plugin icon URL | `"https://example.com/icon.png"` |
+| `dependencies` | array | Required dependencies | `["php=8.1", "plugin=core"]` |
+| `requiredConfigs` | array | Required configuration keys | `["api_key", "webhook_url"]` |
+
+## Plugin Flags
+
+Flags define what capabilities your plugin has:
+
+### Available Flags
+
+- `hasInstallScript` - Plugin has installation logic
+- `hasRemovalScript` - Plugin has uninstallation logic
+- `hasUpdateScript` - Plugin has update logic
+- `developerIgnoreInstallScript` - Skip install script in dev mode
+- `developerEscalateInstallScript` - Force install script in dev mode
+- `userEscalateInstallScript` - Force install script for users
+- `hasEvents` - Plugin uses event system
+
+### Flag Usage
+
+```yaml
+flags:
+  - "hasEvents"              # Plugin hooks into events
+  - "hasInstallScript"       # Plugin has install() method
+  - "hasRemovalScript"       # Plugin has uninstall() method
+```
+
+## Enhanced Configuration Schema
+
+For plugins that need admin-configurable settings, you can define an enhanced configuration schema:
+
+```yaml
+config:
+  - name: "api_key"
+    display_name: "API Key"
+    type: "password"
+    description: "Your secure API authentication key"
+    required: true
+    validation:
+      regex: "/^[a-zA-Z0-9]{32,64}$/"
+      message: "API key must be 32-64 alphanumeric characters"
+    default: ""
+
+  - name: "webhook_url"
+    display_name: "Webhook URL"
+    type: "url"
+    description: "URL for receiving notifications"
+    required: true
+    validation:
+      regex: "/^https:\\/\\/.+/"
+      message: "Must be a valid HTTPS URL"
+    default: "https://example.com/webhook"
+
+  - name: "max_retries"
+    display_name: "Maximum Retries"
+    type: "number"
+    description: "Maximum number of retry attempts"
+    required: false
+    validation:
+      min: 1
+      max: 10
+      message: "Must be between 1 and 10"
+    default: "3"
+
+  - name: "enable_logging"
+    display_name: "Enable Logging"
+    type: "boolean"
+    description: "Enable detailed logging"
+    required: false
+    default: "true"
+```
+
+### Configuration Field Types
+
+| Type | Description | Validation | Example |
+|------|-------------|------------|---------|
+| `text` | Plain text input | Length, regex | `"Hello World"` |
+| `password` | Password field | Security rules | `"secret123"` |
+| `url` | URL input | URL format | `"https://example.com"` |
+| `email` | Email input | Email format | `"user@example.com"` |
+| `number` | Numeric input | Min/max values | `42` |
+| `boolean` | Checkbox | True/false | `true` |
+| `textarea` | Multi-line text | Length limits | `"Long text..."` |
+
+### Validation Rules
+
+```yaml
+validation:
+  regex: "/^pattern$/"           # Regular expression
+  min: 1                         # Minimum value/length
+  max: 100                       # Maximum value/length
+  message: "Error message"       # Custom error message
+```
+
+## Mixins Configuration
+
+Mixins allow plugins to extend functionality through reusable components:
+
+```yaml
+mixins:
+  database_mixin:
+    enabled: true
+  cache_mixin:
+    enabled: true
+    config:
+      ttl: 3600
+      prefix: "my_plugin"
+  api_mixin:
+    enabled: true
+    config:
+      base_url: "https://api.example.com"
+      timeout: 30
+```
+
+## Dependencies
+
+### Plugin Dependencies
+```yaml
+dependencies:
+  - "plugin=required_plugin"      # Another plugin
+  - "plugin=another_plugin:^2.0"  # Specific version
+```
+
+### PHP Version
+```yaml
+dependencies:
+  - "php=8.1"                    # Exact version
+  - "php=^8.0"                   # Minimum version
+```
+
+### PHP Extensions
+```yaml
+dependencies:
+  - "php-ext=gd"                 # Image processing
+  - "php-ext=curl"               # HTTP requests
+  - "php-ext=json"               # JSON handling
+```
+
+### Composer Packages
+```yaml
+dependencies:
+  - "composer=vendor/package:^1.0"           # Package with version
+  - "composer=symfony/http-foundation:^6.0"  # Framework component
+```
+
+## Configuration Validation
+
+### Identifier Validation
+Plugin identifiers must:
+- Be alphanumeric with underscores only
+- Not contain spaces or special characters
+- Be unique across all plugins
+
+```yaml
+# Valid identifiers
+identifier: "my_plugin"
+identifier: "plugin123"
+identifier: "awesome_plugin_v2"
+
+# Invalid identifiers
+identifier: "my-plugin"    # Contains hyphen
+identifier: "my plugin"    # Contains space
+identifier: "my.plugin"    # Contains dot
+```
+
+### Configuration Validation
+The system validates:
+- All required fields are present
+- Field types match expected types
+- Dependencies are available
+- Flags are valid
+- Configuration schema is properly formatted
+
+## Settings Management
+
+### Accessing Settings
+```php
+use App\Plugins\PluginSettings;
+
+// Get a single setting
+$apiKey = PluginSettings::getSetting('my_plugin', 'api_key');
+
+// Get all settings
+$settings = PluginSettings::getSettings('my_plugin');
+
+// Set a setting
+PluginSettings::setSetting('my_plugin', 'api_key', 'new_key_value');
+
+// Delete a setting
+PluginSettings::deleteSettings('my_plugin', 'old_setting');
+```
+
+### Settings Storage
+Settings are stored in the `featherpanel_addons_settings` table:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | INT | Primary key |
+| `identifier` | VARCHAR | Plugin identifier |
+| `key` | VARCHAR | Setting key |
+| `value` | TEXT | Setting value |
+| `locked` | ENUM | Whether setting is locked |
+| `deleted` | ENUM | Soft delete flag |
+| `date` | DATETIME | Last modified |
+
+### Settings Security
+- Settings are plugin-specific (isolated by identifier)
+- Input is sanitized to prevent injection
+- Access is controlled through PluginSettings class
+- Settings can be locked to prevent modification
+
+## Configuration Examples
+
+### Simple Plugin
+```yaml
+plugin:
+  name: "Hello World Plugin"
+  identifier: "hello_world"
+  description: "A simple hello world plugin"
+  version: "1.0.0"
+  target: "v2"
+  author: ["Developer"]
+  icon: "https://example.com/icon.png"
+  flags: ["hasEvents"]
+  dependencies: []
+  requiredConfigs: []
+```
+
+### Complex Plugin with Settings
+```yaml
+plugin:
+  name: "API Integration Plugin"
+  identifier: "api_integration"
+  description: "Integrates with external APIs"
+  version: "2.1.0"
+  target: "v2"
+  author: ["API Team"]
+  icon: "https://example.com/api-icon.png"
+  flags:
+    - "hasEvents"
+    - "hasInstallScript"
+    - "hasRemovalScript"
+  dependencies:
+    - "php=8.1"
+    - "php-ext=curl"
+    - "composer=guzzlehttp/guzzle:^7.0"
+  requiredConfigs:
+    - "api_key"
+    - "api_url"
+    - "webhook_url"
+
+config:
+  - name: "api_key"
+    display_name: "API Key"
+    type: "password"
+    description: "Your API authentication key"
+    required: true
+    validation:
+      regex: "/^[a-zA-Z0-9]{32,}$/"
+      message: "API key must be at least 32 alphanumeric characters"
+    default: ""
+
+  - name: "api_url"
+    display_name: "API Base URL"
+    type: "url"
+    description: "Base URL for the API"
+    required: true
+    validation:
+      regex: "/^https:\\/\\/.+/"
+      message: "Must be a valid HTTPS URL"
+    default: "https://api.example.com"
+
+  - name: "webhook_url"
+    display_name: "Webhook URL"
+    type: "url"
+    description: "URL to receive webhook notifications"
+    required: false
+    validation:
+      regex: "/^https:\\/\\/.+/"
+      message: "Must be a valid HTTPS URL"
+    default: ""
+
+  - name: "timeout"
+    display_name: "Request Timeout"
+    type: "number"
+    description: "API request timeout in seconds"
+    required: false
+    validation:
+      min: 5
+      max: 300
+      message: "Timeout must be between 5 and 300 seconds"
+    default: "30"
+
+  - name: "enable_logging"
+    display_name: "Enable Logging"
+    type: "boolean"
+    description: "Enable detailed API request logging"
+    required: false
+    default: "true"
+
+mixins:
+  cache_mixin:
+    enabled: true
+    config:
+      ttl: 3600
+  rate_limit_mixin:
+    enabled: true
+    config:
+      requests_per_minute: 60
+```
+
+## Best Practices
+
+### Configuration Design
+- Use descriptive field names and descriptions
+- Provide sensible defaults
+- Validate inputs thoroughly
+- Use appropriate field types
+- Group related settings logically
+
+### Security Considerations
+- Never store sensitive data in conf.yml
+- Use password fields for secrets
+- Validate all user inputs
+- Sanitize configuration values
+- Use HTTPS URLs only
+
+### Performance
+- Keep configuration files small
+- Cache configuration values
+- Use lazy loading for heavy configs
+- Minimize validation complexity
+- Optimize database queries
+
+### Maintenance
+- Version your configuration schema
+- Provide migration paths for changes
+- Document all configuration options
+- Test configuration validation
+- Handle missing or invalid configs gracefully
+
+This configuration system provides a flexible and secure way to manage plugin settings while maintaining consistency across the FeatherPanel ecosystem.

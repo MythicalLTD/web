@@ -1,0 +1,321 @@
+---
+id: architecture
+title: Plugin Architecture
+description: How FeatherPanel plugins work and are loaded
+---
+
+# Plugin Architecture
+
+FeatherPanel's plugin system is built on a modular architecture that provides secure, efficient plugin loading and execution.
+
+## Core Components
+
+### PluginManager
+The central component that handles plugin discovery, loading, and lifecycle management.
+
+**Key Responsibilities:**
+- Scans `storage/addons/` directory for plugins
+- Validates plugin configurations
+- Loads plugins into memory
+- Manages plugin dependencies
+- Handles plugin mixins
+
+### PluginProcessor
+Processes plugin events and manages plugin execution.
+
+**Key Responsibilities:**
+- Instantiates plugin classes
+- Registers event listeners
+- Caches plugin instances
+- Validates plugin implementations
+
+### PluginConfig
+Manages plugin configuration validation and access.
+
+**Key Responsibilities:**
+- Validates `conf.yml` files
+- Checks required fields
+- Validates plugin identifiers
+- Manages configuration schemas
+
+### PluginEvents
+Provides the event system for plugin hooks.
+
+**Key Responsibilities:**
+- Manages event listeners
+- Emits events to plugins
+- Handles event registration
+- Provides event lifecycle management
+
+### PluginSettings
+Manages persistent plugin settings storage.
+
+**Key Responsibilities:**
+- Stores plugin settings in database
+- Provides secure settings access
+- Handles settings validation
+- Manages settings lifecycle
+
+## Plugin Loading Process
+
+### 1. Discovery Phase
+```php
+// PluginManager scans the addons directory
+$pluginsDir = APP_ADDONS_DIR; // storage/addons/
+$pluginDirectories = scandir($pluginsDir);
+```
+
+The system scans `storage/addons/` for plugin directories, filtering out system files (`.`, `..`, `.gitkeep`, etc.).
+
+### 2. Validation Phase
+```php
+// Each plugin's conf.yml is validated
+$config = PluginHelper::getPluginConfig($identifier);
+if (!PluginConfig::isConfigValid($config)) {
+    // Plugin is skipped
+    return;
+}
+```
+
+**Validation Checks:**
+- Required fields present and correct type
+- Valid identifier format (alphanumeric + underscores)
+- Plugin flags are valid
+- Dependencies are met
+- Configuration schema is valid
+
+### 3. Loading Phase
+```php
+// Valid plugins are loaded into memory
+$this->plugins[] = $identifier;
+PluginProcessor::process($identifier, $eventManager);
+```
+
+**Loading Steps:**
+- Plugin class is instantiated
+- Event listeners are registered
+- Mixins are loaded (if configured)
+- Plugin is marked as active
+
+### 4. Initialization Phase
+```php
+// Plugin install hooks are called
+if (method_exists($pluginClass, 'pluginInstall')) {
+    $pluginClass::pluginInstall();
+}
+```
+
+**Initialization Steps:**
+- Database migrations are executed
+- Public assets are symlinked
+- Plugin install hooks are called
+- Plugin is ready for use
+
+## Plugin Lifecycle
+
+### Installation
+1. Plugin files are extracted to `storage/addons/{identifier}/`
+2. Configuration is validated
+3. Dependencies are checked
+4. Database migrations are executed
+5. Public assets are symlinked
+6. Install hooks are called
+
+### Loading
+1. Plugin configuration is loaded
+2. Main plugin class is instantiated
+3. Event listeners are registered
+4. Plugin is added to active plugins list
+
+### Execution
+1. Events are emitted to registered listeners
+2. Plugin methods are called as needed
+3. Settings are accessed through PluginSettings
+4. Database operations use plugin-specific tables
+
+### Uninstallation
+1. Uninstall hooks are called
+2. Plugin files are removed
+3. Public asset symlinks are removed
+4. Plugin is removed from active list
+
+## Plugin Directory Structure
+
+```
+storage/addons/
+├── my_plugin/                 # Plugin directory
+│   ├── conf.yml              # Plugin configuration
+│   ├── MyPlugin.php          # Main plugin class
+│   ├── Migrations/           # Database migrations
+│   ├── Cron/                 # Scheduled tasks
+│   ├── Commands/             # CLI commands
+│   ├── Events/               # Event handlers
+│   ├── Frontend/             # Frontend assets
+│   ├── Public/               # Public assets
+│   └── Controllers/          # API controllers
+└── another_plugin/
+    └── ...
+```
+
+## Plugin Class Structure
+
+### Main Plugin Class
+```php
+<?php
+
+namespace App\Addons\my_plugin;
+
+use App\Plugins\AppPlugin;
+use App\Plugins\PluginEvents;
+
+class MyPlugin implements AppPlugin
+{
+    public static function processEvents(PluginEvents $event): void
+    {
+        // Register event listeners
+    }
+
+    public static function pluginInstall(): void
+    {
+        // Installation logic
+    }
+
+    public static function pluginUninstall(): void
+    {
+        // Cleanup logic
+    }
+}
+```
+
+### Required Interface
+All plugins must implement the `AppPlugin` interface:
+
+```php
+interface AppPlugin
+{
+    public static function processEvents(PluginEvents $event): void;
+    public static function pluginInstall(): void;
+    public static function pluginUninstall(): void;
+}
+```
+
+## Event System Architecture
+
+### Event Flow
+1. **Event Emission** - System or plugin emits an event
+2. **Event Distribution** - PluginEvents distributes to listeners
+3. **Plugin Processing** - Plugin methods are called
+4. **Response Handling** - Plugin responses are processed
+
+### Event Registration
+```php
+// In plugin's processEvents method
+$event->on('user.login', function ($user) {
+    // Handle user login
+});
+```
+
+### Event Emission
+```php
+// System emits events
+$eventManager->emit('user.login', ['user' => $userData]);
+
+// Plugins can emit events
+$eventManager->emit('my-plugin.custom-event', $data);
+```
+
+## Database Integration
+
+### Migration System
+- Migrations are stored in `Migrations/` directory
+- Files are named with timestamps: `YYYY-MM-DD-HH.MM-description.sql`
+- Migrations are tracked in `featherpanel_migrations` table
+- Plugin-specific migrations use prefix: `addon:{identifier}:{filename}`
+
+### Settings Storage
+- Settings are stored in `featherpanel_addons_settings` table
+- Each setting has: identifier, key, value, timestamp
+- Settings are plugin-specific and persistent
+- Access is controlled through PluginSettings class
+
+## Security Architecture
+
+### Plugin Isolation
+- Plugins run in separate namespaces
+- Database access is controlled
+- File system access is restricted
+- Settings are plugin-specific
+
+### Validation Layers
+1. **Configuration Validation** - conf.yml structure and content
+2. **Dependency Validation** - Required dependencies are met
+3. **Permission Validation** - User has required permissions
+4. **Input Validation** - All inputs are sanitized
+
+### Sandboxing
+- Plugins cannot access core system files
+- Database access is limited to plugin tables
+- File uploads are restricted to plugin directories
+- Settings are isolated per plugin
+
+## Performance Considerations
+
+### Caching
+- Plugin instances are cached after first load
+- Configuration is cached to avoid repeated file reads
+- Event listeners are cached for performance
+- Database connections are pooled
+
+### Lazy Loading
+- Plugins are loaded only when needed
+- Event listeners are registered on demand
+- Database connections are established when required
+- Frontend assets are loaded asynchronously
+
+### Memory Management
+- Plugin instances are garbage collected when unloaded
+- Event listeners are cleaned up on uninstall
+- Database connections are properly closed
+- File handles are released after use
+
+## Error Handling
+
+### Plugin Loading Errors
+- Invalid configurations are logged and skipped
+- Missing dependencies prevent loading
+- Syntax errors are caught and reported
+- Failed plugins don't affect system stability
+
+### Runtime Errors
+- Plugin errors are isolated and logged
+- Failed plugins don't crash the system
+- Error recovery mechanisms are in place
+- Debug information is available in developer mode
+
+### Graceful Degradation
+- System continues to work if plugins fail
+- Core functionality is never affected
+- Plugin failures are reported to administrators
+- Recovery options are provided
+
+## Development Tools
+
+### Plugin Manager
+- Visual plugin creation and management
+- Real-time configuration validation
+- Dependency checking and resolution
+- File management and editing
+
+### Debugging Tools
+- Plugin loading logs
+- Event emission tracking
+- Performance monitoring
+- Error reporting and analysis
+
+### Validation Tools
+- Configuration validation
+- Dependency checking
+- File structure validation
+- Security scanning
+
+This architecture ensures that FeatherPanel plugins are secure, performant, and maintainable while providing maximum flexibility for developers.

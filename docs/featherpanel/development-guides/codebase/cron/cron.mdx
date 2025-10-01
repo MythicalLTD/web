@@ -1,0 +1,630 @@
+---
+id: cron
+pagination_next: null
+pagination_prev: null
+---
+
+# Cron Jobs System
+
+FeatherPanel provides a powerful cron job system for scheduling and executing background tasks. The system supports both PHP-based cron jobs and bash scripts with automatic discovery and execution.
+
+## Overview
+
+The cron system consists of:
+
+- **Cron Class**: Manages cron job scheduling and execution timing
+- **TimeTask Interface**: Defines the contract for cron job implementations
+- **Automatic Discovery**: Automatically finds and executes cron jobs
+- **Multiple Formats**: Supports both PHP and bash cron jobs
+- **Plugin Integration**: Plugin cron jobs are automatically included
+
+## How Cron Jobs Work
+
+### Execution Flow
+
+1. **Cron Runner**: `storage/cron/runner.php` is executed by system cron
+2. **PHP Jobs**: Automatically discovers and runs PHP cron jobs
+3. **Bash Jobs**: Executes bash scripts for system-level tasks
+4. **Plugin Jobs**: Includes plugin-specific cron jobs
+5. **Logging**: All executions are logged with colored output
+
+### Cron Job Types
+
+- **PHP Cron Jobs**: Located in `storage/cron/php/`
+- **Bash Cron Jobs**: Located in `storage/cron/bash/`
+- **Plugin Cron Jobs**: Located in `storage/addons/{Plugin}/Cron/`
+
+## Creating Cron Jobs
+
+### PHP Cron Jobs
+
+#### Basic Cron Job Structure
+
+```php
+<?php
+
+namespace App\Cron;
+
+use App\Cron\Cron;
+use App\Cron\TimeTask;
+use App\Cli\Utils\MinecraftColorCodeSupport;
+
+class MyCronJob implements TimeTask
+{
+    public function run()
+    {
+        $cron = new Cron('my-cron-job', '30M'); // Run every 30 minutes
+
+        $cron->runIfDue(function () {
+            $this->performTask();
+        });
+    }
+
+    private function performTask()
+    {
+        MinecraftColorCodeSupport::sendOutputWithNewLine('&aExecuting my cron job');
+
+        // Your cron job logic here
+        $this->processData();
+        $this->cleanupOldRecords();
+
+        MinecraftColorCodeSupport::sendOutputWithNewLine('&aCron job completed successfully');
+    }
+}
+```
+
+#### Advanced Cron Job with Error Handling
+
+```php
+<?php
+
+namespace App\Cron;
+
+use App\Cron\Cron;
+use App\Cron\TimeTask;
+use App\App;
+use App\Chat\TimedTask;
+use App\Cli\Utils\MinecraftColorCodeSupport;
+
+class AdvancedCronJob implements TimeTask
+{
+    public function run()
+    {
+        $cron = new Cron('advanced-cron-job', '1H'); // Run every hour
+
+        try {
+            $cron->runIfDue(function () {
+                $this->performAdvancedTask();
+                TimedTask::markRun('advanced-cron-job', true, 'Advanced task completed');
+            });
+        } catch (\Exception $e) {
+            $app = App::getInstance(false, true);
+            $app->getLogger()->error('Advanced cron job failed: ' . $e->getMessage());
+            TimedTask::markRun('advanced-cron-job', false, $e->getMessage());
+        }
+    }
+
+    private function performAdvancedTask()
+    {
+        $app = App::getInstance(false, true);
+        $logger = $app->getLogger();
+
+        MinecraftColorCodeSupport::sendOutputWithNewLine('&aStarting advanced cron job');
+        $logger->info('Advanced cron job started');
+
+        try {
+            // Complex task logic
+            $this->processDatabaseRecords();
+            $this->sendNotifications();
+            $this->cleanupCache();
+
+            MinecraftColorCodeSupport::sendOutputWithNewLine('&aAdvanced cron job completed successfully');
+            $logger->info('Advanced cron job completed successfully');
+        } catch (\Exception $e) {
+            MinecraftColorCodeSupport::sendOutputWithNewLine('&cAdvanced cron job failed: ' . $e->getMessage());
+            $logger->error('Advanced cron job failed: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+}
+```
+
+### Bash Cron Jobs
+
+#### Basic Bash Cron Job
+
+```bash
+#!/bin/bash
+
+# Basic bash cron job
+echo "Starting bash cron job"
+
+# Your bash commands here
+echo "Processing system tasks"
+echo "Cleaning up temporary files"
+echo "Updating system cache"
+
+echo "Bash cron job completed"
+```
+
+#### Advanced Bash Cron Job
+
+```bash
+#!/bin/bash
+
+# Advanced bash cron job with error handling
+set -e  # Exit on any error
+
+echo "Starting advanced bash cron job"
+
+# Check if required files exist
+if [ ! -f "/path/to/required/file" ]; then
+    echo "Error: Required file not found"
+    exit 1
+fi
+
+# Process system tasks
+echo "Processing system maintenance"
+./maintenance-script.sh
+
+# Cleanup operations
+echo "Cleaning up old files"
+find /tmp -name "*.tmp" -mtime +7 -delete
+
+echo "Advanced bash cron job completed successfully"
+```
+
+## Cron Job Scheduling
+
+### Time Intervals
+
+The Cron class supports flexible time intervals:
+
+```php
+// Time unit format: {number}{unit}
+// Supported units: S (seconds), M (minutes), H (hours), D (days), W (weeks)
+
+$cron = new Cron('job-name', '30S');  // Every 30 seconds
+$cron = new Cron('job-name', '5M');   // Every 5 minutes
+$cron = new Cron('job-name', '1H');   // Every 1 hour
+$cron = new Cron('job-name', '2H');   // Every 2 hours
+$cron = new Cron('job-name', '1D');   // Every 1 day
+$cron = new Cron('job-name', '1W');   // Every 1 week
+```
+
+### Time Unit Conversion
+
+| Unit | Minutes | Description |
+|------|---------|-------------|
+| `S` | 1 | Seconds (converted to minutes) |
+| `M` | 1 | Minutes |
+| `H` | 60 | Hours |
+| `D` | 1440 | Days |
+| `W` | 10080 | Weeks |
+
+### Calculating Cron Intervals
+
+```php
+// Examples of interval calculations
+'30S' = 30 seconds = 0.5 minutes (rounded to 1 minute)
+'5M'  = 5 minutes
+'1H'  = 1 hour = 60 minutes
+'2H'  = 2 hours = 120 minutes
+'1D'  = 1 day = 1440 minutes
+'1W'  = 1 week = 10080 minutes
+```
+
+## Cron Job Management
+
+### Checking if Cron Should Run
+
+```php
+$cron = new Cron('my-job', '30M');
+
+if ($cron->shouldRun()) {
+    echo "Cron job is due to run";
+} else {
+    echo "Cron job is not due yet";
+}
+```
+
+### Getting Cron Job Information
+
+```php
+$cron = new Cron('my-job', '1H');
+
+// Get last run time
+$lastRun = $cron->getLastRunTime();
+if ($lastRun) {
+    echo "Last run: " . $lastRun->format('Y-m-d H:i:s');
+}
+
+// Get next run time
+$nextRun = $cron->getNextRunTime();
+echo "Next run: " . $nextRun->format('Y-m-d H:i:s');
+```
+
+### Forcing Cron Execution
+
+```php
+$cron = new Cron('my-job', '1H');
+
+// Force execution regardless of schedule
+$cron->runIfDue(function () {
+    echo "Forced execution";
+}, true); // true = force execution
+```
+
+## Cron Job Examples
+
+### Database Cleanup Cron Job
+
+```php
+<?php
+
+namespace App\Cron;
+
+use App\Cron\Cron;
+use App\Cron\TimeTask;
+use App\App;
+use App\Chat\Activity;
+use App\Cli\Utils\MinecraftColorCodeSupport;
+
+class DatabaseCleanup implements TimeTask
+{
+    public function run()
+    {
+        $cron = new Cron('database-cleanup', '1D'); // Run daily
+
+        $cron->runIfDue(function () {
+            $this->cleanupOldActivities();
+            $this->cleanupExpiredSessions();
+            $this->optimizeDatabase();
+        });
+    }
+
+    private function cleanupOldActivities()
+    {
+        MinecraftColorCodeSupport::sendOutputWithNewLine('&aCleaning up old activities');
+
+        // Delete activities older than 30 days
+        $cutoffDate = date('Y-m-d H:i:s', strtotime('-30 days'));
+        $deleted = Activity::deleteOlderThan($cutoffDate);
+
+        MinecraftColorCodeSupport::sendOutputWithNewLine("&aDeleted {$deleted} old activities");
+    }
+
+    private function cleanupExpiredSessions()
+    {
+        MinecraftColorCodeSupport::sendOutputWithNewLine('&aCleaning up expired sessions');
+
+        // Cleanup expired sessions logic
+        $this->removeExpiredSessions();
+
+        MinecraftColorCodeSupport::sendOutputWithNewLine('&aExpired sessions cleaned up');
+    }
+
+    private function optimizeDatabase()
+    {
+        MinecraftColorCodeSupport::sendOutputWithNewLine('&aOptimizing database');
+
+        $app = App::getInstance(false, true);
+        $pdo = $app->getDatabase()->getPdo();
+
+        // Optimize database tables
+        $pdo->exec('OPTIMIZE TABLE featherpanel_activities');
+        $pdo->exec('OPTIMIZE TABLE featherpanel_sessions');
+
+        MinecraftColorCodeSupport::sendOutputWithNewLine('&aDatabase optimization completed');
+    }
+}
+```
+
+### Server Monitoring Cron Job
+
+```php
+<?php
+
+namespace App\Cron;
+
+use App\Cron\Cron;
+use App\Cron\TimeTask;
+use App\App;
+use App\Chat\Server;
+use App\Chat\Node;
+use App\Cli\Utils\MinecraftColorCodeSupport;
+
+class ServerMonitoring implements TimeTask
+{
+    public function run()
+    {
+        $cron = new Cron('server-monitoring', '5M'); // Run every 5 minutes
+
+        $cron->runIfDue(function () {
+            $this->checkServerStatus();
+            $this->monitorNodeHealth();
+            $this->updateServerStats();
+        });
+    }
+
+    private function checkServerStatus()
+    {
+        MinecraftColorCodeSupport::sendOutputWithNewLine('&aChecking server status');
+
+        $servers = Server::getAllServers();
+        $activeServers = 0;
+        $inactiveServers = 0;
+
+        foreach ($servers as $server) {
+            if ($this->isServerOnline($server)) {
+                $activeServers++;
+                Server::updateServer($server['id'], ['status' => 'online']);
+            } else {
+                $inactiveServers++;
+                Server::updateServer($server['id'], ['status' => 'offline']);
+            }
+        }
+
+        MinecraftColorCodeSupport::sendOutputWithNewLine("&aServer status check completed: {$activeServers} online, {$inactiveServers} offline");
+    }
+
+    private function monitorNodeHealth()
+    {
+        MinecraftColorCodeSupport::sendOutputWithNewLine('&aMonitoring node health');
+
+        $nodes = Node::getAllNodes();
+
+        foreach ($nodes as $node) {
+            $health = $this->checkNodeHealth($node);
+            Node::updateNode($node['id'], ['health_status' => $health]);
+        }
+
+        MinecraftColorCodeSupport::sendOutputWithNewLine('&aNode health monitoring completed');
+    }
+
+    private function updateServerStats()
+    {
+        MinecraftColorCodeSupport::sendOutputWithNewLine('&aUpdating server statistics');
+
+        // Update server statistics
+        $this->updateResourceUsage();
+        $this->updatePerformanceMetrics();
+
+        MinecraftColorCodeSupport::sendOutputWithNewLine('&aServer statistics updated');
+    }
+}
+```
+
+### Plugin Cron Job
+
+```php
+<?php
+
+namespace App\Addons\MyPlugin\Cron;
+
+use App\Cron\Cron;
+use App\Cron\TimeTask;
+use App\Cli\Utils\MinecraftColorCodeSupport;
+
+class MyPluginCron implements TimeTask
+{
+    public function run()
+    {
+        $cron = new Cron('my-plugin-cron', '15M'); // Run every 15 minutes
+
+        $cron->runIfDue(function () {
+            $this->processPluginData();
+            $this->updatePluginCache();
+        });
+    }
+
+    private function processPluginData()
+    {
+        MinecraftColorCodeSupport::sendOutputWithNewLine('&aProcessing plugin data');
+
+        // Plugin-specific logic
+        $this->syncExternalData();
+        $this->processUserPreferences();
+
+        MinecraftColorCodeSupport::sendOutputWithNewLine('&aPlugin data processing completed');
+    }
+
+    private function updatePluginCache()
+    {
+        MinecraftColorCodeSupport::sendOutputWithNewLine('&aUpdating plugin cache');
+
+        // Cache update logic
+        $this->refreshPluginCache();
+
+        MinecraftColorCodeSupport::sendOutputWithNewLine('&aPlugin cache updated');
+    }
+}
+```
+
+## Cron Job Storage
+
+### Storage Files
+
+Cron jobs store their last run times in:
+```
+APP_CACHE_DIR/cron/{identifier}.fptj
+```
+
+### Storage Format
+
+Storage files contain Unix timestamps:
+```
+1640995200  # Last run timestamp
+```
+
+## Running Cron Jobs
+
+### System Cron Setup
+
+Add to your system crontab:
+```bash
+# Run FeatherPanel cron jobs every minute
+* * * * * docker exec -ti featherpanel_backend php /var/www/featherpanel/backend/storage/cron/runner.php
+```
+
+### Manual Execution
+
+```bash
+# Run cron jobs manually
+docker exec -ti featherpanel_backend php /var/www/featherpanel/backend/storage/cron/runner.php
+```
+
+### Bash Cron Jobs
+
+```bash
+# Run bash cron jobs
+docker exec -ti featherpanel_backend bash /var/www/featherpanel/backend/storage/cron/runner.bash
+```
+
+## Best Practices
+
+### 1. Use Appropriate Intervals
+
+Choose intervals based on task importance and system load:
+
+```php
+// ✅ Good - Appropriate intervals
+new Cron('critical-monitoring', '1M');    // Critical tasks every minute
+new Cron('daily-cleanup', '1D');          // Daily maintenance
+new Cron('weekly-reports', '1W');         // Weekly reports
+
+// ❌ Bad - Too frequent for non-critical tasks
+new Cron('non-critical-task', '30S');     // Too frequent
+```
+
+### 2. Handle Errors Gracefully
+
+Always handle exceptions in cron jobs:
+
+```php
+// ✅ Good - Proper error handling
+try {
+    $cron->runIfDue(function () {
+        $this->performTask();
+        TimedTask::markRun('my-job', true, 'Task completed');
+    });
+} catch (\Exception $e) {
+    $app = App::getInstance(false, true);
+    $app->getLogger()->error('Cron job failed: ' . $e->getMessage());
+    TimedTask::markRun('my-job', false, $e->getMessage());
+}
+```
+
+### 3. Use Descriptive Names
+
+Choose clear, descriptive identifiers:
+
+```php
+// ✅ Good - Descriptive names
+new Cron('database-cleanup', '1D');
+new Cron('server-monitoring', '5M');
+new Cron('mail-sender', '1M');
+
+// ❌ Bad - Unclear names
+new Cron('job1', '1H');
+new Cron('task', '30M');
+```
+
+### 4. Log Cron Job Activity
+
+Always log cron job activity:
+
+```php
+// ✅ Good - Logging activity
+MinecraftColorCodeSupport::sendOutputWithNewLine('&aStarting cron job');
+$logger->info('Cron job started');
+
+// Perform task
+$this->performTask();
+
+MinecraftColorCodeSupport::sendOutputWithNewLine('&aCron job completed');
+$logger->info('Cron job completed');
+```
+
+### 5. Use TimedTask for Tracking
+
+Track cron job execution with TimedTask:
+
+```php
+// ✅ Good - Track execution
+TimedTask::markRun('my-job', true, 'Task completed successfully');
+TimedTask::markRun('my-job', false, 'Task failed: ' . $errorMessage);
+```
+
+### 6. Avoid Long-Running Tasks
+
+Keep cron jobs efficient and fast:
+
+```php
+// ✅ Good - Efficient cron job
+public function run()
+{
+    $cron = new Cron('efficient-job', '5M');
+
+    $cron->runIfDue(function () {
+        // Quick operations
+        $this->updateCache();
+        $this->sendNotifications();
+    });
+}
+
+// ❌ Bad - Long-running task
+public function run()
+{
+    $cron = new Cron('slow-job', '1M');
+
+    $cron->runIfDue(function () {
+        // Very slow operation that takes minutes
+        $this->processLargeDataset();
+    });
+}
+```
+
+## Cron Job Discovery
+
+### Automatic Discovery
+
+The cron runner automatically discovers:
+
+1. **PHP Jobs**: `storage/cron/php/*.php`
+2. **Bash Jobs**: `storage/cron/bash/*.bash`
+3. **Plugin Jobs**: `storage/addons/{Plugin}/Cron/*.php`
+
+### File Naming
+
+- **PHP Files**: Must implement `TimeTask` interface
+- **Bash Files**: Must be executable and have `.bash` extension
+- **Class Names**: Must match filename (without extension)
+
+## Monitoring Cron Jobs
+
+### Viewing Cron Logs
+
+```bash
+# View cron execution logs
+docker exec -ti featherpanel_backend tail -f /var/www/featherpanel/backend/storage/logs/App.fplog
+```
+
+### Checking Cron Status
+
+```php
+$cron = new Cron('my-job', '1H');
+
+// Check if job is due
+if ($cron->shouldRun()) {
+    echo "Job is due to run";
+}
+
+// Get last run time
+$lastRun = $cron->getLastRunTime();
+echo "Last run: " . ($lastRun ? $lastRun->format('Y-m-d H:i:s') : 'Never');
+
+// Get next run time
+$nextRun = $cron->getNextRunTime();
+echo "Next run: " . $nextRun->format('Y-m-d H:i:s');
+```

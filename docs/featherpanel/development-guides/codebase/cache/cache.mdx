@@ -1,0 +1,406 @@
+---
+id: cache
+pagination_next: null
+pagination_prev: null
+---
+
+# Caching System
+
+FeatherPanel provides a simple file-based caching system that allows you to store and retrieve data with automatic expiration. The system is perfect for caching JSON data, API responses, and other frequently accessed information.
+
+## Overview
+
+The caching system consists of:
+
+- **File-based Storage**: Cached data stored in `.fpc` files
+- **Automatic Expiration**: Configurable expiration times for cached items
+- **JSON Support**: Specialized methods for caching JSON data
+- **Simple API**: Easy-to-use static methods for all cache operations
+- **Automatic Cleanup**: Expired cache files are automatically removed
+
+## Cache Methods
+
+### Basic Cache Operations
+
+#### `put(string $key, mixed $value, int $minutes = 60): void`
+
+Stores a value in the cache with expiration:
+
+```php
+use App\Cache\Cache;
+
+// Cache data for 60 minutes (default)
+Cache::put('user_data', $userData);
+
+// Cache data for 30 minutes
+Cache::put('api_response', $response, 30);
+
+// Cache data for 24 hours (1440 minutes)
+Cache::put('daily_stats', $stats, 1440);
+```
+
+#### `get(string $key): mixed|null`
+
+Retrieves a value from the cache:
+
+```php
+use App\Cache\Cache;
+
+// Get cached data
+$userData = Cache::get('user_data');
+
+// Check if data exists and use it
+if ($userData !== null) {
+    // Use cached data
+    return $userData;
+} else {
+    // Fetch fresh data
+    $userData = fetchUserData();
+    Cache::put('user_data', $userData, 60);
+    return $userData;
+}
+```
+
+#### `exists(string $key): bool`
+
+Checks if a valid cached entry exists:
+
+```php
+use App\Cache\Cache;
+
+if (Cache::exists('user_data')) {
+    // Cache exists and is not expired
+    $userData = Cache::get('user_data');
+} else {
+    // Cache doesn't exist or is expired
+    $userData = fetchUserData();
+    Cache::put('user_data', $userData, 60);
+}
+```
+
+#### `forget(string $key): void`
+
+Removes a specific cached entry:
+
+```php
+use App\Cache\Cache;
+
+// Remove specific cache entry
+Cache::forget('user_data');
+```
+
+#### `clear(): void`
+
+Clears all cached entries:
+
+```php
+use App\Cache\Cache;
+
+// Clear all cache
+Cache::clear();
+```
+
+### JSON Cache Operations
+
+#### `putJson(string $key, mixed $json, int $minutes = 60): void`
+
+Stores JSON data in the cache:
+
+```php
+use App\Cache\Cache;
+
+// Cache JSON data
+$jsonData = [
+    'users' => $users,
+    'stats' => $stats,
+    'timestamp' => time()
+];
+
+Cache::putJson('dashboard_data', $jsonData, 30);
+```
+
+#### `getJson(string $key): mixed|null`
+
+Retrieves JSON data from the cache:
+
+```php
+use App\Cache\Cache;
+
+// Get cached JSON data
+$dashboardData = Cache::getJson('dashboard_data');
+
+if ($dashboardData !== null) {
+    // Use cached JSON data
+    return $dashboardData;
+} else {
+    // Fetch fresh JSON data
+    $dashboardData = fetchDashboardData();
+    Cache::putJson('dashboard_data', $dashboardData, 30);
+    return $dashboardData;
+}
+```
+
+## Common Use Cases
+
+### Caching API Responses
+
+```php
+use App\Cache\Cache;
+
+class ApiService
+{
+    public function getExternalData($endpoint)
+    {
+        $cacheKey = 'api_' . md5($endpoint);
+
+        // Try to get from cache first
+        $cachedData = Cache::get($cacheKey);
+        if ($cachedData !== null) {
+            return $cachedData;
+        }
+
+        // Fetch from API
+        $response = $this->makeApiCall($endpoint);
+
+        // Cache for 15 minutes
+        Cache::put($cacheKey, $response, 15);
+
+        return $response;
+    }
+}
+```
+
+### Caching Database Queries
+
+```php
+use App\Cache\Cache;
+
+class UserService
+{
+    public function getUserStats($userId)
+    {
+        $cacheKey = 'user_stats_' . $userId;
+
+        if (Cache::exists($cacheKey)) {
+            return Cache::get($cacheKey);
+        }
+
+        // Expensive database query
+        $stats = $this->calculateUserStats($userId);
+
+        // Cache for 1 hour
+        Cache::put($cacheKey, $stats, 60);
+
+        return $stats;
+    }
+}
+```
+
+### Caching JSON API Responses
+
+```php
+use App\Cache\Cache;
+
+class JsonApiController
+{
+    public function getDashboardData()
+    {
+        $cacheKey = 'dashboard_json';
+
+        $cachedData = Cache::getJson($cacheKey);
+        if ($cachedData !== null) {
+            return response()->json($cachedData);
+        }
+
+        // Generate dashboard data
+        $dashboardData = [
+            'users' => $this->getUserCount(),
+            'servers' => $this->getServerCount(),
+            'revenue' => $this->getRevenue(),
+            'timestamp' => time()
+        ];
+
+        // Cache JSON data for 30 minutes
+        Cache::putJson($cacheKey, $dashboardData, 30);
+
+        return response()->json($dashboardData);
+    }
+}
+```
+
+### Cache Invalidation
+
+```php
+use App\Cache\Cache;
+
+class UserController
+{
+    public function updateUser($userId, $userData)
+    {
+        // Update user in database
+        $this->userRepository->update($userId, $userData);
+
+        // Clear related cache entries
+        Cache::forget('user_data_' . $userId);
+        Cache::forget('user_stats_' . $userId);
+        Cache::forget('dashboard_json'); // Clear dashboard cache
+
+        return response()->json(['success' => true]);
+    }
+}
+```
+
+## Cache File Structure
+
+### File Location
+
+Cache files are stored in:
+- **Directory**: `APP_CACHE_DIR/other/`
+- **Extension**: `.fpc`
+- **Naming**: MD5 hash of the cache key
+
+### File Format
+
+Cache files contain serialized PHP data:
+
+```php
+// Example cache file content
+[
+    'expires' => 1640995200, // Unix timestamp
+    'value' => $cachedData   // The actual cached data
+]
+```
+
+## Best Practices
+
+### 1. Use Descriptive Cache Keys
+
+Choose meaningful cache keys that are easy to identify:
+
+```php
+// ✅ Good - Descriptive keys
+Cache::put('user_profile_123', $profile);
+Cache::put('api_github_repos', $repos);
+Cache::put('dashboard_stats_daily', $stats);
+
+// ❌ Bad - Unclear keys
+Cache::put('data1', $profile);
+Cache::put('temp', $repos);
+```
+
+### 2. Set Appropriate Expiration Times
+
+Choose expiration times based on how often data changes:
+
+```php
+// ✅ Good - Appropriate expiration times
+Cache::put('user_profile', $profile, 60);        // 1 hour - profiles don't change often
+Cache::put('api_rates', $rates, 5);              // 5 minutes - rates change frequently
+Cache::put('static_content', $content, 1440);    // 24 hours - static content
+```
+
+### 3. Handle Cache Misses Gracefully
+
+Always handle cases where cache doesn't exist:
+
+```php
+// ✅ Good - Proper cache miss handling
+$data = Cache::get('my_data');
+if ($data === null) {
+    $data = $this->fetchFreshData();
+    Cache::put('my_data', $data, 60);
+}
+return $data;
+```
+
+### 4. Invalidate Related Caches
+
+When data changes, clear related cache entries:
+
+```php
+// ✅ Good - Clear related caches
+public function updateUser($userId, $data)
+{
+    $this->userRepository->update($userId, $data);
+
+    // Clear all user-related caches
+    Cache::forget('user_' . $userId);
+    Cache::forget('user_stats_' . $userId);
+    Cache::forget('users_list');
+}
+```
+
+### 5. Use JSON Methods for API Data
+
+Use specialized JSON methods for API responses:
+
+```php
+// ✅ Good - Use JSON methods for API data
+Cache::putJson('api_response', $jsonData, 30);
+$jsonData = Cache::getJson('api_response');
+
+// ✅ Also good - Regular methods work too
+Cache::put('api_response', $jsonData, 30);
+$jsonData = Cache::get('api_response');
+```
+
+### 6. Monitor Cache Performance
+
+Use cache existence checks to monitor performance:
+
+```php
+// ✅ Good - Check cache performance
+$startTime = microtime(true);
+
+if (Cache::exists('expensive_operation')) {
+    $result = Cache::get('expensive_operation');
+    $cacheHit = true;
+} else {
+    $result = $this->performExpensiveOperation();
+    Cache::put('expensive_operation', $result, 60);
+    $cacheHit = false;
+}
+
+$executionTime = microtime(true) - $startTime;
+// Log cache hit/miss and execution time
+```
+
+## Cache Management
+
+### Clearing Cache Programmatically
+
+```php
+use App\Cache\Cache;
+
+// Clear specific cache
+Cache::forget('specific_key');
+
+// Clear all cache
+Cache::clear();
+```
+
+### Cache Directory Structure
+
+```
+APP_CACHE_DIR/
+└── other/
+    ├── a1b2c3d4e5f6.fpc  # MD5 hash of cache key
+    ├── f6e5d4c3b2a1.fpc
+    └── ...
+```
+
+## Performance Considerations
+
+### When to Use Cache
+
+- **Expensive operations**: Database queries, API calls, file processing
+- **Frequently accessed data**: User profiles, dashboard stats, configuration
+- **Temporary data**: Session data, temporary calculations
+- **API responses**: External API calls that don't change frequently
+
+### When NOT to Use Cache
+
+- **Real-time data**: Live chat, real-time notifications
+- **Sensitive data**: Passwords, tokens, personal information
+- **Frequently changing data**: Data that changes every few seconds
+- **Small, fast operations**: Simple calculations, basic string operations

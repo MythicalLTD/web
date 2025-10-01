@@ -1,0 +1,716 @@
+---
+id: controllers
+pagination_next: null
+pagination_prev: null
+---
+
+# Controllers
+
+Controllers in FeatherPanel handle HTTP requests, process business logic, and return responses. They are organized by functionality and provide a clean separation between routing and business logic.
+
+## Overview
+
+Controllers in FeatherPanel provide:
+
+- **Request Handling**: Process HTTP requests and extract data
+- **Business Logic**: Implement application logic and data processing
+- **Response Generation**: Return structured API responses
+- **OpenAPI Documentation**: Automatic API documentation generation
+- **Organized Structure**: Controllers organized by functionality (Admin, User, Wings, System)
+
+## Controller Structure
+
+### Directory Organization
+
+```
+backend/app/Controllers/
+├── HomeController.php           # Public/home routes
+├── RedirectController.php       # Redirect handling
+├── Admin/                       # Admin panel controllers
+│   ├── UsersController.php
+│   ├── ServersController.php
+│   ├── NodesController.php
+│   └── ...
+├── User/                        # User panel controllers
+│   ├── Auth/                    # Authentication controllers
+│   │   ├── LoginController.php
+│   │   ├── RegisterController.php
+│   │   └── ...
+│   ├── Server/                  # Server management controllers
+│   │   ├── ConsoleController.php
+│   │   ├── FilesController.php
+│   │   └── ...
+│   └── User/                    # User profile controllers
+│       ├── SessionController.php
+│       └── ...
+├── Wings/                       # Wings daemon controllers
+│   └── WingsAdminController.php
+└── System/                      # System controllers
+    └── ...
+```
+
+## Creating Controllers
+
+### Basic Controller Structure
+
+```php
+<?php
+
+namespace App\Controllers\Admin;
+
+use App\Helpers\ApiResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class MyController
+{
+    public function index(Request $request): Response
+    {
+        // Handle GET request
+        return ApiResponse::success(['message' => 'Hello World']);
+    }
+
+    public function create(Request $request): Response
+    {
+        // Handle POST/PUT request
+        $data = json_decode($request->getContent(), true);
+
+        // Process data
+        $result = $this->processData($data);
+
+        return ApiResponse::success($result, 'Created successfully');
+    }
+
+    public function update(Request $request, int $id): Response
+    {
+        // Handle PATCH request
+        $data = json_decode($request->getContent(), true);
+
+        // Update logic
+        $result = $this->updateData($id, $data);
+
+        return ApiResponse::success($result, 'Updated successfully');
+    }
+
+    public function delete(Request $request, int $id): Response
+    {
+        // Handle DELETE request
+        $this->deleteData($id);
+
+        return ApiResponse::success(null, 'Deleted successfully');
+    }
+}
+```
+
+### Controller with OpenAPI Documentation
+
+```php
+<?php
+
+namespace App\Controllers\Admin;
+
+use App\Helpers\ApiResponse;
+use OpenApi\Attributes as OA;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+#[OA\Schema(
+    schema: 'MyModel',
+    type: 'object',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer', description: 'Model ID'),
+        new OA\Property(property: 'name', type: 'string', description: 'Model name'),
+        new OA\Property(property: 'description', type: 'string', description: 'Model description'),
+    ]
+)]
+class MyController
+{
+    #[OA\Get(
+        path: '/api/admin/my-models',
+        summary: 'Get all models',
+        description: 'Retrieve a list of all models',
+        tags: ['Admin - My Models'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Models retrieved successfully',
+                content: new OA\JsonContent(
+                    type: 'array',
+                    items: new OA\Items(ref: '#/components/schemas/MyModel')
+                )
+            ),
+            new OA\Response(response: 401, description: 'Unauthorized'),
+            new OA\Response(response: 403, description: 'Forbidden'),
+        ]
+    )]
+    public function index(Request $request): Response
+    {
+        // Controller logic
+        return ApiResponse::success(['models' => []]);
+    }
+}
+```
+
+## Controller Types
+
+### Admin Controllers
+
+Admin controllers handle administrative functionality:
+
+```php
+<?php
+
+namespace App\Controllers\Admin;
+
+use App\App;
+use App\Chat\User;
+use App\Helpers\ApiResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class UsersController
+{
+    public function index(Request $request): Response
+    {
+        $page = (int) $request->query->get('page', 1);
+        $limit = (int) $request->query->get('limit', 10);
+        $search = $request->query->get('search', '');
+
+        // Get users with pagination and search
+        $users = User::getUsersPaginated($page, $limit, $search);
+
+        return ApiResponse::success([
+            'users' => $users['data'],
+            'pagination' => $users['pagination']
+        ]);
+    }
+
+    public function show(Request $request, int $id): Response
+    {
+        $user = User::getUserById($id);
+
+        if (!$user) {
+            return ApiResponse::error('User not found', 'USER_NOT_FOUND', 404);
+        }
+
+        return ApiResponse::success(['user' => $user]);
+    }
+
+    public function create(Request $request): Response
+    {
+        $data = json_decode($request->getContent(), true);
+
+        // Validate required fields
+        $required = ['username', 'email', 'password'];
+        foreach ($required as $field) {
+            if (!isset($data[$field]) || empty($data[$field])) {
+                return ApiResponse::error("Field '{$field}' is required", 'MISSING_FIELD', 400);
+            }
+        }
+
+        // Create user
+        $userId = User::createUser($data);
+
+        if ($userId === false) {
+            return ApiResponse::error('Failed to create user', 'CREATE_FAILED', 500);
+        }
+
+        return ApiResponse::success(['id' => $userId], 'User created successfully');
+    }
+}
+```
+
+### User Controllers
+
+User controllers handle user-facing functionality:
+
+```php
+<?php
+
+namespace App\Controllers\User\Auth;
+
+use App\App;
+use App\Chat\User;
+use App\Helpers\ApiResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class LoginController
+{
+    public function put(Request $request): Response
+    {
+        $data = json_decode($request->getContent(), true);
+
+        // Validate input
+        if (!isset($data['email']) || !isset($data['password'])) {
+            return ApiResponse::error('Email and password are required', 'MISSING_FIELDS', 400);
+        }
+
+        // Authenticate user
+        $user = User::authenticate($data['email'], $data['password']);
+
+        if (!$user) {
+            return ApiResponse::error('Invalid credentials', 'INVALID_CREDENTIALS', 401);
+        }
+
+        // Check if user is banned
+        if ($user['banned'] === 'true') {
+            return ApiResponse::error('Account is banned', 'ACCOUNT_BANNED', 401);
+        }
+
+        // Generate session token
+        $token = $this->generateSessionToken($user);
+
+        return ApiResponse::success([
+            'user' => $user,
+            'token' => $token
+        ], 'Login successful');
+    }
+}
+```
+
+### Wings Controllers
+
+Wings controllers handle Wings daemon communication:
+
+```php
+<?php
+
+namespace App\Controllers\Wings;
+
+use App\App;
+use App\Chat\Node;
+use App\Helpers\ApiResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class WingsAdminController
+{
+    public function index(Request $request): Response
+    {
+        // Get all nodes
+        $nodes = Node::getAllNodes();
+
+        return ApiResponse::success(['nodes' => $nodes]);
+    }
+
+    public function system(Request $request, int $nodeId): Response
+    {
+        $node = Node::getNodeById($nodeId);
+
+        if (!$node) {
+            return ApiResponse::error('Node not found', 'NODE_NOT_FOUND', 404);
+        }
+
+        // Get system information from Wings
+        $systemInfo = $this->getWingsSystemInfo($node);
+
+        return ApiResponse::success(['system' => $systemInfo]);
+    }
+}
+```
+
+## Request Handling
+
+### Getting Request Data
+
+```php
+public function handleRequest(Request $request): Response
+{
+    // Get query parameters
+    $page = (int) $request->query->get('page', 1);
+    $limit = (int) $request->query->get('limit', 10);
+    $search = $request->query->get('search', '');
+
+    // Get JSON body data
+    $data = json_decode($request->getContent(), true);
+
+    // Get headers
+    $contentType = $request->headers->get('Content-Type');
+    $authorization = $request->headers->get('Authorization');
+
+    // Get route parameters (from URL)
+    $id = $request->attributes->get('id');
+    $serverUuid = $request->attributes->get('serverShortUuid');
+
+    return ApiResponse::success(['data' => $data]);
+}
+```
+
+### Input Validation
+
+```php
+public function create(Request $request): Response
+{
+    $data = json_decode($request->getContent(), true);
+
+    // Validate required fields
+    $required = ['username', 'email', 'password'];
+    $missing = [];
+
+    foreach ($required as $field) {
+        if (!isset($data[$field]) || empty(trim($data[$field]))) {
+            $missing[] = $field;
+        }
+    }
+
+    if (!empty($missing)) {
+        return ApiResponse::error(
+            'Missing required fields: ' . implode(', ', $missing),
+            'MISSING_FIELDS',
+            400
+        );
+    }
+
+    // Validate email format
+    if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+        return ApiResponse::error('Invalid email format', 'INVALID_EMAIL', 400);
+    }
+
+    // Validate password strength
+    if (strlen($data['password']) < 8) {
+        return ApiResponse::error('Password must be at least 8 characters', 'WEAK_PASSWORD', 400);
+    }
+
+    // Process valid data
+    return $this->processValidData($data);
+}
+```
+
+## Response Handling
+
+### Using ApiResponse
+
+```php
+use App\Helpers\ApiResponse;
+
+// Success responses
+return ApiResponse::success($data, 'Operation successful');
+return ApiResponse::success(['user' => $user], 'User created successfully');
+
+// Error responses
+return ApiResponse::error('Error message', 'ERROR_CODE', 400);
+return ApiResponse::error('User not found', 'USER_NOT_FOUND', 404);
+
+// Exception responses
+return ApiResponse::exception('Database error', 500, $exception->getTrace());
+```
+
+### Response Types
+
+```php
+// Success with data
+return ApiResponse::success([
+    'users' => $users,
+    'pagination' => $pagination
+], 'Users retrieved successfully');
+
+// Success without data
+return ApiResponse::success(null, 'Operation completed');
+
+// Error with code
+return ApiResponse::error('Invalid input', 'INVALID_INPUT', 400);
+
+// Exception with trace
+try {
+    // Risky operation
+} catch (\Exception $e) {
+    return ApiResponse::exception($e->getMessage(), $e->getCode(), $e->getTrace());
+}
+```
+
+## OpenAPI Documentation
+
+### Schema Definitions
+
+```php
+#[OA\Schema(
+    schema: 'User',
+    type: 'object',
+    properties: [
+        new OA\Property(property: 'id', type: 'integer', description: 'User ID'),
+        new OA\Property(property: 'username', type: 'string', description: 'Username'),
+        new OA\Property(property: 'email', type: 'string', format: 'email', description: 'Email address'),
+        new OA\Property(property: 'created_at', type: 'string', format: 'date-time', description: 'Creation timestamp'),
+    ]
+)]
+```
+
+### Endpoint Documentation
+
+```php
+#[OA\Get(
+    path: '/api/admin/users',
+    summary: 'Get all users',
+    description: 'Retrieve a paginated list of all users',
+    tags: ['Admin - Users'],
+    parameters: [
+        new OA\Parameter(
+            name: 'page',
+            in: 'query',
+            description: 'Page number',
+            required: false,
+            schema: new OA\Schema(type: 'integer', minimum: 1, default: 1)
+        ),
+    ],
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: 'Users retrieved successfully',
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: 'users', type: 'array', items: new OA\Items(ref: '#/components/schemas/User')),
+                ]
+            )
+        ),
+        new OA\Response(response: 401, description: 'Unauthorized'),
+        new OA\Response(response: 403, description: 'Forbidden'),
+    ]
+)]
+```
+
+## Best Practices
+
+### 1. Use Descriptive Method Names
+
+```php
+// ✅ Good - Clear method names
+public function index(Request $request): Response      // List all
+public function show(Request $request, int $id): Response  // Show single
+public function create(Request $request): Response     // Create new
+public function update(Request $request, int $id): Response // Update existing
+public function delete(Request $request, int $id): Response // Delete
+```
+
+### 2. Validate Input Data
+
+```php
+// ✅ Good - Always validate input
+public function create(Request $request): Response
+{
+    $data = json_decode($request->getContent(), true);
+
+    // Validate required fields
+    if (!isset($data['name']) || empty($data['name'])) {
+        return ApiResponse::error('Name is required', 'MISSING_NAME', 400);
+    }
+
+    // Validate data types and formats
+    if (!is_string($data['name']) || strlen($data['name']) < 3) {
+        return ApiResponse::error('Name must be at least 3 characters', 'INVALID_NAME', 400);
+    }
+
+    return $this->processValidData($data);
+}
+```
+
+### 3. Handle Errors Gracefully
+
+```php
+// ✅ Good - Proper error handling
+public function show(Request $request, int $id): Response
+{
+    try {
+        $user = User::getUserById($id);
+
+        if (!$user) {
+            return ApiResponse::error('User not found', 'USER_NOT_FOUND', 404);
+        }
+
+        return ApiResponse::success(['user' => $user]);
+    } catch (\Exception $e) {
+        return ApiResponse::exception('Failed to retrieve user', 500, $e->getTrace());
+    }
+}
+```
+
+### 4. Use Appropriate HTTP Methods
+
+```php
+// ✅ Good - RESTful HTTP methods
+public function index(Request $request): Response    // GET - List resources
+public function show(Request $request, int $id): Response  // GET - Show resource
+public function create(Request $request): Response   // PUT - Create resource
+public function update(Request $request, int $id): Response // PATCH - Update resource
+public function delete(Request $request, int $id): Response // DELETE - Delete resource
+```
+
+### 5. Document Your API
+
+```php
+// ✅ Good - Comprehensive API documentation
+#[OA\Get(
+    path: '/api/admin/users/{id}',
+    summary: 'Get user by ID',
+    description: 'Retrieve a specific user by their ID with full details',
+    tags: ['Admin - Users'],
+    parameters: [
+        new OA\Parameter(
+            name: 'id',
+            in: 'path',
+            description: 'User ID',
+            required: true,
+            schema: new OA\Schema(type: 'integer', minimum: 1)
+        ),
+    ],
+    responses: [
+        new OA\Response(
+            response: 200,
+            description: 'User retrieved successfully',
+            content: new OA\JsonContent(ref: '#/components/schemas/User')
+        ),
+        new OA\Response(response: 404, description: 'User not found'),
+    ]
+)]
+```
+
+### 6. Use Dependency Injection
+
+```php
+// ✅ Good - Use App instance for dependencies
+public function index(Request $request): Response
+{
+    $app = App::getInstance(true);
+    $config = $app->getConfig();
+    $logger = $app->getLogger();
+
+    // Use dependencies
+    $setting = $config->getSetting('some_setting', 'default');
+    $logger->info('Processing request');
+
+    return ApiResponse::success(['setting' => $setting]);
+}
+```
+
+## Controller Organization
+
+### Admin Controllers
+
+Admin controllers handle administrative functionality:
+- User management
+- Server management
+- Node management
+- System settings
+- Permissions and roles
+
+### User Controllers
+
+User controllers handle user-facing functionality:
+- Authentication
+- Profile management
+- Server access
+- File management
+- Console access
+
+### Wings Controllers
+
+Wings controllers handle Wings daemon communication:
+- Node information
+- System monitoring
+- Remote operations
+- Docker management
+
+### System Controllers
+
+System controllers handle system-level functionality:
+- Health checks
+- System status
+- Maintenance operations
+- Logging and monitoring
+
+## Common Patterns
+
+### CRUD Operations
+
+```php
+class ResourceController
+{
+    public function index(Request $request): Response
+    {
+        // List all resources with pagination
+        $page = (int) $request->query->get('page', 1);
+        $limit = (int) $request->query->get('limit', 10);
+
+        $resources = Resource::getPaginated($page, $limit);
+
+        return ApiResponse::success($resources);
+    }
+
+    public function show(Request $request, int $id): Response
+    {
+        // Show single resource
+        $resource = Resource::getById($id);
+
+        if (!$resource) {
+            return ApiResponse::error('Resource not found', 'NOT_FOUND', 404);
+        }
+
+        return ApiResponse::success(['resource' => $resource]);
+    }
+
+    public function create(Request $request): Response
+    {
+        // Create new resource
+        $data = json_decode($request->getContent(), true);
+
+        $id = Resource::create($data);
+
+        if ($id === false) {
+            return ApiResponse::error('Failed to create resource', 'CREATE_FAILED', 500);
+        }
+
+        return ApiResponse::success(['id' => $id], 'Resource created successfully');
+    }
+
+    public function update(Request $request, int $id): Response
+    {
+        // Update existing resource
+        $data = json_decode($request->getContent(), true);
+
+        $success = Resource::update($id, $data);
+
+        if (!$success) {
+            return ApiResponse::error('Failed to update resource', 'UPDATE_FAILED', 500);
+        }
+
+        return ApiResponse::success(null, 'Resource updated successfully');
+    }
+
+    public function delete(Request $request, int $id): Response
+    {
+        // Delete resource
+        $success = Resource::delete($id);
+
+        if (!$success) {
+            return ApiResponse::error('Failed to delete resource', 'DELETE_FAILED', 500);
+        }
+
+        return ApiResponse::success(null, 'Resource deleted successfully');
+    }
+}
+```
+
+### Search and Filtering
+
+```php
+public function index(Request $request): Response
+{
+    $page = (int) $request->query->get('page', 1);
+    $limit = (int) $request->query->get('limit', 10);
+    $search = $request->query->get('search', '');
+    $status = $request->query->get('status', '');
+    $sortBy = $request->query->get('sort_by', 'created_at');
+    $sortOrder = $request->query->get('sort_order', 'desc');
+
+    $filters = [
+        'search' => $search,
+        'status' => $status,
+        'sort_by' => $sortBy,
+        'sort_order' => $sortOrder
+    ];
+
+    $resources = Resource::getPaginatedWithFilters($page, $limit, $filters);
+
+    return ApiResponse::success($resources);
+}
+```

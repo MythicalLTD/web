@@ -1,0 +1,280 @@
+---
+id: logger
+pagination_next: null
+pagination_prev: null
+---
+
+# Logging System
+
+FeatherPanel provides a comprehensive logging system that automatically tracks caller information and supports multiple log levels. The system uses `.fplog` files for structured logging with timestamps and caller identification.
+
+## Overview
+
+The logging system consists of:
+
+- **LoggerFactory**: Main logging class that handles all log operations
+- **Multiple Log Levels**: Info, Warning, Error, Critical, and Debug
+- **Automatic Caller Tracking**: Automatically identifies which class called the logger
+- **File-based Storage**: Logs stored in `.fplog` files with timestamps
+- **App Integration**: Easy access through the main App class
+
+## Log Levels
+
+### Available Log Levels
+
+- **`info()`**: General information messages
+- **`warning()`**: Warning messages with optional telemetry
+- **`error()`**: Error messages with optional telemetry
+- **`critical()`**: Critical error messages with optional telemetry
+- **`debug()`**: Debug messages (only logged when `APP_DEBUG` is true)
+
+## Using the Logger
+
+### Accessing Logger from App
+
+The easiest way to access the logger is through the App instance:
+
+```php
+use App\App;
+
+// Get the main application logger
+$logger = App::getInstance(true)->getLogger();
+
+// Get the web server logger
+$webLogger = App::getInstance(true)->getWebServerLogger();
+```
+
+### Basic Logging
+
+```php
+use App\App;
+
+$logger = App::getInstance(true)->getLogger();
+
+// Log different levels
+$logger->info('User logged in successfully');
+$logger->warning('Rate limit approaching');
+$logger->error('Database connection failed');
+$logger->critical('System is down');
+$logger->debug('Processing user data'); // Only if APP_DEBUG is true
+```
+
+### Logging with Telemetry
+
+For warnings, errors, and critical messages, you can optionally send telemetry:
+
+```php
+use App\App;
+
+$logger = App::getInstance(true)->getLogger();
+
+// Log with telemetry (sends to external monitoring)
+$logger->warning('High memory usage detected', true);
+$logger->error('Payment processing failed', true);
+$logger->critical('Security breach detected', true);
+```
+
+### Reading Logs
+
+```php
+use App\App;
+
+$logger = App::getInstance(true)->getLogger();
+
+// Get all logs (excluding debug in production)
+$logs = $logger->getLogs();
+
+// Get all logs including debug (for web server logs)
+$allLogs = $logger->getLogs(true);
+```
+
+## Log File Format
+
+Logs are stored in `.fplog` files with the following format:
+
+```
+| (2024-01-15 10:30:45) [INFO] [App\Controllers\UserController] User logged in successfully
+| (2024-01-15 10:31:02) [WARNING] [App\Middleware\AuthMiddleware] Rate limit approaching
+| (2024-01-15 10:31:15) [ERROR] [App\Database] Database connection failed
+| (2024-01-15 10:31:30) [DEBUG] [App\Services\UserService] Processing user data
+```
+
+### Format Breakdown
+
+- **Timestamp**: `(2024-01-15 10:30:45)` - When the log was created
+- **Level**: `[INFO]` - Log level (INFO, WARNING, ERROR, CRITICAL, DEBUG)
+- **Caller**: `[App\Controllers\UserController]` - Class that called the logger
+- **Message**: `User logged in successfully` - The actual log message
+
+## Logger Methods
+
+### `info(string $message): void`
+
+Logs informational messages:
+
+```php
+$logger->info('Operation completed successfully');
+```
+
+### `warning(string $message, bool $sendTelemetry = false): void`
+
+Logs warning messages with optional telemetry:
+
+```php
+$logger->warning('Memory usage is high');
+$logger->warning('API rate limit approaching', true); // With telemetry
+```
+
+### `error(string $message, bool $sendTelemetry = false): void`
+
+Logs error messages with optional telemetry:
+
+```php
+$logger->error('Failed to process payment');
+$logger->error('Database connection lost', true); // With telemetry
+```
+
+### `critical(string $message, bool $sendTelemetry = false): void`
+
+Logs critical error messages with optional telemetry:
+
+```php
+$logger->critical('System is completely down');
+$logger->critical('Security breach detected', true); // With telemetry
+```
+
+### `debug(string $message): void`
+
+Logs debug messages (only when `APP_DEBUG` is true):
+
+```php
+$logger->debug('Processing user data for ID: 123');
+```
+
+### `getLogs(bool $isWebServer = false): array`
+
+Retrieves logs from the log file:
+
+```php
+// Get production logs (excludes debug)
+$logs = $logger->getLogs();
+
+// Get all logs including debug
+$allLogs = $logger->getLogs(true);
+```
+
+## Best Practices
+
+### 1. Use Appropriate Log Levels
+
+Choose the right log level for your message:
+
+```php
+// ✅ Good - Use info for normal operations
+$logger->info('User created account successfully');
+
+// ✅ Good - Use warning for concerning but non-critical issues
+$logger->warning('API response time is slow');
+
+// ✅ Good - Use error for actual problems
+$logger->error('Failed to send email notification');
+
+// ✅ Good - Use critical for system-breaking issues
+$logger->critical('Database is completely unavailable');
+
+// ✅ Good - Use debug for development information
+$logger->debug('Processing 150 user records');
+```
+
+### 2. Include Context in Messages
+
+Provide meaningful context in your log messages:
+
+```php
+// ✅ Good - Includes context
+$logger->error('Failed to create user account for email: ' . $email);
+
+// ❌ Bad - No context
+$logger->error('Failed to create user');
+```
+
+### 3. Use Telemetry for Important Issues
+
+Send telemetry for issues that need external monitoring:
+
+```php
+// ✅ Good - Critical issues should send telemetry
+$logger->critical('Payment system is down', true);
+
+// ✅ Good - Important errors should send telemetry
+$logger->error('User data corruption detected', true);
+```
+
+### 4. Handle Logger Errors Gracefully
+
+Always handle potential logger failures:
+
+```php
+try {
+    $logger = App::getInstance(true)->getLogger();
+    $logger->info('Operation completed');
+} catch (\Exception $e) {
+    // Fallback logging or error handling
+    error_log('Logger failed: ' . $e->getMessage());
+}
+```
+
+### 5. Don't Log Sensitive Information
+
+Never log sensitive data:
+
+```php
+// ❌ Bad - Logs sensitive information
+$logger->info('User password: ' . $password);
+
+// ✅ Good - Logs without sensitive data
+$logger->info('User authentication successful');
+```
+
+## Log File Locations
+
+### Default Log Files
+
+- **Application Logs**: `backend/storage/logs/App.fplog`
+- **Web Server Logs**: `backend/storage/logs/featherpanel-web.fplog`
+
+### Custom Log Files
+
+You can create custom loggers for specific components:
+
+```php
+use App\Logger\LoggerFactory;
+
+// Create a custom logger for a specific component
+$customLogger = new LoggerFactory(__DIR__ . '/../storage/logs/CustomComponent.fplog');
+$customLogger->info('Custom component initialized');
+```
+
+## Integration with App Class
+
+The App class provides convenient access to loggers:
+
+```php
+use App\App;
+
+class MyController
+{
+    public function handleRequest()
+    {
+        $logger = App::getInstance(true)->getLogger();
+
+        try {
+            // Your code here
+            $logger->info('Request processed successfully');
+        } catch (\Exception $e) {
+            $logger->error('Request failed: ' . $e->getMessage(), true);
+            throw $e;
+        }
+    }
+}
+```

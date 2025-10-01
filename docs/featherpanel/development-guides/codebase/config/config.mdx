@@ -1,0 +1,280 @@
+---
+id: config
+pagination_next: null
+pagination_prev: null
+---
+
+# Configuration System
+
+FeatherPanel uses a secure, encrypted configuration system that stores settings in the database with automatic encryption/decryption. The system provides both public and private configuration management.
+
+## Overview
+
+The configuration system consists of:
+
+- **ConfigInterface**: Defines all available configuration constants
+- **ConfigFactory**: Handles database operations and encryption/decryption
+- **PublicConfig**: Manages public settings that can be exposed to the frontend
+- **App Integration**: Easy access through the main App class
+
+## Configuration Structure
+
+### ConfigInterface Constants
+
+All configuration keys are defined as constants in `ConfigInterface`:
+
+```php
+namespace App\Config;
+
+interface ConfigInterface
+{
+    // App settings
+    public const APP_NAME = 'app_name';
+    public const APP_URL = 'app_url';
+    public const APP_DEVELOPER_MODE = 'app_developer_mode';
+    public const APP_TIMEZONE = 'app_timezone';
+    public const APP_LOGO = 'app_logo';
+    public const APP_SUPPORT_URL = 'app_support_url';
+
+    // Turnstile settings
+    public const TURNSTILE_ENABLED = 'turnstile_enabled';
+    public const TURNSTILE_KEY_PUB = 'turnstile_key_pub';
+    public const TURNSTILE_KEY_PRIV = 'turnstile_key_priv';
+
+    // SMTP settings
+    public const SMTP_ENABLED = 'smtp_enabled';
+    public const SMTP_HOST = 'smtp_host';
+    public const SMTP_PORT = 'smtp_port';
+    public const SMTP_USER = 'smtp_user';
+    public const SMTP_PASS = 'smtp_pass';
+    public const SMTP_FROM = 'smtp_from';
+    public const SMTP_ENCRYPTION = 'smtp_encryption';
+
+    // Legal settings
+    public const LEGAL_TOS = 'legal_tos';
+    public const LEGAL_PRIVACY = 'legal_privacy';
+
+    // Registration settings
+    public const REGISTRATION_ENABLED = 'registration_enabled';
+}
+```
+
+## Using Configuration
+
+### Accessing Config from App
+
+The easiest way to access configuration is through the App instance:
+
+```php
+use App\App;
+use App\Config\ConfigInterface;
+
+// Get the config factory
+$config = App::getInstance(true)->getConfig();
+
+// Get a single setting
+$appName = $config->getSetting(ConfigInterface::APP_NAME, 'Default Name');
+
+// Get multiple settings
+$settings = $config->getSettings([
+    ConfigInterface::APP_NAME,
+    ConfigInterface::APP_URL,
+    ConfigInterface::APP_TIMEZONE
+]);
+```
+
+### Setting Configuration Values
+
+```php
+use App\App;
+use App\Config\ConfigInterface;
+
+$config = App::getInstance(true)->getConfig();
+
+// Set a configuration value (automatically encrypted)
+$config->setSetting(ConfigInterface::APP_NAME, 'My FeatherPanel');
+$config->setSetting(ConfigInterface::SMTP_HOST, 'smtp.example.com');
+```
+
+### Public Configuration
+
+For settings that need to be exposed to the frontend:
+
+```php
+use App\Config\PublicConfig;
+use App\Config\ConfigInterface;
+
+// Get public settings with defaults
+$publicSettings = PublicConfig::getPublicSettingsWithDefaults();
+
+// This returns an array like:
+// [
+//     'app_name' => 'FeatherPanel',
+//     'app_url' => 'framework.mythical.systems',
+//     'app_developer_mode' => 'false',
+//     // ... more settings
+// ]
+```
+
+## Configuration Methods
+
+### ConfigFactory Methods
+
+#### `getSetting(string $name, ?string $fallback): ?string`
+
+Retrieves a single configuration value with optional fallback:
+
+```php
+$config = App::getInstance(true)->getConfig();
+
+// Get with fallback
+$timezone = $config->getSetting(ConfigInterface::APP_TIMEZONE, 'UTC');
+
+// Get without fallback (returns null if not found)
+$logo = $config->getSetting(ConfigInterface::APP_LOGO, null);
+```
+
+#### `getSettings(array $columns = []): array`
+
+Retrieves multiple configuration values:
+
+```php
+$config = App::getInstance(true)->getConfig();
+
+// Get specific settings
+$appSettings = $config->getSettings([
+    ConfigInterface::APP_NAME,
+    ConfigInterface::APP_URL,
+    ConfigInterface::APP_LOGO
+]);
+
+// Get all settings
+$allSettings = $config->getSettings();
+```
+
+#### `setSetting(string $name, string $value): bool`
+
+Sets a configuration value (automatically encrypted):
+
+```php
+$config = App::getInstance(true)->getConfig();
+
+$success = $config->setSetting(ConfigInterface::APP_NAME, 'New App Name');
+if ($success) {
+    // Setting was saved successfully
+}
+```
+
+#### `dumpSettings(): array`
+
+⚠️ **DANGER ZONE** - Returns all settings in decrypted form:
+
+```php
+$config = App::getInstance(true)->getConfig();
+
+// WARNING: This returns ALL settings in plain text
+// Only use for debugging in secure environments
+$allSettings = $config->dumpSettings();
+```
+
+### PublicConfig Methods
+
+#### `getPublicSettingsWithDefaults(): array`
+
+Returns public settings with default values:
+
+```php
+use App\Config\PublicConfig;
+
+$publicSettings = PublicConfig::getPublicSettingsWithDefaults();
+```
+
+## Security Features
+
+### Automatic Encryption
+
+All configuration values are automatically encrypted when stored and decrypted when retrieved:
+
+```php
+// This value will be encrypted in the database
+$config->setSetting(ConfigInterface::SMTP_PASS, 'my-secret-password');
+
+// This will automatically decrypt the value
+$password = $config->getSetting(ConfigInterface::SMTP_PASS, null);
+```
+
+### Caching
+
+The system includes built-in caching to improve performance:
+
+```php
+// First call - fetches from database and caches
+$appName = $config->getSetting(ConfigInterface::APP_NAME, 'Default');
+
+// Subsequent calls - returns from cache
+$appName = $config->getSetting(ConfigInterface::APP_NAME, 'Default');
+```
+
+## Best Practices
+
+### 1. Use Constants
+
+Always use the constants from `ConfigInterface` instead of hardcoded strings:
+
+```php
+// ✅ Good
+$config->getSetting(ConfigInterface::APP_NAME, 'Default');
+
+// ❌ Bad
+$config->getSetting('app_name', 'Default');
+```
+
+### 2. Provide Fallbacks
+
+Always provide fallback values for required settings:
+
+```php
+// ✅ Good
+$timezone = $config->getSetting(ConfigInterface::APP_TIMEZONE, 'UTC');
+
+// ❌ Bad - could return null
+$timezone = $config->getSetting(ConfigInterface::APP_TIMEZONE, null);
+```
+
+### 3. Handle Public vs Private Settings
+
+Be careful about what settings you expose publicly:
+
+```php
+// ✅ Safe for public exposure
+$publicSettings = [
+    ConfigInterface::APP_NAME,
+    ConfigInterface::APP_LOGO,
+    ConfigInterface::APP_URL
+];
+
+// ❌ Never expose these publicly
+$privateSettings = [
+    ConfigInterface::SMTP_PASS,
+    ConfigInterface::TURNSTILE_KEY_PRIV
+];
+```
+
+### 4. Error Handling
+
+Always handle potential errors when working with configuration:
+
+```php
+try {
+    $config = App::getInstance(true)->getConfig();
+    $appName = $config->getSetting(ConfigInterface::APP_NAME, 'FeatherPanel');
+} catch (\Exception $e) {
+    // Handle configuration errors
+    error_log('Configuration error: ' . $e->getMessage());
+    $appName = 'FeatherPanel'; // Fallback
+}
+```
+
+## Storage
+
+Configuration values are stored in the `featherpanel_settings` database table with automatic encryption. The system handles all database operations internally - you don't need to interact with the database directly.

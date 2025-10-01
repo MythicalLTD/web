@@ -1,0 +1,580 @@
+---
+id: configuration
+title: Configuration Management
+description: File parsing and configuration management in FeatherPanel spells
+---
+
+# Configuration Management
+
+FeatherPanel's spell system provides powerful configuration file parsing and management capabilities. This allows spells to automatically modify configuration files before server startup, ensuring proper server configuration without manual intervention.
+
+## Configuration File Parsing
+
+### Supported File Formats
+
+FeatherPanel supports parsing and modifying several configuration file formats:
+
+#### 1. Properties Files
+Java properties files and similar key-value formats:
+```properties
+server-port=25565
+server-ip=0.0.0.0
+max-players=20
+enable-query=true
+```
+
+#### 2. YAML Files
+YAML configuration files with support for complex structures:
+```yaml
+server:
+  port: 25565
+  ip: 0.0.0.0
+  max-players: 20
+  query:
+    enabled: true
+    port: 25565
+```
+
+#### 3. JSON Files
+JSON configuration files with object and array support:
+```json
+{
+  "server": {
+    "port": 25565,
+    "ip": "0.0.0.0",
+    "max-players": 20,
+    "query": {
+      "enabled": true,
+      "port": 25565
+    }
+  }
+}
+```
+
+#### 4. INI Files
+INI configuration files with section support:
+```ini
+[server]
+port=25565
+ip=0.0.0.0
+max-players=20
+
+[query]
+enabled=true
+port=25565
+```
+
+#### 5. XML Files
+XML configuration files with element and attribute support:
+```xml
+<server>
+  <port>25565</port>
+  <ip>0.0.0.0</ip>
+  <max-players>20</max-players>
+  <query enabled="true" port="25565" />
+</server>
+```
+
+## Configuration Parsers
+
+### Properties Parser
+
+For Java properties files and similar key-value formats:
+
+```json
+{
+  "config_files": {
+    "server.properties": {
+      "parser": "properties",
+      "find": {
+        "server-port": "{{SERVER_PORT}}",
+        "server-ip": "0.0.0.0",
+        "max-players": "{{MAX_PLAYERS}}",
+        "enable-query": "true"
+      }
+    }
+  }
+}
+```
+
+**Example Properties File:**
+```properties
+# Server Configuration
+server-port=25565
+server-ip=0.0.0.0
+max-players=20
+enable-query=true
+query.port=25565
+level-name=world
+gamemode=survival
+difficulty=normal
+```
+
+### YAML Parser
+
+For YAML files with support for complex structures and wildcards:
+
+```json
+{
+  "config_files": {
+    "config.yml": {
+      "parser": "yaml",
+      "find": {
+        "server.port": "{{SERVER_PORT}}",
+        "server.ip": "0.0.0.0",
+        "server.max-players": "{{MAX_PLAYERS}}",
+        "listeners[0].query_enabled": true,
+        "listeners[0].query_port": "{{SERVER_PORT}}",
+        "listeners[0].host": "0.0.0.0:{{SERVER_PORT}}",
+        "servers.*.address": {
+          "127.0.0.1": "{{config.docker.interface}}",
+          "localhost": "{{config.docker.interface}}"
+        }
+      }
+    }
+  }
+}
+```
+
+**Example YAML File:**
+```yaml
+server:
+  port: 25565
+  ip: 0.0.0.0
+  max-players: 20
+  query:
+    enabled: true
+    port: 25565
+
+listeners:
+  - query_enabled: true
+    query_port: 25565
+    host: 0.0.0.0:25565
+
+servers:
+  main:
+    address: 127.0.0.1
+    port: 25565
+  backup:
+    address: localhost
+    port: 25566
+```
+
+### JSON Parser
+
+For JSON files with support for objects, arrays, and wildcards:
+
+```json
+{
+  "config_files": {
+    "config.json": {
+      "parser": "json",
+      "find": {
+        "server.port": "{{SERVER_PORT}}",
+        "server.ip": "0.0.0.0",
+        "server.max-players": "{{MAX_PLAYERS}}",
+        "plugins.*.enabled": true,
+        "plugins.*.config.port": "{{SERVER_PORT}}"
+      }
+    }
+  }
+}
+```
+
+**Example JSON File:**
+```json
+{
+  "server": {
+    "port": 25565,
+    "ip": "0.0.0.0",
+    "max-players": 20
+  },
+  "plugins": [
+    {
+      "name": "plugin1",
+      "enabled": true,
+      "config": {
+        "port": 25565
+      }
+    },
+    {
+      "name": "plugin2",
+      "enabled": true,
+      "config": {
+        "port": 25565
+      }
+    }
+  ]
+}
+```
+
+### INI Parser
+
+For INI files with section support:
+
+```json
+{
+  "config_files": {
+    "config.ini": {
+      "parser": "ini",
+      "find": {
+        "server.port": "{{SERVER_PORT}}",
+        "server.ip": "0.0.0.0",
+        "server.max-players": "{{MAX_PLAYERS}}",
+        "query.enabled": "true",
+        "query.port": "{{SERVER_PORT}}"
+      }
+    }
+  }
+}
+```
+
+**Example INI File:**
+```ini
+[server]
+port=25565
+ip=0.0.0.0
+max-players=20
+
+[query]
+enabled=true
+port=25565
+
+[database]
+host=localhost
+port=3306
+name=minecraft
+```
+
+### XML Parser
+
+For XML files with element and attribute support:
+
+```json
+{
+  "config_files": {
+    "config.xml": {
+      "parser": "xml",
+      "find": {
+        "server.port": "{{SERVER_PORT}}",
+        "server.ip": "0.0.0.0",
+        "server.max-players": "{{MAX_PLAYERS}}",
+        "query.@enabled": "true",
+        "query.@port": "{{SERVER_PORT}}"
+      }
+    }
+  }
+}
+```
+
+**Example XML File:**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <server>
+    <port>25565</port>
+    <ip>0.0.0.0</ip>
+    <max-players>20</max-players>
+  </server>
+  <query enabled="true" port="25565" />
+  <database>
+    <host>localhost</host>
+    <port>3306</port>
+    <name>minecraft</name>
+  </database>
+</configuration>
+```
+
+## Advanced Configuration Features
+
+### Wildcard Matching
+
+Both YAML and JSON parsers support wildcard matching for arrays and objects:
+
+#### YAML Wildcards
+```json
+{
+  "config.yml": {
+    "parser": "yaml",
+    "find": {
+      "servers.*.address": "{{config.docker.interface}}",
+      "plugins.*.enabled": true,
+      "listeners[*].port": "{{SERVER_PORT}}"
+    }
+  }
+}
+```
+
+#### JSON Wildcards
+```json
+{
+  "config.json": {
+    "parser": "json",
+    "find": {
+      "servers.*.address": "{{config.docker.interface}}",
+      "plugins.*.enabled": true,
+      "listeners[*].port": "{{SERVER_PORT}}"
+    }
+  }
+}
+```
+
+### Multiple Find and Replace
+
+You can define multiple find and replace operations for a single matching pattern:
+
+```json
+{
+  "config.yml": {
+    "parser": "yaml",
+    "find": {
+      "servers.*.address": {
+        "127.0.0.1": "{{config.docker.interface}}",
+        "localhost": "{{config.docker.interface}}",
+        "0.0.0.0": "{{config.docker.interface}}"
+      }
+    }
+  }
+}
+```
+
+### Conditional Configuration
+
+You can use conditional logic based on environment variables:
+
+```json
+{
+  "config.yml": {
+    "parser": "yaml",
+    "find": {
+      "server.mode": "{{SERVER_MODE}}",
+      "server.debug": "{{DEBUG_MODE}}",
+      "server.port": "{{SERVER_PORT}}"
+    }
+  }
+}
+```
+
+## Variable Replacement
+
+### System Variables
+
+Built-in variables available to all spells:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{{SERVER_MEMORY}}` | Allocated memory in MB | `1024` |
+| `{{SERVER_PORT}}` | Primary server port | `25565` |
+| `{{SERVER_IP}}` | Server IP address | `127.0.0.1` |
+| `{{TZ}}` | Timezone setting | `UTC` |
+| `{{P_SERVER_UUID}}` | Server UUID | `539fdca8-4a08-4551-a8d2-8ee5475b50d9` |
+| `{{P_SERVER_LOCATION}}` | Server location | `Example City` |
+| `{{P_SERVER_ALLOCATION_LIMIT}}` | Allocation limit | `0` |
+
+### Custom Variables
+
+User-defined variables from spell configuration:
+
+```json
+{
+  "variables": [
+    {
+      "name": "Server JAR File",
+      "env_variable": "SERVER_JARFILE",
+      "default_value": "server.jar"
+    },
+    {
+      "name": "Max Players",
+      "env_variable": "MAX_PLAYERS",
+      "default_value": "20"
+    },
+    {
+      "name": "World Name",
+      "env_variable": "WORLD_NAME",
+      "default_value": "world"
+    }
+  ]
+}
+```
+
+### Environment Variables
+
+Variables can be accessed in different contexts:
+
+#### In Startup Commands
+```bash
+java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar {{SERVER_JARFILE}}
+```
+
+#### In Configuration Files
+```json
+{
+  "server.properties": {
+    "parser": "properties",
+    "find": {
+      "max-players": "{{MAX_PLAYERS}}",
+      "level-name": "{{WORLD_NAME}}"
+    }
+  }
+}
+```
+
+#### In Shell Scripts
+```bash
+export SERVER_NAME="{{SERVER_NAME}}"
+export MAX_PLAYERS="{{MAX_PLAYERS}}"
+```
+
+## Configuration Examples
+
+### Minecraft Server Configuration
+
+```json
+{
+  "config_files": {
+    "server.properties": {
+      "parser": "properties",
+      "find": {
+        "server-port": "{{SERVER_PORT}}",
+        "server-ip": "0.0.0.0",
+        "max-players": "{{MAX_PLAYERS}}",
+        "level-name": "{{WORLD_NAME}}",
+        "gamemode": "{{GAMEMODE}}",
+        "difficulty": "{{DIFFICULTY}}",
+        "enable-query": "true",
+        "query.port": "{{SERVER_PORT}}",
+        "enable-rcon": "{{ENABLE_RCON}}",
+        "rcon.port": "{{RCON_PORT}}",
+        "rcon.password": "{{RCON_PASSWORD}}"
+      }
+    },
+    "bukkit.yml": {
+      "parser": "yaml",
+      "find": {
+        "settings.allow-end": "{{ALLOW_END}}",
+        "settings.spawn-limits.monsters": "{{MONSTER_LIMIT}}",
+        "settings.spawn-limits.animals": "{{ANIMAL_LIMIT}}"
+      }
+    }
+  }
+}
+```
+
+### Discord Bot Configuration
+
+```json
+{
+  "config_files": {
+    "config.json": {
+      "parser": "json",
+      "find": {
+        "token": "{{BOT_TOKEN}}",
+        "prefix": "{{BOT_PREFIX}}",
+        "owner": "{{BOT_OWNER}}",
+        "database.host": "{{DB_HOST}}",
+        "database.port": "{{DB_PORT}}",
+        "database.name": "{{DB_NAME}}",
+        "database.user": "{{DB_USER}}",
+        "database.password": "{{DB_PASSWORD}}"
+      }
+    }
+  }
+}
+```
+
+### Web Server Configuration
+
+```json
+{
+  "config_files": {
+    "nginx.conf": {
+      "parser": "file",
+      "find": {
+        "listen 80": "listen {{SERVER_PORT}}",
+        "server_name localhost": "server_name {{SERVER_NAME}}",
+        "root /var/www/html": "root {{WEB_ROOT}}"
+      }
+    },
+    "php.ini": {
+      "parser": "ini",
+      "find": {
+        "upload_max_filesize": "{{UPLOAD_MAX_FILESIZE}}",
+        "post_max_size": "{{POST_MAX_SIZE}}",
+        "memory_limit": "{{MEMORY_LIMIT}}"
+      }
+    }
+  }
+}
+```
+
+## Best Practices
+
+### Configuration Design
+
+1. **Use appropriate parsers** for each file type
+2. **Validate configuration** before applying changes
+3. **Handle missing variables** gracefully
+4. **Provide fallback values** for optional settings
+5. **Test file parsing** with various configurations
+
+### Variable Management
+
+1. **Use descriptive variable names** and descriptions
+2. **Set appropriate validation rules** for each variable
+3. **Provide helpful default values**
+4. **Group related variables** logically
+5. **Document variable usage** and effects
+
+### File Organization
+
+1. **Organize configuration files** logically
+2. **Use consistent naming conventions**
+3. **Document configuration options** clearly
+4. **Provide example configurations**
+5. **Handle file permissions** properly
+
+### Error Handling
+
+1. **Validate file syntax** before parsing
+2. **Handle missing files** gracefully
+3. **Provide meaningful error messages**
+4. **Log configuration changes** for debugging
+5. **Test error conditions** thoroughly
+
+## Troubleshooting
+
+### Common Issues
+
+#### Configuration Not Applied
+- Verify file parser is correct for file type
+- Check variable names match exactly (case-sensitive)
+- Ensure files exist in container at specified paths
+- Validate JSON syntax in config_files section
+
+#### Variables Not Replaced
+- Ensure variable names are uppercase and use underscores
+- Check that variables are defined in spell configuration
+- Verify default values are set for all variables
+- Test variable replacement manually
+
+#### File Parsing Errors
+- Check file syntax is valid for the specified parser
+- Verify file encoding is correct (UTF-8 recommended)
+- Ensure file permissions allow reading
+- Test parsing with sample files
+
+#### Wildcard Matching Issues
+- Verify wildcard syntax is correct for parser type
+- Check that target elements exist in file structure
+- Ensure wildcard patterns match actual file content
+- Test wildcard matching with sample data
+
+### Debugging Tips
+
+1. **Enable debug logging** in FeatherPanel
+2. **Check container logs** for parsing errors
+3. **Test variable replacement** manually
+4. **Validate file syntax** with appropriate tools
+5. **Use Docker exec** to inspect files in running containers
+
+This comprehensive configuration management system allows FeatherPanel spells to automatically handle complex configuration scenarios while maintaining flexibility and ease of use.

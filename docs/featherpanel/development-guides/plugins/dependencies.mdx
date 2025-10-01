@@ -1,0 +1,416 @@
+---
+id: dependencies
+title: Plugin Dependencies
+description: Managing dependencies and validation in FeatherPanel plugins
+---
+
+# Plugin Dependencies
+
+FeatherPanel's dependency system ensures that plugins have all the required components to function properly. This includes other plugins, PHP versions, PHP extensions, and Composer packages.
+
+## Dependency Types
+
+### 1. Plugin Dependencies
+
+Dependencies on other FeatherPanel plugins:
+
+```yaml
+dependencies:
+  - "plugin=required_plugin"           # Any version
+  - "plugin=another_plugin:^2.0"       # Version 2.0 or higher
+  - "plugin=specific_plugin:1.5.0"     # Exact version
+```
+
+**Examples:**
+```yaml
+dependencies:
+  - "plugin=core_auth"                 # Requires core authentication plugin
+  - "plugin=payment_gateway:^1.2"      # Requires payment gateway v1.2+
+  - "plugin=analytics:2.0.0"           # Requires exact analytics version
+```
+
+### 2. PHP Version Dependencies
+
+Requirements for specific PHP versions:
+
+```yaml
+dependencies:
+  - "php=8.1"                         # Exact PHP version
+  - "php=^8.0"                        # PHP 8.0 or higher
+  - "php=>=7.4"                       # PHP 7.4 or higher
+```
+
+**Examples:**
+```yaml
+dependencies:
+  - "php=8.1"                         # Requires PHP 8.1
+  - "php=^8.0"                        # Requires PHP 8.0+
+  - "php=>=7.4"                       # Requires PHP 7.4+
+```
+
+### 3. PHP Extension Dependencies
+
+Requirements for PHP extensions:
+
+```yaml
+dependencies:
+  - "php-ext=gd"                      # Image processing
+  - "php-ext=curl"                    # HTTP requests
+  - "php-ext=json"                    # JSON handling
+  - "php-ext=mysqli"                  # MySQL database
+  - "php-ext=zip"                     # ZIP file handling
+```
+
+**Common Extensions:**
+```yaml
+dependencies:
+  - "php-ext=gd"                      # GD Graphics Library
+  - "php-ext=curl"                    # cURL library
+  - "php-ext=json"                    # JSON support
+  - "php-ext=mysqli"                  # MySQL Improved Extension
+  - "php-ext=pdo"                     # PHP Data Objects
+  - "php-ext=zip"                     # ZIP extension
+  - "php-ext=mbstring"                # Multibyte String
+  - "php-ext=openssl"                 # OpenSSL
+  - "php-ext=xml"                     # XML support
+  - "php-ext=dom"                     # DOM extension
+```
+
+### 4. Composer Package Dependencies
+
+Requirements for Composer packages:
+
+```yaml
+dependencies:
+  - "composer=vendor/package:^1.0"           # Package with version
+  - "composer=symfony/http-foundation:^6.0"  # Framework component
+  - "composer=guzzlehttp/guzzle:^7.0"        # HTTP client
+```
+
+**Common Packages:**
+```yaml
+dependencies:
+  - "composer=symfony/http-foundation:^6.0"  # HTTP foundation
+  - "composer=guzzlehttp/guzzle:^7.0"        # HTTP client
+  - "composer=monolog/monolog:^3.0"          # Logging
+  - "composer=twig/twig:^3.0"                # Template engine
+  - "composer=doctrine/dbal:^3.0"            # Database abstraction
+```
+
+## Dependency Checking
+
+### Automatic Validation
+
+The system automatically checks dependencies during:
+
+1. **Plugin Loading** - When FeatherPanel starts
+2. **Plugin Installation** - Before installing a new plugin
+3. **Plugin Updates** - When updating existing plugins
+4. **Manual Validation** - Through the admin interface
+
+### Dependency Resolution
+
+```php
+// The system checks each dependency type
+foreach ($dependencies as $dependency) {
+    if (strpos($dependency, 'plugin=') === 0) {
+        $plugin = substr($dependency, 7);
+        if (!AppDependencies::isInstalled($plugin)) {
+            $unmet[] = $dependency;
+        }
+    }
+
+    if (strpos($dependency, 'php=') === 0) {
+        $phpVersion = substr($dependency, 4);
+        if (!PhpVersionDependencies::isInstalled($phpVersion)) {
+            $unmet[] = $dependency;
+        }
+    }
+
+    if (strpos($dependency, 'php-ext=') === 0) {
+        $ext = substr($dependency, 8);
+        if (!PhpExtensionDependencies::isInstalled($ext)) {
+            $unmet[] = $dependency;
+        }
+    }
+
+    if (strpos($dependency, 'composer=') === 0) {
+        $composerPackage = substr($dependency, 9);
+        if (!ComposerDependencies::isInstalled($composerPackage)) {
+            $unmet[] = $dependency;
+        }
+    }
+}
+```
+
+## Dependency Examples
+
+### Simple Plugin Dependencies
+
+```yaml
+plugin:
+  name: "User Analytics Plugin"
+  identifier: "user_analytics"
+  dependencies:
+    - "php=8.1"
+    - "php-ext=json"
+    - "plugin=core_auth"
+```
+
+### Complex Plugin Dependencies
+
+```yaml
+plugin:
+  name: "Advanced Payment Plugin"
+  identifier: "advanced_payment"
+  dependencies:
+    - "php=8.1"
+    - "php-ext=curl"
+    - "php-ext=openssl"
+    - "php-ext=json"
+    - "plugin=core_auth:^2.0"
+    - "plugin=payment_gateway:^1.5"
+    - "composer=guzzlehttp/guzzle:^7.0"
+    - "composer=symfony/http-foundation:^6.0"
+```
+
+### Development Dependencies
+
+```yaml
+plugin:
+  name: "Development Tools Plugin"
+  identifier: "dev_tools"
+  dependencies:
+    - "php=8.1"
+    - "php-ext=xdebug"                 # For debugging
+    - "php-ext=zip"                    # For file operations
+    - "composer=phpunit/phpunit:^10.0" # For testing
+    - "composer=symfony/console:^6.0"  # For CLI tools
+```
+
+## Version Constraints
+
+### Semantic Versioning
+
+FeatherPanel uses semantic versioning for dependency resolution:
+
+- `^1.2.3` - Compatible with 1.2.3, up to (but not including) 2.0.0
+- `~1.2.3` - Compatible with 1.2.3, up to (but not including) 1.3.0
+- `>=1.2.3` - Version 1.2.3 or higher
+- `<=1.2.3` - Version 1.2.3 or lower
+- `1.2.3` - Exact version 1.2.3
+
+### Examples
+
+```yaml
+dependencies:
+  - "plugin=core:^2.0"                 # Core plugin v2.0+
+  - "plugin=auth:~1.5"                 # Auth plugin v1.5.x
+  - "plugin=payment:>=1.0"             # Payment plugin v1.0+
+  - "composer=symfony/http-foundation:^6.0"  # Symfony HTTP v6.0+
+```
+
+## Dependency Management
+
+### Checking Dependencies Programmatically
+
+```php
+use App\Plugins\PluginDependencies;
+
+// Check if all dependencies are met
+$config = PluginConfig::getConfig('my_plugin');
+$dependenciesMet = PluginDependencies::checkDependencies($config);
+
+if (!$dependenciesMet) {
+    // Get unmet dependencies
+    $unmet = PluginDependencies::getUnmetDependencies($config);
+    foreach ($unmet as $dependency) {
+        echo "Missing dependency: {$dependency}\n";
+    }
+}
+```
+
+### Getting Unmet Dependencies
+
+```php
+// Get list of unmet dependencies
+$unmet = PluginDependencies::getUnmetDependencies($config);
+
+// $unmet will contain strings like:
+// [
+//   "plugin=required_plugin",
+//   "php-ext=gd",
+//   "composer=vendor/package:^1.0"
+// ]
+```
+
+## Dependency Resolution Strategies
+
+### 1. Fail Fast
+If any dependency is missing, the plugin is not loaded:
+
+```php
+if (!PluginDependencies::checkDependencies($config)) {
+    $logger->error("Plugin {$identifier} has unmet dependencies");
+    return; // Plugin is not loaded
+}
+```
+
+### 2. Graceful Degradation
+Some plugins can work with reduced functionality:
+
+```php
+// Check for optional dependencies
+$optionalDeps = ['php-ext=gd', 'composer=image/processor'];
+$missingOptional = [];
+
+foreach ($optionalDeps as $dep) {
+    if (!isDependencyMet($dep)) {
+        $missingOptional[] = $dep;
+    }
+}
+
+if (!empty($missingOptional)) {
+    $logger->warning("Plugin {$identifier} missing optional dependencies");
+    // Continue loading with reduced functionality
+}
+```
+
+### 3. Dependency Installation
+Some systems can automatically install dependencies:
+
+```php
+// Attempt to install missing Composer packages
+foreach ($unmetComposerDeps as $package) {
+    if (canInstallComposerPackage($package)) {
+        installComposerPackage($package);
+    }
+}
+```
+
+## Common Dependency Patterns
+
+### Web API Plugin
+```yaml
+dependencies:
+  - "php=8.1"
+  - "php-ext=curl"                    # HTTP requests
+  - "php-ext=json"                    # JSON handling
+  - "php-ext=openssl"                 # HTTPS support
+  - "composer=guzzlehttp/guzzle:^7.0" # HTTP client
+```
+
+### Database Plugin
+```yaml
+dependencies:
+  - "php=8.1"
+  - "php-ext=pdo"                     # Database abstraction
+  - "php-ext=mysqli"                  # MySQL support
+  - "composer=doctrine/dbal:^3.0"     # Database layer
+```
+
+### Image Processing Plugin
+```yaml
+dependencies:
+  - "php=8.1"
+  - "php-ext=gd"                      # Image processing
+  - "php-ext=imagick"                 # Advanced image processing
+  - "composer=intervention/image:^2.0" # Image manipulation
+```
+
+### File Processing Plugin
+```yaml
+dependencies:
+  - "php=8.1"
+  - "php-ext=zip"                     # ZIP file handling
+  - "php-ext=fileinfo"                # File type detection
+  - "composer=league/flysystem:^3.0"  # File system abstraction
+```
+
+## Troubleshooting Dependencies
+
+### Common Issues
+
+#### Missing PHP Extension
+```
+Error: Missing dependency: php-ext=gd
+Solution: Install PHP GD extension
+```
+
+#### Outdated PHP Version
+```
+Error: Missing dependency: php=8.1
+Current: php=7.4
+Solution: Upgrade PHP to version 8.1 or higher
+```
+
+#### Missing Plugin
+```
+Error: Missing dependency: plugin=core_auth
+Solution: Install the core_auth plugin first
+```
+
+#### Missing Composer Package
+```
+Error: Missing dependency: composer=guzzlehttp/guzzle:^7.0
+Solution: Run: composer require guzzlehttp/guzzle:^7.0
+```
+
+### Debugging Dependencies
+
+#### Check Current Environment
+```php
+// Check PHP version
+echo "PHP Version: " . PHP_VERSION . "\n";
+
+// Check loaded extensions
+$extensions = get_loaded_extensions();
+foreach ($extensions as $ext) {
+    echo "Extension: {$ext}\n";
+}
+
+// Check installed plugins
+$plugins = $pluginManager->getLoadedMemoryPlugins();
+foreach ($plugins as $plugin) {
+    echo "Plugin: {$plugin}\n";
+}
+```
+
+#### Validate Dependencies
+```php
+// Validate specific dependency
+$dependency = "php-ext=gd";
+if (extension_loaded('gd')) {
+    echo "✓ {$dependency} is available\n";
+} else {
+    echo "✗ {$dependency} is missing\n";
+}
+```
+
+## Best Practices
+
+### Dependency Design
+- **Minimize Dependencies** - Only include what you actually need
+- **Use Version Constraints** - Specify compatible versions
+- **Document Dependencies** - Explain why each dependency is needed
+- **Test Dependencies** - Verify all dependencies work together
+
+### Version Management
+- **Use Semantic Versioning** - Follow semver for your plugin versions
+- **Specify Compatible Versions** - Use `^` for compatible updates
+- **Pin Critical Dependencies** - Use exact versions for critical components
+- **Update Regularly** - Keep dependencies up to date
+
+### Error Handling
+- **Check Dependencies Early** - Validate before plugin loading
+- **Provide Clear Messages** - Explain what's missing and how to fix it
+- **Offer Alternatives** - Suggest alternative solutions when possible
+- **Log Dependencies** - Record dependency checks for debugging
+
+### Performance
+- **Lazy Load Dependencies** - Only load what you need when you need it
+- **Cache Dependency Checks** - Avoid repeated validation
+- **Optimize Dependency Order** - Load critical dependencies first
+- **Monitor Dependency Impact** - Track performance impact of dependencies
+
+This dependency system ensures that FeatherPanel plugins are reliable, maintainable, and compatible with the broader ecosystem.

@@ -1,0 +1,441 @@
+---
+id: events
+title: Plugin Events & Hooks
+description: Event system and hooking into FeatherPanel
+---
+
+# Plugin Events & Hooks
+
+FeatherPanel uses an event-driven architecture that allows plugins to hook into system events and extend functionality without modifying core code.
+
+## Event System Overview
+
+The event system consists of:
+- **Event Emitters** - System components that emit events
+- **Event Listeners** - Plugin methods that respond to events
+- **Event Manager** - Central event distribution system
+- **Plugin Events** - Plugin-specific event handling
+
+## Basic Event Handling
+
+### Registering Event Listeners
+
+In your plugin's main class, implement the `processEvents` method:
+
+```php
+<?php
+
+namespace App\Addons\my_plugin;
+
+use App\Plugins\AppPlugin;
+use App\Plugins\PluginEvents;
+use App\Plugins\Events\Events\AppEvent;
+
+class MyPlugin implements AppPlugin
+{
+    public static function processEvents(PluginEvents $event): void
+    {
+        // Hook into router ready event
+        $event->on(AppEvent::onRouterReady(), function ($router) {
+            // Add custom routes
+            $router->add('my-plugin-api', new Route(
+                '/api/my-plugin',
+                ['_controller' => [MyController::class, 'index']]
+            ));
+        });
+
+        // Hook into user login event
+        $event->on('user.login', function ($user) {
+            // Log user login
+            error_log("User {$user['email']} logged in");
+        });
+    }
+
+    public static function pluginInstall(): void
+    {
+        // Installation logic
+    }
+
+    public static function pluginUninstall(): void
+    {
+        // Cleanup logic
+    }
+}
+```
+
+### Event Listener Syntax
+
+```php
+$event->on('event.name', function ($data) {
+    // Handle the event
+});
+
+// With multiple parameters
+$event->on('event.name', function ($param1, $param2, $param3) {
+    // Handle the event with multiple parameters
+});
+
+// With class method
+$event->on('event.name', [MyClass::class, 'handleEvent']);
+
+// With object method
+$event->on('event.name', [$this, 'handleEvent']);
+```
+
+## Available System Events
+
+### Application Events
+
+#### Router Events
+```php
+// Router is ready for route registration
+$event->on(AppEvent::onRouterReady(), function ($router) {
+    // Add custom routes
+    $router->add('my-route', new Route('/my-path', [
+        '_controller' => [MyController::class, 'index']
+    ]));
+});
+```
+
+#### Application Lifecycle
+```php
+// Application has booted
+$event->on('app.boot', function () {
+    // Initialize plugin after app boot
+});
+
+// Application is shutting down
+$event->on('app.shutdown', function () {
+    // Cleanup before shutdown
+});
+```
+
+### User Events
+
+#### Authentication Events
+```php
+// User logged in
+$event->on('user.login', function ($user) {
+    // Log login, update last seen, etc.
+    $this->logUserActivity($user['id'], 'login');
+});
+
+// User logged out
+$event->on('user.logout', function ($user) {
+    // Cleanup session data, log activity
+    $this->logUserActivity($user['id'], 'logout');
+});
+```
+
+#### User Management Events
+```php
+// New user created
+$event->on('user.created', function ($user) {
+    // Send welcome email, create user data
+    $this->sendWelcomeEmail($user['email']);
+});
+
+// User updated
+$event->on('user.updated', function ($user, $oldData) {
+    // Handle user changes
+    $this->handleUserUpdate($user, $oldData);
+});
+
+// User deleted
+$event->on('user.deleted', function ($userId) {
+    // Cleanup user data
+    $this->cleanupUserData($userId);
+});
+```
+
+### Server Events
+
+#### Server Lifecycle
+```php
+// New server created
+$event->on('server.created', function ($server) {
+    // Initialize server data, send notifications
+    $this->initializeServerData($server['id']);
+});
+
+// Server updated
+$event->on('server.updated', function ($server, $oldData) {
+    // Handle server changes
+    $this->handleServerUpdate($server, $oldData);
+});
+
+// Server deleted
+$event->on('server.deleted', function ($serverId) {
+    // Cleanup server data
+    $this->cleanupServerData($serverId);
+});
+```
+
+#### Server Control Events
+```php
+// Server started
+$event->on('server.started', function ($server) {
+    // Log server start, update status
+    $this->logServerEvent($server['id'], 'started');
+});
+
+// Server stopped
+$event->on('server.stopped', function ($server) {
+    // Log server stop, cleanup resources
+    $this->logServerEvent($server['id'], 'stopped');
+});
+
+// Server restarted
+$event->on('server.restarted', function ($server) {
+    // Handle server restart
+    $this->logServerEvent($server['id'], 'restarted');
+});
+```
+
+### Plugin Events
+
+#### Plugin Lifecycle
+```php
+// Plugin installed
+$event->on('plugin.installed', function ($pluginId) {
+    // Handle plugin installation
+    $this->handlePluginInstall($pluginId);
+});
+
+// Plugin uninstalled
+$event->on('plugin.uninstalled', function ($pluginId) {
+    // Handle plugin removal
+    $this->handlePluginUninstall($pluginId);
+});
+
+// Plugin updated
+$event->on('plugin.updated', function ($pluginId, $oldVersion, $newVersion) {
+    // Handle plugin update
+    $this->handlePluginUpdate($pluginId, $oldVersion, $newVersion);
+});
+```
+
+## Custom Events
+
+### Emitting Custom Events
+
+Plugins can emit their own events:
+
+```php
+// Emit custom event
+if (isset($GLOBALS['eventManager'])) {
+    $GLOBALS['eventManager']->emit('my-plugin.custom-event', [
+        'data' => $someData,
+        'timestamp' => time(),
+        'user_id' => $userId
+    ]);
+}
+```
+
+### Plugin-to-Plugin Communication
+
+```php
+// Plugin A emits event
+$eventManager->emit('plugin-a.data-processed', [
+    'data' => $processedData,
+    'metadata' => $metadata
+]);
+
+// Plugin B listens for event
+$event->on('plugin-a.data-processed', function ($data, $metadata) {
+    // Process data from Plugin A
+    $this->handleDataFromPluginA($data, $metadata);
+});
+```
+
+## Advanced Event Handling
+
+### Event Priority
+
+Events are processed in the order they are registered. For priority handling:
+
+```php
+// Register high-priority event (register early)
+$event->on('user.login', function ($user) {
+    // This will be called first
+});
+
+// Register low-priority event (register later)
+$event->on('user.login', function ($user) {
+    // This will be called after the first one
+});
+```
+
+### Conditional Event Handling
+
+```php
+$event->on('user.login', function ($user) {
+    // Only handle for admin users
+    if ($user['role'] === 'admin') {
+        $this->handleAdminLogin($user);
+    }
+});
+
+$event->on('server.created', function ($server) {
+    // Only handle for specific server types
+    if ($server['type'] === 'minecraft') {
+        $this->handleMinecraftServer($server);
+    }
+});
+```
+
+### Event Chaining
+
+```php
+$event->on('user.login', function ($user) {
+    // Process login
+    $this->processLogin($user);
+
+    // Emit follow-up event
+    if (isset($GLOBALS['eventManager'])) {
+        $GLOBALS['eventManager']->emit('my-plugin.login-processed', [
+            'user' => $user,
+            'timestamp' => time()
+        ]);
+    }
+});
+```
+
+## Event Data Structures
+
+### User Event Data
+```php
+$event->on('user.login', function ($user) {
+    // $user contains:
+    // - id: User ID
+    // - email: User email
+    // - username: Username
+    // - role: User role
+    // - permissions: User permissions array
+    // - created_at: Account creation date
+    // - updated_at: Last update date
+});
+```
+
+### Server Event Data
+```php
+$event->on('server.created', function ($server) {
+    // $server contains:
+    // - id: Server ID
+    // - name: Server name
+    // - type: Server type
+    // - status: Server status
+    // - owner_id: Server owner ID
+    // - created_at: Creation date
+    // - updated_at: Last update date
+});
+```
+
+## Error Handling in Events
+
+### Try-Catch in Event Handlers
+```php
+$event->on('user.login', function ($user) {
+    try {
+        // Event handling logic
+        $this->processUserLogin($user);
+    } catch (\Exception $e) {
+        // Log error but don't break the system
+        error_log("Plugin error: " . $e->getMessage());
+    }
+});
+```
+
+### Event Handler Validation
+```php
+$event->on('server.created', function ($server) {
+    // Validate event data
+    if (!isset($server['id']) || !isset($server['name'])) {
+        error_log("Invalid server data in event");
+        return;
+    }
+
+    // Process valid data
+    $this->handleServerCreation($server);
+});
+```
+
+## Event Performance
+
+### Efficient Event Handling
+```php
+// Cache expensive operations
+private static $userCache = [];
+
+$event->on('user.login', function ($user) {
+    // Cache user data to avoid repeated database queries
+    if (!isset(self::$userCache[$user['id']])) {
+        self::$userCache[$user['id']] = $this->loadUserData($user['id']);
+    }
+
+    $userData = self::$userCache[$user['id']];
+    $this->processLogin($userData);
+});
+```
+
+### Async Event Processing
+```php
+$event->on('server.created', function ($server) {
+    // Queue heavy operations for background processing
+    $this->queueBackgroundTask('initialize-server', [
+        'server_id' => $server['id']
+    ]);
+});
+```
+
+## Event Testing
+
+### Testing Event Handlers
+```php
+class MyPluginTest extends TestCase
+{
+    public function testUserLoginEvent()
+    {
+        $plugin = new MyPlugin();
+        $event = new PluginEvents();
+
+        // Register event handler
+        $plugin->processEvents($event);
+
+        // Emit test event
+        $event->emit('user.login', [['id' => 1, 'email' => 'test@example.com']]);
+
+        // Assert expected behavior
+        $this->assertTrue($this->wasUserLogged());
+    }
+}
+```
+
+## Best Practices
+
+### Event Handler Design
+- Keep event handlers lightweight
+- Use try-catch for error handling
+- Validate event data before processing
+- Avoid blocking operations in event handlers
+- Use caching for expensive operations
+
+### Event Naming
+- Use descriptive event names
+- Follow consistent naming conventions
+- Use dot notation for namespacing
+- Document event data structures
+
+### Performance Considerations
+- Minimize database queries in event handlers
+- Use background processing for heavy operations
+- Cache frequently accessed data
+- Avoid infinite event loops
+
+### Security
+- Validate all event data
+- Check user permissions in event handlers
+- Sanitize inputs and outputs
+- Log security-relevant events
+
+This event system provides a powerful and flexible way to extend FeatherPanel functionality while maintaining system stability and performance.

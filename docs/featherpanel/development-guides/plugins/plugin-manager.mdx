@@ -1,0 +1,480 @@
+---
+id: plugin-manager
+title: Plugin Manager & Dev Tools
+description: Using the Plugin Manager and development tools for plugin development
+---
+
+# Plugin Manager & Dev Tools
+
+The FeatherPanel Plugin Manager provides a comprehensive web-based interface for plugin development, management, and debugging. It's available when **Developer Mode** is enabled in FeatherPanel settings.
+
+## Enabling Developer Mode
+
+To access the Plugin Manager and development tools:
+
+1. Navigate to **Admin → Settings**
+2. Find **Developer Mode** setting
+3. Enable **Developer Mode**
+4. Save settings
+5. Navigate to **Admin → Plugin Manager**
+
+## Plugin Manager Features
+
+### 1. Plugin Overview
+
+The main Plugin Manager dashboard shows:
+
+- **All installed plugins** with their status
+- **Plugin information** (name, version, author, description)
+- **Plugin status** (active, inactive, error)
+- **Dependencies status** (met/unmet)
+- **Configuration status** (complete/incomplete)
+- **Quick actions** (view, edit, validate, delete)
+
+### 2. Plugin Creation Wizard
+
+The Plugin Manager includes a powerful plugin creation wizard:
+
+#### Step 1: Basic Information
+- **Plugin Identifier** - Unique identifier (alphanumeric + underscores)
+- **Plugin Name** - Display name
+- **Description** - Brief description
+- **Version** - Starting version (default: 1.0.0)
+- **Author** - Plugin author(s)
+
+#### Step 2: Configuration
+- **Dependencies** - Required plugins, PHP version, extensions, Composer packages
+- **Required Configs** - Configuration keys that must be set
+- **Plugin Flags** - Capabilities (hasEvents, hasInstallScript, etc.)
+- **Enhanced Config Schema** - Advanced configuration fields
+
+#### Step 3: File Generation
+The wizard automatically generates:
+- Complete directory structure
+- Main plugin class with boilerplate code
+- Example migrations, cron jobs, and CLI commands
+- Frontend assets (JavaScript, CSS, sidebar configuration)
+- Configuration files
+- README documentation
+
+### 3. Plugin Management
+
+#### Viewing Plugin Details
+- **Configuration** - View and edit conf.yml
+- **Files** - Browse plugin file structure
+- **Settings** - Manage plugin settings
+- **Dependencies** - View dependency status
+- **Validation** - Run plugin validation
+
+#### Editing Plugins
+- **Configuration Editor** - Edit conf.yml with validation
+- **File Manager** - Create, edit, and delete plugin files
+- **Settings Manager** - Update plugin settings
+- **Dependency Manager** - Add/remove dependencies
+
+#### Plugin Validation
+- **Configuration Validation** - Check conf.yml syntax and content
+- **Dependency Checking** - Verify all dependencies are met
+- **File Structure Validation** - Ensure proper file organization
+- **Code Validation** - Check PHP syntax and interfaces
+
+## Development Tools
+
+### 1. File Creation Tools
+
+The Plugin Manager provides tools to create various plugin files:
+
+#### Database Migrations
+```php
+// Generated migration template
+-- Plugin Migration: my_plugin - create_table
+-- Description: Create example table
+-- Created: 2024-01-15 14:30:00
+
+CREATE TABLE IF NOT EXISTS `featherpanel_my_plugin_example` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `data` TEXT,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
+```
+
+#### Cron Jobs
+```php
+// Generated cron job template
+<?php
+
+namespace App\Addons\my_plugin\Cron;
+
+use App\Cron\Cron;
+use App\Cron\TimeTask;
+use App\Chat\TimedTask;
+
+class ExampleCron implements TimeTask
+{
+    public function run()
+    {
+        $cron = new Cron('my-plugin-example', '1H');
+        try {
+            $cron->runIfDue(function () {
+                // Add your cron job logic here
+                TimedTask::markRun('my-plugin-example', true, 'Example cron executed');
+            });
+        } catch (\Exception $e) {
+            $app = \App\App::getInstance(false, true);
+            $app->getLogger()->error('Failed to run example cron: ' . $e->getMessage());
+            TimedTask::markRun('my-plugin-example', false, $e->getMessage());
+        }
+    }
+}
+```
+
+#### CLI Commands
+```php
+// Generated CLI command template
+<?php
+
+namespace App\Addons\my_plugin\Commands;
+
+use App\Cli\App;
+use App\Cli\CommandBuilder;
+
+class ExampleCommand implements CommandBuilder
+{
+    public static function execute(array $args): void
+    {
+        $app = App::getInstance();
+        $app->send("&aMy Plugin: Example command executed successfully!");
+        // Add your command logic here
+    }
+
+    public static function getDescription(): string
+    {
+        return "Execute My Plugin functionality via CLI";
+    }
+
+    public static function getSubCommands(): array
+    {
+        return [
+            'status' => 'Show plugin status',
+            'test' => 'Run plugin tests'
+        ];
+    }
+}
+```
+
+### 2. Configuration Management
+
+#### Enhanced Configuration Schema
+The Plugin Manager can generate advanced configuration schemas:
+
+```yaml
+config:
+  - name: "api_key"
+    display_name: "API Key"
+    type: "password"
+    description: "Your secure API authentication key"
+    required: true
+    validation:
+      regex: "/^[a-zA-Z0-9]{32,}$/"
+      message: "API key must be at least 32 alphanumeric characters"
+    default: ""
+
+  - name: "webhook_url"
+    display_name: "Webhook URL"
+    type: "url"
+    description: "URL for receiving notifications"
+    required: true
+    validation:
+      regex: "/^https:\\/\\/.+/"
+      message: "Must be a valid HTTPS URL"
+    default: "https://example.com/webhook"
+```
+
+#### Configuration Validation
+- **Real-time validation** as you type
+- **Field type checking** (string, number, boolean, etc.)
+- **Regex validation** for complex patterns
+- **Required field checking**
+- **Default value suggestions**
+
+### 3. Frontend Asset Management
+
+#### JavaScript Generation
+The Plugin Manager generates complete JavaScript templates:
+
+```javascript
+// Generated JavaScript template
+class MyPlugin {
+    constructor() {
+        this.api = null;
+        this.ui = new MyPluginUI();
+    }
+
+    async init(api) {
+        this.api = api;
+        console.log('My Plugin initialized!');
+        this.ui.init();
+    }
+
+    showDashboard() {
+        console.log('Opening My Plugin Dashboard...');
+        this.ui.showModal('dashboard', 'My Plugin Dashboard', this.getDashboardContent());
+    }
+
+    getDashboardContent() {
+        return `
+            <div class="my-plugin-container">
+                <h2>My Plugin Dashboard</h2>
+                <p>Welcome to your plugin dashboard!</p>
+            </div>
+        `;
+    }
+}
+
+// Initialize plugin
+async function initMyPlugin() {
+    const api = window.FeatherPanel.api;
+    const plugin = new MyPlugin();
+    await plugin.init(api);
+    window.MyPlugin = plugin;
+}
+
+initMyPlugin();
+```
+
+#### CSS Generation
+```css
+/* Generated CSS template */
+.my-plugin-container {
+    padding: 20px;
+    border-radius: 8px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.my-plugin-title {
+    color: #1e293b;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.my-plugin-content {
+    color: #64748b;
+    line-height: 1.6;
+}
+
+.my-plugin-button {
+    background: #6366f1;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.my-plugin-button:hover {
+    background: #4f46e5;
+}
+```
+
+#### Sidebar Configuration
+```json
+{
+  "dashboard": {
+    "/overview": {
+      "name": "My Plugin Overview",
+      "icon": "📊",
+      "js": "if (window.MyPlugin) { window.MyPlugin.showDashboard(); }",
+      "description": "View plugin overview",
+      "category": "general"
+    }
+  },
+  "admin": {
+    "/settings": {
+      "name": "My Plugin Settings",
+      "icon": "⚙️",
+      "js": "if (window.MyPlugin) { window.MyPlugin.showSettings(); }",
+      "description": "Configure plugin settings",
+      "category": "admin",
+      "permission": "admin.plugin.settings"
+    }
+  }
+}
+```
+
+### 4. Debugging Tools
+
+#### Plugin Validation
+The Plugin Manager provides comprehensive validation:
+
+- **Configuration Validation**
+  - Check conf.yml syntax
+  - Validate required fields
+  - Verify field types
+  - Check plugin flags
+
+- **Dependency Validation**
+  - Check PHP version requirements
+  - Verify PHP extensions
+  - Validate Composer packages
+  - Check plugin dependencies
+
+- **File Structure Validation**
+  - Verify required files exist
+  - Check file permissions
+  - Validate directory structure
+  - Check file syntax
+
+- **Code Validation**
+  - Check PHP syntax
+  - Verify interface implementation
+  - Validate class structure
+  - Check namespace usage
+
+#### Error Reporting
+- **Real-time error display** with line numbers
+- **Detailed error messages** with suggestions
+- **Error categorization** (syntax, dependency, configuration)
+- **Fix suggestions** for common issues
+
+#### Logging and Monitoring
+- **Plugin loading logs** with timestamps
+- **Event emission tracking** for debugging
+- **Performance monitoring** for optimization
+- **Error tracking** with stack traces
+
+### 5. File Management
+
+#### File Browser
+- **Hierarchical file tree** showing plugin structure
+- **File type icons** for easy identification
+- **File size and modification date** information
+- **Quick file actions** (view, edit, delete, download)
+
+#### File Editor
+- **Syntax highlighting** for PHP, YAML, JSON, JavaScript, CSS
+- **Code completion** for common patterns
+- **Error highlighting** with real-time validation
+- **Auto-save** functionality
+- **Find and replace** with regex support
+
+#### File Upload
+- **Drag and drop** file uploads
+- **Multiple file selection** for batch uploads
+- **File type validation** and security checks
+- **Automatic file organization** in correct directories
+
+### 6. Plugin Testing
+
+#### Unit Testing
+- **Test case generation** for plugin methods
+- **Mock data creation** for testing
+- **Test execution** with results display
+- **Coverage reporting** for code quality
+
+#### Integration Testing
+- **Event system testing** with mock events
+- **Database testing** with test data
+- **API endpoint testing** with request/response validation
+- **Frontend testing** with browser automation
+
+#### Performance Testing
+- **Load testing** for plugin performance
+- **Memory usage monitoring** during execution
+- **Database query analysis** for optimization
+- **Response time measurement** for API endpoints
+
+## Development Workflow
+
+### 1. Creating a New Plugin
+
+1. **Enable Developer Mode** in FeatherPanel settings
+2. **Navigate to Plugin Manager** in admin interface
+3. **Click "Create New Plugin"** to start the wizard
+4. **Fill in plugin details** (identifier, name, description, etc.)
+5. **Configure dependencies** and required settings
+6. **Generate plugin structure** with example files
+7. **Customize generated code** for your specific needs
+8. **Test and validate** your plugin
+
+### 2. Developing Existing Plugins
+
+1. **Browse installed plugins** in the Plugin Manager
+2. **Select your plugin** to view details
+3. **Use file manager** to edit plugin files
+4. **Test changes** with validation tools
+5. **Debug issues** with error reporting
+6. **Monitor performance** with logging tools
+
+### 3. Plugin Deployment
+
+1. **Validate plugin** using built-in validation
+2. **Test plugin** with unit and integration tests
+3. **Export plugin** as .fpa file
+4. **Upload to registry** or distribute manually
+5. **Monitor deployment** with logging tools
+
+## Best Practices
+
+### Development
+- **Use the Plugin Manager** for initial plugin creation
+- **Validate frequently** during development
+- **Test thoroughly** before deployment
+- **Follow coding standards** and best practices
+- **Document your code** with comments and README
+
+### Debugging
+- **Enable detailed logging** for development
+- **Use validation tools** to catch issues early
+- **Monitor performance** during development
+- **Test edge cases** and error conditions
+- **Use breakpoints** and debugging tools
+
+### Maintenance
+- **Keep dependencies updated** regularly
+- **Monitor plugin performance** in production
+- **Update documentation** as you make changes
+- **Test updates** before deploying
+- **Backup plugin data** before major changes
+
+## Troubleshooting
+
+### Common Issues
+
+#### Plugin Not Loading
+- Check conf.yml syntax and required fields
+- Verify all dependencies are installed
+- Check file permissions and structure
+- Review error logs for specific issues
+
+#### Validation Errors
+- Fix syntax errors in configuration files
+- Install missing dependencies
+- Correct field types and validation rules
+- Update plugin flags as needed
+
+#### Performance Issues
+- Monitor database queries and optimize
+- Check for memory leaks in code
+- Use caching for expensive operations
+- Profile plugin execution time
+
+#### Frontend Issues
+- Check JavaScript console for errors
+- Verify API endpoints are working
+- Test sidebar configuration
+- Validate CSS and HTML structure
+
+### Getting Help
+
+- **Check error logs** in the Plugin Manager
+- **Use validation tools** to identify issues
+- **Review plugin examples** for reference
+- **Consult documentation** for best practices
+- **Test in development environment** first
+
+The Plugin Manager and development tools provide a comprehensive environment for plugin development, making it easy to create, test, and maintain FeatherPanel plugins efficiently.

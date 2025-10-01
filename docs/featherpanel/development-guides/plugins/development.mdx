@@ -1,0 +1,713 @@
+---
+id: development
+title: Plugin Development
+description: Creating plugins, file structure, and development workflow
+---
+
+# Plugin Development
+
+This guide covers the complete plugin development workflow, from creation to deployment.
+
+## Development Workflow
+
+### 1. Planning Your Plugin
+
+Before creating a plugin, consider:
+
+- **Purpose**: What problem does your plugin solve?
+- **Functionality**: What features will it provide?
+- **Dependencies**: What does it need to work?
+- **Integration**: How will it integrate with FeatherPanel?
+- **Users**: Who will use it and how?
+
+### 2. Setting Up Development Environment
+
+1. **Enable Developer Mode** in FeatherPanel settings
+2. **Access Plugin Manager** in the admin interface
+3. **Set up your development tools** (IDE, version control, etc.)
+
+### 3. Creating Your Plugin
+
+#### Method 1: Using Plugin Manager (Recommended)
+
+1. Navigate to **Admin → Plugin Manager**
+2. Click **"Create New Plugin"**
+3. Fill in plugin details:
+   - **Identifier**: `my_awesome_plugin`
+   - **Name**: `My Awesome Plugin`
+   - **Description**: `Adds awesome features to FeatherPanel`
+   - **Version**: `1.0.0`
+   - **Author**: `Your Name`
+4. Configure dependencies and required configs
+5. Click **"Create Plugin"**
+
+The system will generate:
+- Complete directory structure
+- Main plugin class with boilerplate code
+- Example files (migrations, cron, commands)
+- Frontend assets and sidebar configuration
+- Configuration files
+
+#### Method 2: Manual Creation
+
+1. Create plugin directory: `storage/addons/my_plugin/`
+2. Create `conf.yml` with plugin configuration
+3. Create main plugin class: `MyPlugin.php`
+4. Implement required interfaces
+5. Add additional files as needed
+
+## Plugin File Structure
+
+```
+storage/addons/my_plugin/
+├── conf.yml                    # Plugin configuration
+├── MyPlugin.php               # Main plugin class
+├── README.md                  # Plugin documentation
+├── Migrations/                # Database migrations
+│   ├── 2024-01-15-14.30-create-logs.sql
+│   ├── 2024-01-15-15.00-add-indexes.sql
+│   └── .gitkeep
+├── Cron/                      # Scheduled tasks
+│   ├── CleanupCron.php
+│   ├── BackupCron.php
+│   └── .gitkeep
+├── Commands/                  # CLI commands
+│   ├── MyCommand.php
+│   ├── StatusCommand.php
+│   └── .gitkeep
+├── Events/                    # Event handlers
+│   ├── App/
+│   │   └── AppReadyEvent.php
+│   ├── User/
+│   │   └── UserLoginEvent.php
+│   └── .gitkeep
+├── Frontend/                  # Frontend assets
+│   ├── index.js              # JavaScript
+│   ├── index.css             # Stylesheets
+│   ├── sidebar.json          # Sidebar configuration
+│   └── .gitkeep
+├── Public/                    # Public assets
+│   ├── images/
+│   │   └── logo.png
+│   ├── styles/
+│   │   └── plugin.css
+│   └── .gitkeep
+├── Controllers/               # API controllers (optional)
+│   ├── ApiController.php
+│   └── .gitkeep
+└── Services/                  # Business logic (optional)
+    ├── MyService.php
+    └── .gitkeep
+```
+
+## Main Plugin Class
+
+### Basic Structure
+
+```php
+<?php
+
+namespace App\Addons\my_plugin;
+
+use App\Plugins\Events\Events\AppEvent;
+use App\Plugins\AppPlugin;
+use App\Plugins\PluginEvents;
+use App\Addons\my_plugin\Events\App\AppReadyEvent;
+
+class MyPlugin implements AppPlugin
+{
+    /**
+     * Process plugin events
+     */
+    public static function processEvents(PluginEvents $event): void
+    {
+        // Hook into router ready event
+        $event->on(AppEvent::onRouterReady(), function ($router) {
+            new AppReadyEvent($router);
+        });
+
+        // Add more event listeners
+        $event->on('user.login', function ($user) {
+            // Handle user login
+            self::handleUserLogin($user);
+        });
+
+        $event->on('server.created', function ($server) {
+            // Handle server creation
+            self::handleServerCreation($server);
+        });
+    }
+
+    /**
+     * Plugin installation
+     */
+    public static function pluginInstall(): void
+    {
+        // Create necessary tables, directories, etc.
+        self::createDirectories();
+        self::initializeSettings();
+    }
+
+    /**
+     * Plugin uninstallation
+     */
+    public static function pluginUninstall(): void
+    {
+        // Clean up tables, files, etc.
+        self::cleanupData();
+        self::removeDirectories();
+    }
+
+    /**
+     * Handle user login event
+     */
+    private static function handleUserLogin(array $user): void
+    {
+        // Log user login
+        error_log("User {$user['email']} logged in");
+
+        // Update user activity
+        self::updateUserActivity($user['id']);
+    }
+
+    /**
+     * Handle server creation event
+     */
+    private static function handleServerCreation(array $server): void
+    {
+        // Initialize server data
+        self::initializeServerData($server['id']);
+
+        // Send notification
+        self::sendServerCreatedNotification($server);
+    }
+
+    /**
+     * Create plugin directories
+     */
+    private static function createDirectories(): void
+    {
+        $directories = [
+            'logs',
+            'cache',
+            'uploads'
+        ];
+
+        foreach ($directories as $dir) {
+            $path = APP_ADDONS_DIR . '/my_plugin/' . $dir;
+            if (!is_dir($path)) {
+                mkdir($path, 0755, true);
+            }
+        }
+    }
+
+    /**
+     * Initialize plugin settings
+     */
+    private static function initializeSettings(): void
+    {
+        use App\Plugins\PluginSettings;
+
+        // Set default settings
+        PluginSettings::setSetting('my_plugin', 'enabled', 'true');
+        PluginSettings::setSetting('my_plugin', 'version', '1.0.0');
+    }
+
+    /**
+     * Clean up plugin data
+     */
+    private static function cleanupData(): void
+    {
+        // Remove plugin-specific data
+        // This is called during uninstallation
+    }
+
+    /**
+     * Remove plugin directories
+     */
+    private static function removeDirectories(): void
+    {
+        // Remove plugin-specific directories
+        // This is called during uninstallation
+    }
+}
+```
+
+## Database Migrations
+
+### Creating Migrations
+
+Create SQL files in the `Migrations/` directory with timestamp naming:
+
+```sql
+-- 2024-01-15-14.30-create-logs.sql
+CREATE TABLE IF NOT EXISTS `featherpanel_my_plugin_logs` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `user_id` INT NOT NULL,
+    `action` VARCHAR(50) NOT NULL,
+    `message` TEXT NOT NULL,
+    `level` VARCHAR(20) DEFAULT 'info',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    INDEX `idx_user_id` (`user_id`),
+    INDEX `idx_created_at` (`created_at`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
+
+-- Insert example data
+INSERT IGNORE INTO `featherpanel_my_plugin_logs` (`user_id`, `action`, `message`, `level`)
+VALUES (1, 'install', 'Plugin my_plugin initialized successfully', 'info');
+```
+
+### Migration Best Practices
+
+- Use descriptive filenames with timestamps
+- Include `IF NOT EXISTS` for safety
+- Add proper indexes for performance
+- Use plugin-specific table prefixes
+- Include rollback instructions in comments
+
+## Scheduled Tasks (Cron Jobs)
+
+### Creating Cron Jobs
+
+```php
+<?php
+
+namespace App\Addons\my_plugin\Cron;
+
+use App\Cron\Cron;
+use App\Cron\TimeTask;
+use App\Chat\TimedTask;
+
+class CleanupCron implements TimeTask
+{
+    public function run()
+    {
+        $cron = new Cron('my-plugin-cleanup', '1D'); // Run daily
+        try {
+            $cron->runIfDue(function () {
+                // Cleanup old logs
+                $this->cleanupOldLogs();
+
+                // Cleanup temporary files
+                $this->cleanupTempFiles();
+
+                TimedTask::markRun('my-plugin-cleanup', true, 'Cleanup completed');
+            });
+        } catch (\Exception $e) {
+            $app = \App\App::getInstance(false, true);
+            $app->getLogger()->error('Failed to run cleanup cron: ' . $e->getMessage());
+            TimedTask::markRun('my-plugin-cleanup', false, $e->getMessage());
+        }
+    }
+
+    private function cleanupOldLogs(): void
+    {
+        // Delete logs older than 30 days
+        $db = new \App\Chat\Database(
+            $_ENV['DATABASE_HOST'] ?? '127.0.0.1',
+            $_ENV['DATABASE_DATABASE'] ?? '',
+            $_ENV['DATABASE_USER'] ?? '',
+            $_ENV['DATABASE_PASSWORD'] ?? '',
+            (int) ($_ENV['DATABASE_PORT'] ?? 3306)
+        );
+
+        $pdo = $db->getPdo();
+        $stmt = $pdo->prepare("
+            DELETE FROM featherpanel_my_plugin_logs
+            WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)
+        ");
+        $stmt->execute();
+    }
+
+    private function cleanupTempFiles(): void
+    {
+        $tempDir = APP_ADDONS_DIR . '/my_plugin/temp/';
+        if (is_dir($tempDir)) {
+            $files = glob($tempDir . '*');
+            foreach ($files as $file) {
+                if (is_file($file) && filemtime($file) < time() - 3600) { // 1 hour old
+                    unlink($file);
+                }
+            }
+        }
+    }
+}
+```
+
+### Cron Schedule Formats
+
+- `1m` - Every minute
+- `5m` - Every 5 minutes
+- `1H` - Every hour
+- `6H` - Every 6 hours
+- `1D` - Every day
+- `1W` - Every week
+
+## CLI Commands
+
+### Creating CLI Commands
+
+```php
+<?php
+
+namespace App\Addons\my_plugin\Commands;
+
+use App\Cli\App;
+use App\Cli\CommandBuilder;
+
+class MyCommand implements CommandBuilder
+{
+    public static function execute(array $args): void
+    {
+        $app = App::getInstance();
+
+        if (empty($args)) {
+            $app->send("&aMy Plugin Command");
+            $app->send("&7Usage: php cli.php my_plugin [subcommand]");
+            $app->send("&7Available subcommands: status, cleanup, test");
+            return;
+        }
+
+        $subcommand = $args[0];
+
+        switch ($subcommand) {
+            case 'status':
+                self::showStatus($app);
+                break;
+            case 'cleanup':
+                self::runCleanup($app);
+                break;
+            case 'test':
+                self::runTest($app);
+                break;
+            default:
+                $app->send("&cUnknown subcommand: {$subcommand}");
+                break;
+        }
+    }
+
+    public static function getDescription(): string
+    {
+        return "Execute My Plugin functionality via CLI";
+    }
+
+    public static function getSubCommands(): array
+    {
+        return [
+            'status' => 'Show plugin status and statistics',
+            'cleanup' => 'Run cleanup tasks manually',
+            'test' => 'Run plugin tests'
+        ];
+    }
+
+    private static function showStatus(App $app): void
+    {
+        $app->send("&aMy Plugin Status:");
+        $app->send("&7Version: 1.0.0");
+        $app->send("&7Status: Active");
+
+        // Get statistics
+        $db = new \App\Chat\Database(
+            $_ENV['DATABASE_HOST'] ?? '127.0.0.1',
+            $_ENV['DATABASE_DATABASE'] ?? '',
+            $_ENV['DATABASE_USER'] ?? '',
+            $_ENV['DATABASE_PASSWORD'] ?? '',
+            (int) ($_ENV['DATABASE_PORT'] ?? 3306)
+        );
+
+        $pdo = $db->getPdo();
+        $stmt = $pdo->query("SELECT COUNT(*) FROM featherpanel_my_plugin_logs");
+        $logCount = $stmt->fetchColumn();
+
+        $app->send("&7Log entries: {$logCount}");
+    }
+
+    private static function runCleanup(App $app): void
+    {
+        $app->send("&aRunning cleanup tasks...");
+
+        // Run cleanup logic
+        $cleanupCron = new \App\Addons\my_plugin\Cron\CleanupCron();
+        $cleanupCron->run();
+
+        $app->send("&aCleanup completed!");
+    }
+
+    private static function runTest(App $app): void
+    {
+        $app->send("&aRunning plugin tests...");
+
+        // Run tests
+        $tests = [
+            'Database connection' => self::testDatabase(),
+            'Settings access' => self::testSettings(),
+            'File permissions' => self::testFilePermissions()
+        ];
+
+        foreach ($tests as $test => $result) {
+            $status = $result ? '&aPASS' : '&cFAIL';
+            $app->send("&7{$test}: {$status}");
+        }
+    }
+
+    private static function testDatabase(): bool
+    {
+        try {
+            $db = new \App\Chat\Database(
+                $_ENV['DATABASE_HOST'] ?? '127.0.0.1',
+                $_ENV['DATABASE_DATABASE'] ?? '',
+                $_ENV['DATABASE_USER'] ?? '',
+                $_ENV['DATABASE_PASSWORD'] ?? '',
+                (int) ($_ENV['DATABASE_PORT'] ?? 3306)
+            );
+            $pdo = $db->getPdo();
+            $pdo->query("SELECT 1");
+            return true;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    private static function testSettings(): bool
+    {
+        try {
+            use App\Plugins\PluginSettings;
+            PluginSettings::getSetting('my_plugin', 'enabled');
+            return true;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    private static function testFilePermissions(): bool
+    {
+        $pluginDir = APP_ADDONS_DIR . '/my_plugin/';
+        return is_dir($pluginDir) && is_writable($pluginDir);
+    }
+}
+```
+
+## Frontend Integration
+
+### JavaScript Integration
+
+```javascript
+// Frontend/index.js
+class MyPlugin {
+    constructor() {
+        this.api = null;
+        this.ui = new MyPluginUI();
+    }
+
+    async init(api) {
+        this.api = api;
+        console.log('My Plugin initialized!');
+
+        // Initialize UI components
+        this.ui.init();
+    }
+
+    showDashboard() {
+        console.log('Opening My Plugin Dashboard...');
+        this.ui.showModal('dashboard', 'My Plugin Dashboard', this.getDashboardContent());
+    }
+
+    showSettings() {
+        console.log('Opening My Plugin Settings...');
+        this.ui.showModal('settings', 'My Plugin Settings', this.getSettingsContent());
+    }
+
+    getDashboardContent() {
+        return `
+            <div class="my-plugin-grid">
+                <div class="my-plugin-card">
+                    <h3>📊 Plugin Status</h3>
+                    <p>Status: <span class="my-plugin-status active">Active</span></p>
+                    <p>Version: 1.0.0</p>
+                </div>
+                <div class="my-plugin-card">
+                    <h3>📈 Statistics</h3>
+                    <p>Total logs: <strong>1,234</strong></p>
+                    <p>Active users: <strong>89</strong></p>
+                </div>
+            </div>
+        `;
+    }
+
+    getSettingsContent() {
+        return `
+            <div class="my-plugin-settings">
+                <div class="setting-group">
+                    <label>
+                        <input type="checkbox" checked> Enable logging
+                    </label>
+                </div>
+                <div class="setting-group">
+                    <label>
+                        <input type="checkbox"> Debug mode
+                    </label>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// Initialize plugin
+async function initMyPlugin() {
+    const api = window.FeatherPanel.api;
+    const plugin = new MyPlugin();
+    await plugin.init(api);
+    window.MyPlugin = plugin;
+}
+
+initMyPlugin();
+```
+
+### CSS Styling
+
+```css
+/* Frontend/index.css */
+.my-plugin-container {
+    padding: 20px;
+    border-radius: 8px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.my-plugin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+}
+
+.my-plugin-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.my-plugin-card h3 {
+    margin: 0 0 8px 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #111827;
+}
+
+.my-plugin-status {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.my-plugin-status.active {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.my-plugin-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.setting-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.setting-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+```
+
+### Sidebar Configuration
+
+```json
+{
+  "dashboard": {
+    "/overview": {
+      "name": "My Plugin Overview",
+      "icon": "📊",
+      "js": "if (window.MyPlugin) { window.MyPlugin.showDashboard(); }",
+      "description": "View plugin overview and statistics",
+      "category": "general"
+    }
+  },
+  "admin": {
+    "/settings": {
+      "name": "My Plugin Settings",
+      "icon": "⚙️",
+      "js": "if (window.MyPlugin) { window.MyPlugin.showSettings(); }",
+      "description": "Configure plugin settings",
+      "category": "admin",
+      "permission": "admin.plugin.settings"
+    }
+  },
+  "server": {
+    "/logs": {
+      "name": "My Plugin Logs",
+      "icon": "📝",
+      "js": "if (window.MyPlugin) { window.MyPlugin.showLogs(); }",
+      "description": "View plugin logs",
+      "category": "server"
+    }
+  }
+}
+```
+
+## Development Best Practices
+
+### Code Organization
+- Use proper namespacing
+- Separate concerns (controllers, services, models)
+- Use dependency injection
+- Follow PSR standards
+
+### Error Handling
+- Use try-catch blocks
+- Log errors appropriately
+- Provide meaningful error messages
+- Handle edge cases
+
+### Performance
+- Cache expensive operations
+- Use database indexes
+- Minimize database queries
+- Optimize file operations
+
+### Security
+- Validate all inputs
+- Use prepared statements
+- Check permissions
+- Sanitize outputs
+
+### Testing
+- Write unit tests
+- Test edge cases
+- Validate configurations
+- Test error conditions
+
+## Deployment
+
+### Packaging Your Plugin
+1. Ensure all files are present
+2. Test the plugin thoroughly
+3. Create a README with installation instructions
+4. Package as `.fpa` file using the export feature
+
+### Distribution
+- Upload to the FeatherPanel packages registry
+- Provide documentation and examples
+- Include version information
+- Test installation process
+
+This development workflow provides a solid foundation for creating robust, maintainable FeatherPanel plugins.

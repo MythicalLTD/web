@@ -1,0 +1,269 @@
+---
+id: permissions
+pagination_next: null
+pagination_prev: null
+---
+
+# FeatherPanel Permission System
+
+FeatherPanel's permission system is designed to be flexible and powerful, providing granular control over user access to various features and resources. The system uses a hierarchical permission structure with auto-generated constants for type safety and consistency.
+
+## Overview
+
+The permission system in FeatherPanel consists of:
+
+- **Permission Nodes**: String-based identifiers that define specific actions or access levels
+- **Auto-generated Constants**: PHP and TypeScript classes that provide type-safe access to permission nodes
+- **Role-based Access Control**: Users are assigned roles, and roles have specific permissions
+- **Hierarchical Structure**: Permissions are organized by feature area (admin, user, etc.)
+
+## Permission Structure
+
+### Permission Node Format
+
+Permission nodes follow a hierarchical dot notation pattern:
+
+```
+{area}.{feature}.{action}
+```
+
+Examples:
+- `admin.users.view` - View users in admin panel
+- `admin.servers.create` - Create new servers
+- `user.dashboard.view` - View user dashboard
+
+### Categories
+
+Permissions are organized into logical categories:
+
+- **Admin Root**: Full administrative access
+- **Admin Dashboard**: Dashboard viewing permissions
+- **Admin Users**: User management operations
+- **Admin Locations**: Location management
+- **Admin Realms**: Realm management
+- **Admin Spells**: Spell management
+- **Admin Nodes**: Node management
+- **Admin Roles**: Role management
+- **Admin Databases**: Database operations
+- **Admin Settings**: System settings
+- **Admin Servers**: Server management
+- **Admin Plugins**: Plugin management
+- And more...
+
+## Adding New Permissions
+
+### 1. Define Permission in Source File
+
+Permissions are defined in the `permission_nodes.fpperm` file. This is the source of truth for all permissions in the system.
+
+```fpperm
+# Example permission definition
+admin.custom_feature.view=View custom feature
+admin.custom_feature.create=Create custom feature
+admin.custom_feature.edit=Edit custom feature
+admin.custom_feature.delete=Delete custom feature
+```
+
+### 2. Generate Permission Constants
+
+After adding permissions to the `.fpperm` file, regenerate the auto-generated constants:
+
+```bash
+docker exec -ti featherpanel_backend php cli permissionExport
+```
+
+This command generates:
+- **PHP Constants**: `backend/app/Permissions.php`
+- **TypeScript Constants**: `backend/permissions.ts` # Copy over to your typescript `/frontend/src/lib/permissions.ts`
+
+### 3. Use Permissions in Code
+
+#### Backend (PHP)
+
+You can check permissions either via route registration or manually in handlers:
+
+##### Via Route Registration
+
+```php
+<?php
+
+use App\App;
+use App\Permissions;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\RouteCollection;
+
+return function (RouteCollection $routes): void {
+    App::getInstance(true)->registerAdminRoute(
+        $routes,
+        'admin-allocations',
+        '/api/admin/allocations',
+        function (Request $request) {
+            return (new AllocationsController())->index($request);
+        },
+        Permissions::ADMIN_ALLOCATIONS_VIEW,
+    );
+};
+```
+
+##### Manual Permission Check
+
+```php
+use App\Helpers\PermissionHelper;
+
+// In middleware or handlers
+$user = $request->attributes->get('user');
+if (!PermissionHelper::hasPermission($user['uuid'], 'admin.users.view')) {
+    return ApiResponse::error('Not authorized', 'NOT_AUTHORIZED', 403);
+}
+```
+
+#### Frontend (TypeScript/Vue)
+
+```typescript
+import { useSessionStore } from '@/stores/session';
+
+// Check if user has permission
+const sessionStore = useSessionStore();
+if (sessionStore.hasPermission('admin.users.create')) {
+    // User has permission
+}
+
+// In templates
+<template>
+    <button v-if="sessionStore.hasPermission('admin.users.create')">
+        Create User
+    </button>
+</template>
+```
+
+## Auto-Generated Files
+
+### PHP Permissions Class
+
+The system generates a PHP class with constants for all permissions:
+
+```php
+namespace App;
+
+class Permissions
+{
+    // Admin Root Permissions
+    public const ADMIN_ROOT = 'admin.root';
+
+    // Admin Users Permissions
+    public const ADMIN_USERS_VIEW = 'admin.users.list';
+    public const ADMIN_USERS_CREATE = 'admin.users.create';
+    public const ADMIN_USERS_EDIT = 'admin.users.edit';
+    public const ADMIN_USERS_DELETE = 'admin.users.delete';
+
+    // ... more permissions
+
+    /**
+     * Returns all permission nodes with metadata
+     */
+    public static function getAll(): array
+    {
+        return [
+            [
+                'constant' => 'ADMIN_ROOT',
+                'value' => self::ADMIN_ROOT,
+                'category' => 'Admin Root',
+                'description' => 'Full access to everything',
+            ],
+            // ... more permissions
+        ];
+    }
+}
+```
+
+### TypeScript Permissions Class
+
+For frontend use, a TypeScript class is generated:
+
+```typescript
+class Permissions {
+    // Admin Root Permissions
+    public static ADMIN_ROOT = 'admin.root';
+
+    // Admin Users Permissions
+    public static ADMIN_USERS_VIEW = 'admin.users.list';
+    public static ADMIN_USERS_CREATE = 'admin.users.create';
+    public static ADMIN_USERS_EDIT = 'admin.users.edit';
+    public static ADMIN_USERS_DELETE = 'admin.users.delete';
+
+    // ... more permissions
+
+    /**
+     * Returns all permission nodes with metadata
+     */
+    public static getAll(): Array<{
+        constant: string;
+        value: string;
+        category: string;
+        description: string;
+    }> {
+        return [
+            {
+                constant: 'ADMIN_ROOT',
+                value: Permissions.ADMIN_ROOT,
+                category: 'Admin Root',
+                description: 'Full access to everything',
+            },
+            // ... more permissions
+        ];
+    }
+}
+
+export default Permissions;
+```
+
+## Best Practices
+
+### 1. Permission Naming
+
+- Use descriptive, hierarchical names
+- Follow the `{area}.{feature}.{action}` pattern
+- Use consistent action verbs (view, create, edit, delete, manage)
+
+### 2. Permission Organization
+
+- Group related permissions by feature
+- Use consistent categories
+- Document permission purposes clearly
+
+### 3. Security Considerations
+
+- Always check permissions on both frontend and backend
+- Use `registerAdminRoute()` for automatic permission enforcement
+- Use `PermissionHelper::hasPermission()` for manual checks
+- Never trust frontend-only permission checks
+
+### 4. Testing Permissions
+
+- Test permission checks in isolation
+- Verify both positive and negative cases
+- Test role-based access control
+- Use feature flags for new permissions
+
+## Using DevUtils for Permission Management
+
+For easier permission management, especially in development, use the **DevUtils** plugin:
+
+1. **Open your FeatherPanel GUI**
+2. Navigate to the **Plugins** section
+3. Click on **Online** to browse available plugins
+4. Search for **DevUtils**
+5. Click **Install** to add it to your panel
+
+DevUtils provides tools to:
+- View all permissions in a user-friendly interface
+- Edit role permissions directly
+- Debug permission issues
+- Export/import permission configurations
+
+> **Tip:** Always review permission changes in a test environment before applying them to production.
+
+## Related Documentation
+
+- [FeatherPanel File Types](/docs/featherpanel/development-guides/codebase/dirs/filetypes): Learn about the `.fpperm` file extension
+- [FeatherPanel Directory Structure](/docs/featherpanel/development-guides/codebase/dirs/): See where permission files are located

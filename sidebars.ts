@@ -37,13 +37,93 @@ const sidebars: SidebarsConfig = {
                             label: 'Codebase',
                             items: [
                                 'featherpanel/development-guides/codebase/welcome-codebase',
+                                {
+                                    type: 'category',
+                                    label: 'Frontend & UI / UX',
+                                    items: [
+                                        'featherpanel/development-guides/codebase/frontend/frontend',
+                                    ]
+                                },
+                                {
+                                    type: 'category',
+                                    label: 'Filesystem & Directories',
+                                    items: [
+                                        'featherpanel/development-guides/codebase/dirs/dirs',
+                                        'featherpanel/development-guides/codebase/dirs/filetypes',
+                                    ]
+                                },
+                                {
+                                    type: 'category',
+                                    label: 'Core Systems',
+                                    items: [
+                                        'featherpanel/development-guides/codebase/permissions/permissions',
+                                        'featherpanel/development-guides/codebase/config/config',
+                                        'featherpanel/development-guides/codebase/logger/logger',
+                                        'featherpanel/development-guides/codebase/cache/cache',
+                                        'featherpanel/development-guides/codebase/middleware/middleware',
+                                    ]
+                                },
+                                {
+                                    type: 'category',
+                                    label: 'Database & Models',
+                                    items: [
+                                        'featherpanel/development-guides/codebase/chat/chat',
+                                        'featherpanel/development-guides/codebase/migrations/migrations',
+                                    ]
+                                },
+                                {
+                                    type: 'category',
+                                    label: 'Web Framework',
+                                    items: [
+                                        'featherpanel/development-guides/codebase/routes/routes',
+                                        'featherpanel/development-guides/codebase/controllers/controllers',
+                                    ]
+                                },
+                                {
+                                    type: 'category',
+                                    label: 'Background Services',
+                                    items: [
+                                        'featherpanel/development-guides/codebase/cron/cron',
+                                        'featherpanel/development-guides/codebase/mail/mail',
+                                    ]
+                                },
+                                {
+                                    type: 'category',
+                                    label: 'Command Line Interface',
+                                    items: [
+                                        'featherpanel/development-guides/codebase/cli/cli',
+                                    ]
+                                }
                             ]
                         },
+
                         {
                             type: 'category',
                             label: 'Plugins',
                             items: [
                                 'featherpanel/development-guides/plugins/welcome-developers',
+                                'featherpanel/development-guides/plugins/architecture',
+                                'featherpanel/development-guides/plugins/configuration',
+                                'featherpanel/development-guides/plugins/events',
+                                'featherpanel/development-guides/plugins/development',
+                                'featherpanel/development-guides/plugins/dependencies',
+                                'featherpanel/development-guides/plugins/plugin-manager',
+                                'featherpanel/development-guides/plugins/installation',
+                                'featherpanel/development-guides/plugins/examples',
+                            ]
+                        },
+                        {
+                            type: 'category',
+                            label: 'Spells',
+                            items: [
+                                'featherpanel/development-guides/spells/welcome-spells',
+                                'featherpanel/development-guides/spells/architecture',
+                                'featherpanel/development-guides/spells/creating-spells',
+                                'featherpanel/development-guides/spells/docker-images',
+                                'featherpanel/development-guides/spells/configuration',
+                                'featherpanel/development-guides/spells/variables',
+                                'featherpanel/development-guides/spells/process-management',
+                                'featherpanel/development-guides/spells/examples',
                             ]
                         }
                     ]

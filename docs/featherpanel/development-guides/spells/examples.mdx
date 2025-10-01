@@ -1,0 +1,953 @@
+---
+id: examples
+title: Spell Examples
+description: Complete spell examples and templates for FeatherPanel
+---
+
+# Spell Examples
+
+This section provides complete, working examples of FeatherPanel spells to help you understand different spell types and implementation patterns.
+
+## Example 1: Minecraft Vanilla Server
+
+A basic Minecraft server spell with standard configuration.
+
+### Spell Configuration
+
+```json
+{
+  "id": "minecraft-vanilla",
+  "name": "Minecraft Vanilla Server",
+  "description": "Standard Minecraft server with vanilla gameplay",
+  "docker_image": "ghcr.io/featherpanel/minecraft:latest",
+  "startup": "java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar {{SERVER_JARFILE}} --nogui",
+  "stop": "stop",
+  "file_denylist": [
+    "*.log",
+    "*.tmp",
+    "logs/",
+    "cache/"
+  ],
+  "config_files": {
+    "server.properties": {
+      "parser": "properties",
+      "find": {
+        "server-port": "{{SERVER_PORT}}",
+        "server-ip": "0.0.0.0",
+        "max-players": "{{MAX_PLAYERS}}",
+        "level-name": "{{WORLD_NAME}}",
+        "gamemode": "{{GAMEMODE}}",
+        "difficulty": "{{DIFFICULTY}}",
+        "enable-query": "true",
+        "query.port": "{{SERVER_PORT}}",
+        "enable-rcon": "{{ENABLE_RCON}}",
+        "rcon.port": "{{RCON_PORT}}",
+        "rcon.password": "{{RCON_PASSWORD}}"
+      }
+    }
+  },
+  "variables": [
+    {
+      "name": "Server JAR File",
+      "description": "The JAR file to run for the server",
+      "env_variable": "SERVER_JARFILE",
+      "default_value": "server.jar",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|regex:/^[a-zA-Z0-9._-]+\.jar$/"
+    },
+    {
+      "name": "Max Players",
+      "description": "Maximum number of players allowed",
+      "env_variable": "MAX_PLAYERS",
+      "default_value": "20",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:1|max:100"
+    },
+    {
+      "name": "World Name",
+      "description": "The name of the world to use",
+      "env_variable": "WORLD_NAME",
+      "default_value": "world",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|between:1,32"
+    },
+    {
+      "name": "Game Mode",
+      "description": "Default game mode for new players",
+      "env_variable": "GAMEMODE",
+      "default_value": "survival",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|in:survival,creative,adventure,spectator"
+    },
+    {
+      "name": "Difficulty",
+      "description": "Game difficulty level",
+      "env_variable": "DIFFICULTY",
+      "default_value": "normal",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|in:peaceful,easy,normal,hard"
+    },
+    {
+      "name": "Enable RCON",
+      "description": "Enable Remote Console access",
+      "env_variable": "ENABLE_RCON",
+      "default_value": "false",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|boolean"
+    },
+    {
+      "name": "RCON Port",
+      "description": "Port for RCON access",
+      "env_variable": "RCON_PORT",
+      "default_value": "25575",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|between:1024,65535"
+    },
+    {
+      "name": "RCON Password",
+      "description": "Password for RCON access",
+      "env_variable": "RCON_PASSWORD",
+      "default_value": "",
+      "user_viewable": false,
+      "user_editable": true,
+      "rules": "required|string|min:8|max:32"
+    }
+  ]
+}
+```
+
+### Docker Image
+
+```dockerfile
+# ----------------------------------
+# FeatherPanel Minecraft Dockerfile
+# Environment: Java 17
+# Minimum Panel Version: 2.0.0
+# ----------------------------------
+FROM openjdk:17-jdk-alpine
+
+MAINTAINER FeatherPanel Team, <support@featherpanel.com>
+
+# Install dependencies
+RUN apk add --no-cache --update \
+    curl \
+    ca-certificates \
+    openssl \
+    git \
+    tar \
+    bash \
+    sqlite \
+    fontconfig \
+    && rm -rf /var/cache/apk/*
+
+# Create container user
+RUN adduser --disabled-password --home /home/container container
+
+# Set user and environment
+USER container
+ENV USER=container HOME=/home/container
+
+# Set working directory
+WORKDIR /home/container
+
+# Copy entrypoint script
+COPY ./entrypoint.sh /entrypoint.sh
+
+# Set entrypoint
+CMD ["/bin/bash", "/entrypoint.sh"]
+```
+
+### Entrypoint Script
+
+```bash
+#!/bin/bash
+cd /home/container
+
+# Output Current Java Version
+java -version
+
+# Create necessary directories
+mkdir -p logs
+mkdir -p worlds
+mkdir -p plugins
+
+# Replace Startup Variables
+MODIFIED_STARTUP=`eval echo $(echo ${STARTUP} | sed -e 's/{{/${/g' -e 's/}}/}/g')`
+echo ":/home/container$ ${MODIFIED_STARTUP}"
+
+# Run the Server
+${MODIFIED_STARTUP}
+```
+
+## Example 2: Discord Bot Server
+
+A Discord bot server spell with Node.js runtime.
+
+### Spell Configuration
+
+```json
+{
+  "id": "discord-bot",
+  "name": "Discord Bot Server",
+  "description": "Discord bot with Node.js runtime",
+  "docker_image": "ghcr.io/featherpanel/discord-bot:latest",
+  "startup": "node {{BOT_FILE}}",
+  "stop": "^C",
+  "file_denylist": [
+    "*.log",
+    "*.tmp",
+    "node_modules/",
+    ".git/"
+  ],
+  "config_files": {
+    "config.json": {
+      "parser": "json",
+      "find": {
+        "token": "{{BOT_TOKEN}}",
+        "prefix": "{{BOT_PREFIX}}",
+        "owner": "{{BOT_OWNER}}",
+        "database.host": "{{DB_HOST}}",
+        "database.port": "{{DB_PORT}}",
+        "database.name": "{{DB_NAME}}",
+        "database.user": "{{DB_USER}}",
+        "database.password": "{{DB_PASSWORD}}"
+      }
+    }
+  },
+  "variables": [
+    {
+      "name": "Bot File",
+      "description": "The main bot file to run",
+      "env_variable": "BOT_FILE",
+      "default_value": "index.js",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|regex:/^[a-zA-Z0-9._-]+\.js$/"
+    },
+    {
+      "name": "Bot Token",
+      "description": "Discord bot token",
+      "env_variable": "BOT_TOKEN",
+      "default_value": "",
+      "user_viewable": false,
+      "user_editable": true,
+      "rules": "required|string|min:50|max:100"
+    },
+    {
+      "name": "Bot Prefix",
+      "description": "Command prefix for the bot",
+      "env_variable": "BOT_PREFIX",
+      "default_value": "!",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|between:1,5"
+    },
+    {
+      "name": "Bot Owner",
+      "description": "Discord user ID of the bot owner",
+      "env_variable": "BOT_OWNER",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|regex:/^[0-9]{17,19}$/"
+    },
+    {
+      "name": "Database Host",
+      "description": "Database server hostname",
+      "env_variable": "DB_HOST",
+      "default_value": "localhost",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|max:255"
+    },
+    {
+      "name": "Database Port",
+      "description": "Database server port",
+      "env_variable": "DB_PORT",
+      "default_value": "3306",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|between:1,65535"
+    },
+    {
+      "name": "Database Name",
+      "description": "Database name",
+      "env_variable": "DB_NAME",
+      "default_value": "discord_bot",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|between:1,64"
+    },
+    {
+      "name": "Database User",
+      "description": "Database username",
+      "env_variable": "DB_USER",
+      "default_value": "bot",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|between:1,32"
+    },
+    {
+      "name": "Database Password",
+      "description": "Database password",
+      "env_variable": "DB_PASSWORD",
+      "default_value": "",
+      "user_viewable": false,
+      "user_editable": true,
+      "rules": "required|string|min:8|max:128"
+    }
+  ]
+}
+```
+
+### Docker Image
+
+```dockerfile
+# ----------------------------------
+# FeatherPanel Discord Bot Dockerfile
+# Environment: Node.js 18
+# Minimum Panel Version: 2.0.0
+# ----------------------------------
+FROM node:18-alpine
+
+MAINTAINER FeatherPanel Team, <support@featherpanel.com>
+
+# Install dependencies
+RUN apk add --no-cache --update \
+    curl \
+    ca-certificates \
+    openssl \
+    git \
+    tar \
+    bash \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/cache/apk/*
+
+# Create container user
+RUN adduser --disabled-password --home /home/container container
+
+# Set user and environment
+USER container
+ENV USER=container HOME=/home/container
+
+# Set working directory
+WORKDIR /home/container
+
+# Copy entrypoint script
+COPY ./entrypoint.sh /entrypoint.sh
+
+# Set entrypoint
+CMD ["/bin/bash", "/entrypoint.sh"]
+```
+
+### Entrypoint Script
+
+```bash
+#!/bin/bash
+cd /home/container
+
+# Output Current Node.js Version
+node --version
+npm --version
+
+# Install dependencies if package.json exists
+if [ -f package.json ]; then
+    echo "Installing dependencies..."
+    npm install
+fi
+
+# Create necessary directories
+mkdir -p logs
+mkdir -p data
+mkdir -p config
+
+# Replace Startup Variables
+MODIFIED_STARTUP=`eval echo $(echo ${STARTUP} | sed -e 's/{{/${/g' -e 's/}}/}/g')`
+echo ":/home/container$ ${MODIFIED_STARTUP}"
+
+# Run the Bot
+${MODIFIED_STARTUP}
+```
+
+## Example 3: Web Server (Nginx + PHP)
+
+A web server spell with Nginx and PHP support.
+
+### Spell Configuration
+
+```json
+{
+  "id": "web-server",
+  "name": "Web Server (Nginx + PHP)",
+  "description": "Web server with Nginx and PHP support",
+  "docker_image": "ghcr.io/featherpanel/web-server:latest",
+  "startup": "supervisord -c /etc/supervisor/conf.d/supervisord.conf",
+  "stop": "^C",
+  "file_denylist": [
+    "*.log",
+    "*.tmp",
+    "cache/",
+    "logs/"
+  ],
+  "config_files": {
+    "nginx.conf": {
+      "parser": "file",
+      "find": {
+        "listen 80": "listen {{SERVER_PORT}}",
+        "server_name localhost": "server_name {{SERVER_NAME}}",
+        "root /var/www/html": "root {{WEB_ROOT}}"
+      }
+    },
+    "php.ini": {
+      "parser": "ini",
+      "find": {
+        "upload_max_filesize": "{{UPLOAD_MAX_FILESIZE}}",
+        "post_max_size": "{{POST_MAX_SIZE}}",
+        "memory_limit": "{{MEMORY_LIMIT}}",
+        "max_execution_time": "{{MAX_EXECUTION_TIME}}"
+      }
+    }
+  },
+  "variables": [
+    {
+      "name": "Server Name",
+      "description": "Server name for Nginx",
+      "env_variable": "SERVER_NAME",
+      "default_value": "localhost",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|max:255"
+    },
+    {
+      "name": "Web Root",
+      "description": "Web root directory",
+      "env_variable": "WEB_ROOT",
+      "default_value": "/var/www/html",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|max:255"
+    },
+    {
+      "name": "Upload Max Filesize",
+      "description": "Maximum upload file size",
+      "env_variable": "UPLOAD_MAX_FILESIZE",
+      "default_value": "64M",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|regex:/^[0-9]+[KMGT]?$/"
+    },
+    {
+      "name": "Post Max Size",
+      "description": "Maximum POST data size",
+      "env_variable": "POST_MAX_SIZE",
+      "default_value": "64M",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|regex:/^[0-9]+[KMGT]?$/"
+    },
+    {
+      "name": "Memory Limit",
+      "description": "PHP memory limit",
+      "env_variable": "MEMORY_LIMIT",
+      "default_value": "128M",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|regex:/^[0-9]+[KMGT]?$/"
+    },
+    {
+      "name": "Max Execution Time",
+      "description": "Maximum execution time in seconds",
+      "env_variable": "MAX_EXECUTION_TIME",
+      "default_value": "30",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:1|max:300"
+    }
+  ]
+}
+```
+
+### Docker Image
+
+```dockerfile
+# ----------------------------------
+# FeatherPanel Web Server Dockerfile
+# Environment: Nginx + PHP 8.1
+# Minimum Panel Version: 2.0.0
+# ----------------------------------
+FROM php:8.1-fpm-alpine
+
+MAINTAINER FeatherPanel Team, <support@featherpanel.com>
+
+# Install dependencies
+RUN apk add --no-cache --update \
+    nginx \
+    supervisor \
+    curl \
+    ca-certificates \
+    openssl \
+    git \
+    tar \
+    bash \
+    && rm -rf /var/cache/apk/*
+
+# Install PHP extensions
+RUN docker-php-ext-install pdo_mysql mysqli
+
+# Create container user
+RUN adduser --disabled-password --home /home/container container
+
+# Set user and environment
+USER container
+ENV USER=container HOME=/home/container
+
+# Set working directory
+WORKDIR /home/container
+
+# Copy configuration files
+COPY ./nginx.conf /etc/nginx/nginx.conf
+COPY ./php.ini /usr/local/etc/php/php.ini
+COPY ./supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Copy entrypoint script
+COPY ./entrypoint.sh /entrypoint.sh
+
+# Set entrypoint
+CMD ["/bin/bash", "/entrypoint.sh"]
+```
+
+### Entrypoint Script
+
+```bash
+#!/bin/bash
+cd /home/container
+
+# Output Current Versions
+nginx -v
+php --version
+
+# Create necessary directories
+mkdir -p /home/container/www
+mkdir -p /home/container/logs
+mkdir -p /home/container/config
+
+# Set proper permissions
+chown -R container:container /home/container/www
+chmod -R 755 /home/container/www
+
+# Replace Startup Variables
+MODIFIED_STARTUP=`eval echo $(echo ${STARTUP} | sed -e 's/{{/${/g' -e 's/}}/}/g')`
+echo ":/home/container$ ${MODIFIED_STARTUP}"
+
+# Run the Server
+${MODIFIED_STARTUP}
+```
+
+## Example 4: Game Server (CS:GO)
+
+A Counter-Strike: Global Offensive server spell.
+
+### Spell Configuration
+
+```json
+{
+  "id": "csgo-server",
+  "name": "CS:GO Server",
+  "description": "Counter-Strike: Global Offensive dedicated server",
+  "docker_image": "ghcr.io/featherpanel/csgo:latest",
+  "startup": "./srcds_run -game csgo -console -usercon +fps_max {{FPS_MAX}} +tickrate {{TICKRATE}} +port {{SERVER_PORT}} +maxplayers {{MAX_PLAYERS}} +map {{START_MAP}} +sv_setsteamaccount {{STEAM_ACCOUNT}}",
+  "stop": "quit",
+  "file_denylist": [
+    "*.log",
+    "*.tmp",
+    "logs/",
+    "cache/"
+  ],
+  "config_files": {
+    "server.cfg": {
+      "parser": "file",
+      "find": {
+        "hostname \"Counter-Strike: Global Offensive\"": "hostname \"{{SERVER_NAME}}\"",
+        "sv_password \"\"": "sv_password \"{{SERVER_PASSWORD}}\"",
+        "rcon_password \"\"": "rcon_password \"{{RCON_PASSWORD}}\"",
+        "sv_maxrate 0": "sv_maxrate {{MAX_RATE}}",
+        "sv_minrate 0": "sv_minrate {{MIN_RATE}}"
+      }
+    }
+  },
+  "variables": [
+    {
+      "name": "Server Name",
+      "description": "Name of the server",
+      "env_variable": "SERVER_NAME",
+      "default_value": "CS:GO Server",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|max:64"
+    },
+    {
+      "name": "Max Players",
+      "description": "Maximum number of players",
+      "env_variable": "MAX_PLAYERS",
+      "default_value": "16",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:2|max:64"
+    },
+    {
+      "name": "Start Map",
+      "description": "Map to start with",
+      "env_variable": "START_MAP",
+      "default_value": "de_dust2",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|max:32"
+    },
+    {
+      "name": "Tickrate",
+      "description": "Server tickrate",
+      "env_variable": "TICKRATE",
+      "default_value": "64",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|in:64,128"
+    },
+    {
+      "name": "FPS Max",
+      "description": "Maximum FPS",
+      "env_variable": "FPS_MAX",
+      "default_value": "300",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:60|max:1000"
+    },
+    {
+      "name": "Steam Account",
+      "description": "Steam account token",
+      "env_variable": "STEAM_ACCOUNT",
+      "default_value": "",
+      "user_viewable": false,
+      "user_editable": true,
+      "rules": "required|string|regex:/^[A-F0-9]{32}$/"
+    },
+    {
+      "name": "Server Password",
+      "description": "Server password (leave empty for public)",
+      "env_variable": "SERVER_PASSWORD",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "string|max:32"
+    },
+    {
+      "name": "RCON Password",
+      "description": "RCON password",
+      "env_variable": "RCON_PASSWORD",
+      "default_value": "",
+      "user_viewable": false,
+      "user_editable": true,
+      "rules": "required|string|min:8|max:32"
+    },
+    {
+      "name": "Max Rate",
+      "description": "Maximum bandwidth rate",
+      "env_variable": "MAX_RATE",
+      "default_value": "0",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:0|max:100000"
+    },
+    {
+      "name": "Min Rate",
+      "description": "Minimum bandwidth rate",
+      "env_variable": "MIN_RATE",
+      "default_value": "0",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:0|max:100000"
+    }
+  ]
+}
+```
+
+### Docker Image
+
+```dockerfile
+# ----------------------------------
+# FeatherPanel CS:GO Dockerfile
+# Environment: SteamCMD
+# Minimum Panel Version: 2.0.0
+# ----------------------------------
+FROM steamcmd/steamcmd:latest
+
+MAINTAINER FeatherPanel Team, <support@featherpanel.com>
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    ca-certificates \
+    lib32gcc-s1 \
+    lib32stdc++6 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create container user
+RUN useradd -m -s /bin/bash container
+
+# Set user and environment
+USER container
+ENV USER=container HOME=/home/container
+
+# Set working directory
+WORKDIR /home/container
+
+# Copy entrypoint script
+COPY ./entrypoint.sh /entrypoint.sh
+
+# Set entrypoint
+CMD ["/bin/bash", "/entrypoint.sh"]
+```
+
+### Entrypoint Script
+
+```bash
+#!/bin/bash
+cd /home/container
+
+# Output Current Version
+echo "CS:GO Server starting..."
+
+# Create necessary directories
+mkdir -p /home/container/csgo
+mkdir -p /home/container/logs
+mkdir -p /home/container/config
+
+# Download CS:GO server if not exists
+if [ ! -f "/home/container/csgo/srcds_run" ]; then
+    echo "Downloading CS:GO server..."
+    /opt/steamcmd/steamcmd.sh +login anonymous +force_install_dir /home/container/csgo +app_update 740 validate +quit
+fi
+
+# Set proper permissions
+chown -R container:container /home/container/csgo
+chmod +x /home/container/csgo/srcds_run
+
+# Replace Startup Variables
+MODIFIED_STARTUP=`eval echo $(echo ${STARTUP} | sed -e 's/{{/${/g' -e 's/}}/}/g')`
+echo ":/home/container$ ${MODIFIED_STARTUP}"
+
+# Run the Server
+cd /home/container/csgo
+${MODIFIED_STARTUP}
+```
+
+## Example 5: Database Server (MySQL)
+
+A MySQL database server spell.
+
+### Spell Configuration
+
+```json
+{
+  "id": "mysql-server",
+  "name": "MySQL Server",
+  "description": "MySQL database server",
+  "docker_image": "ghcr.io/featherpanel/mysql:latest",
+  "startup": "mysqld --user=container --datadir=/home/container/data --socket=/home/container/mysql.sock",
+  "stop": "mysqladmin shutdown",
+  "file_denylist": [
+    "*.log",
+    "*.tmp",
+    "logs/",
+    "cache/"
+  ],
+  "config_files": {
+    "my.cnf": {
+      "parser": "ini",
+      "find": {
+        "port": "{{SERVER_PORT}}",
+        "bind-address": "0.0.0.0",
+        "max_connections": "{{MAX_CONNECTIONS}}",
+        "innodb_buffer_pool_size": "{{INNODB_BUFFER_POOL_SIZE}}",
+        "innodb_log_file_size": "{{INNODB_LOG_FILE_SIZE}}"
+      }
+    }
+  },
+  "variables": [
+    {
+      "name": "Root Password",
+      "description": "MySQL root password",
+      "env_variable": "MYSQL_ROOT_PASSWORD",
+      "default_value": "",
+      "user_viewable": false,
+      "user_editable": true,
+      "rules": "required|string|min:8|max:128"
+    },
+    {
+      "name": "Database Name",
+      "description": "Default database name",
+      "env_variable": "MYSQL_DATABASE",
+      "default_value": "database",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|between:1,64"
+    },
+    {
+      "name": "Database User",
+      "description": "Database username",
+      "env_variable": "MYSQL_USER",
+      "default_value": "user",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|between:1,32"
+    },
+    {
+      "name": "Database Password",
+      "description": "Database user password",
+      "env_variable": "MYSQL_PASSWORD",
+      "default_value": "",
+      "user_viewable": false,
+      "user_editable": true,
+      "rules": "required|string|min:8|max:128"
+    },
+    {
+      "name": "Max Connections",
+      "description": "Maximum number of connections",
+      "env_variable": "MAX_CONNECTIONS",
+      "default_value": "100",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:10|max:1000"
+    },
+    {
+      "name": "InnoDB Buffer Pool Size",
+      "description": "InnoDB buffer pool size",
+      "env_variable": "INNODB_BUFFER_POOL_SIZE",
+      "default_value": "128M",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|regex:/^[0-9]+[KMGT]?$/"
+    },
+    {
+      "name": "InnoDB Log File Size",
+      "description": "InnoDB log file size",
+      "env_variable": "INNODB_LOG_FILE_SIZE",
+      "default_value": "64M",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|regex:/^[0-9]+[KMGT]?$/"
+    }
+  ]
+}
+```
+
+### Docker Image
+
+```dockerfile
+# ----------------------------------
+# FeatherPanel MySQL Dockerfile
+# Environment: MySQL 8.0
+# Minimum Panel Version: 2.0.0
+# ----------------------------------
+FROM mysql:8.0
+
+MAINTAINER FeatherPanel Team, <support@featherpanel.com>
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create container user
+RUN useradd -m -s /bin/bash container
+
+# Set user and environment
+USER container
+ENV USER=container HOME=/home/container
+
+# Set working directory
+WORKDIR /home/container
+
+# Copy entrypoint script
+COPY ./entrypoint.sh /entrypoint.sh
+
+# Set entrypoint
+CMD ["/bin/bash", "/entrypoint.sh"]
+```
+
+### Entrypoint Script
+
+```bash
+#!/bin/bash
+cd /home/container
+
+# Output Current Version
+mysql --version
+
+# Create necessary directories
+mkdir -p /home/container/data
+mkdir -p /home/container/logs
+mkdir -p /home/container/config
+
+# Initialize MySQL if not exists
+if [ ! -d "/home/container/data/mysql" ]; then
+    echo "Initializing MySQL database..."
+    mysqld --initialize-insecure --user=container --datadir=/home/container/data
+fi
+
+# Set proper permissions
+chown -R container:container /home/container/data
+chmod -R 755 /home/container/data
+
+# Replace Startup Variables
+MODIFIED_STARTUP=`eval echo $(echo ${STARTUP} | sed -e 's/{{/${/g' -e 's/}}/}/g')`
+echo ":/home/container$ ${MODIFIED_STARTUP}"
+
+# Run the Server
+${MODIFIED_STARTUP}
+```
+
+## Best Practices
+
+### Spell Design
+
+1. **Use descriptive names** and descriptions
+2. **Provide clear documentation** for users
+3. **Set sensible defaults** for all variables
+4. **Validate user input** with appropriate rules
+5. **Test thoroughly** before distribution
+
+### Docker Images
+
+1. **Use official base images** when possible
+2. **Minimize image size** with multi-stage builds
+3. **Follow security best practices** (non-root user)
+4. **Include necessary dependencies** only
+5. **Document image requirements** clearly
+
+### Configuration
+
+1. **Use appropriate parsers** for file types
+2. **Validate configuration** before applying
+3. **Handle missing variables** gracefully
+4. **Provide fallback values** for optional settings
+5. **Test file parsing** with various configurations
+
+### Variables
+
+1. **Use descriptive variable names** and descriptions
+2. **Set appropriate validation rules** for each variable
+3. **Provide helpful default values**
+4. **Group related variables** logically
+5. **Document variable usage** and effects
+
+These examples demonstrate different types of FeatherPanel spells and their implementation patterns. Each example includes complete configuration, Docker image setup, and entrypoint scripts that can be used as starting points for your own spells.

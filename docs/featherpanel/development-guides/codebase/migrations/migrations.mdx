@@ -1,0 +1,584 @@
+---
+id: migrations
+pagination_next: null
+pagination_prev: null
+---
+
+# Database Migrations
+
+FeatherPanel uses SQL-based database migrations to manage database schema changes. Migrations ensure consistent database structure across different environments and provide a versioned approach to database modifications.
+
+## Overview
+
+The migration system provides:
+
+- **Versioned Schema Changes**: Track database changes over time
+- **Consistent Deployments**: Ensure all environments have the same database structure
+- **Rollback Support**: Ability to revert database changes if needed
+- **Automated Execution**: Migrations can be run automatically during deployment
+- **SQL-based**: Direct SQL files for maximum flexibility
+
+## Migration File Structure
+
+### File Naming Convention
+
+Migration files follow a specific naming pattern:
+
+```
+{YYYY-MM-DD.HH.MM}-{description}.sql
+```
+
+Examples:
+- `2025-09-10.18.10-redirect-links.sql`
+- `2025-01-15.14.30-add-user-permissions.sql`
+- `2025-03-22.09.45-update-server-schema.sql`
+
+### Naming Components
+
+- **Date**: `YYYY-MM-DD` - Date when migration was created
+- **Time**: `HH.MM` - Time when migration was created (24-hour format)
+- **Description**: Descriptive name using kebab-case (lowercase with hyphens)
+
+### File Location
+
+Migration files are stored in:
+```
+backend/storage/migrations/
+```
+
+## Creating Migrations
+
+### Basic Migration Structure
+
+```sql
+-- Migration: 2025-01-15.14.30-create-users-table.sql
+CREATE TABLE
+    IF NOT EXISTS `featherpanel_users` (
+        `id` int(11) NOT NULL AUTO_INCREMENT,
+        `username` varchar(191) NOT NULL,
+        `email` varchar(191) NOT NULL,
+        `password` varchar(255) NOT NULL,
+        `first_name` varchar(64) NOT NULL,
+        `last_name` varchar(64) NOT NULL,
+        `uuid` varchar(36) NOT NULL,
+        `role_id` int(11) NOT NULL DEFAULT 1,
+        `banned` enum('true', 'false') NOT NULL DEFAULT 'false',
+        `two_fa_enabled` enum('true', 'false') NOT NULL DEFAULT 'false',
+        `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `unique_username` (`username`),
+        UNIQUE KEY `unique_email` (`email`),
+        UNIQUE KEY `unique_uuid` (`uuid`),
+        KEY `users_role_id_index` (`role_id`),
+        KEY `users_banned_index` (`banned`)
+    ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
+```
+
+### Adding Columns to Existing Tables
+
+```sql
+-- Migration: 2025-01-20.10.15-add-user-avatar.sql
+ALTER TABLE `featherpanel_users`
+ADD COLUMN `avatar` varchar(255) NULL AFTER `email`,
+ADD COLUMN `last_seen` timestamp NULL AFTER `updated_at`;
+
+-- Add index for the new column
+ALTER TABLE `featherpanel_users`
+ADD KEY `users_avatar_index` (`avatar`);
+```
+
+### Creating Indexes
+
+```sql
+-- Migration: 2025-01-25.16.45-add-performance-indexes.sql
+-- Add indexes for better query performance
+ALTER TABLE `featherpanel_servers`
+ADD KEY `servers_owner_id_index` (`owner_id`),
+ADD KEY `servers_node_id_index` (`node_id`),
+ADD KEY `servers_status_index` (`status`);
+
+ALTER TABLE `featherpanel_activities`
+ADD KEY `activities_user_id_index` (`user_id`),
+ADD KEY `activities_created_at_index` (`created_at`);
+```
+
+### Modifying Existing Tables
+
+```sql
+-- Migration: 2025-02-01.11.30-update-server-schema.sql
+-- Modify existing columns
+ALTER TABLE `featherpanel_servers`
+MODIFY COLUMN `description` text NULL,
+MODIFY COLUMN `memory` int(11) NOT NULL DEFAULT 1024,
+MODIFY COLUMN `disk` int(11) NOT NULL DEFAULT 5120;
+
+-- Add new columns
+ALTER TABLE `featherpanel_servers`
+ADD COLUMN `cpu_limit` int(11) NOT NULL DEFAULT 100 AFTER `disk`,
+ADD COLUMN `io_limit` int(11) NOT NULL DEFAULT 500 AFTER `cpu_limit`;
+```
+
+### Dropping Tables and Columns
+
+```sql
+-- Migration: 2025-02-15.09.20-remove-deprecated-features.sql
+-- Drop deprecated columns
+ALTER TABLE `featherpanel_users`
+DROP COLUMN `old_field`,
+DROP COLUMN `deprecated_column`;
+
+-- Drop deprecated tables
+DROP TABLE IF EXISTS `featherpanel_old_table`;
+DROP TABLE IF EXISTS `featherpanel_deprecated_features`;
+```
+
+## Migration Best Practices
+
+### 1. Use Descriptive Names
+
+Choose clear, descriptive migration names:
+
+```sql
+-- ✅ Good - Clear and descriptive
+2025-01-15.14.30-create-users-table.sql
+2025-01-20.10.15-add-user-avatar.sql
+2025-01-25.16.45-add-performance-indexes.sql
+
+-- ❌ Bad - Unclear names
+2025-01-15.14.30-update.sql
+2025-01-20.10.15-fix.sql
+2025-01-25.16.45-changes.sql
+```
+
+### 2. Use IF NOT EXISTS
+
+Always use `IF NOT EXISTS` for table creation:
+
+```sql
+-- ✅ Good - Safe table creation
+CREATE TABLE IF NOT EXISTS `featherpanel_users` (
+    -- table definition
+);
+
+-- ❌ Bad - Will fail if table exists
+CREATE TABLE `featherpanel_users` (
+    -- table definition
+);
+```
+
+### 3. Use Proper Data Types
+
+Choose appropriate data types for your data:
+
+```sql
+-- ✅ Good - Appropriate data types
+`id` int(11) NOT NULL AUTO_INCREMENT,
+`username` varchar(191) NOT NULL,
+`email` varchar(191) NOT NULL,
+`description` text NULL,
+`created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+`banned` enum('true', 'false') NOT NULL DEFAULT 'false'
+
+-- ❌ Bad - Inappropriate data types
+`id` varchar(255) NOT NULL,
+`username` text NOT NULL,
+`email` int(11) NOT NULL
+```
+
+### 4. Add Proper Indexes
+
+Add indexes for frequently queried columns:
+
+```sql
+-- ✅ Good - Proper indexing
+PRIMARY KEY (`id`),
+UNIQUE KEY `unique_username` (`username`),
+UNIQUE KEY `unique_email` (`email`),
+KEY `users_role_id_index` (`role_id`),
+KEY `users_banned_index` (`banned`)
+
+-- ❌ Bad - Missing indexes
+PRIMARY KEY (`id`)
+-- No indexes for frequently queried columns
+```
+
+### 5. Use Consistent Naming
+
+Follow consistent naming conventions:
+
+```sql
+-- ✅ Good - Consistent naming
+`featherpanel_users`
+`featherpanel_servers`
+`featherpanel_nodes`
+`featherpanel_roles`
+
+-- ❌ Bad - Inconsistent naming
+`users`
+`server_table`
+`node_data`
+`role_info`
+```
+
+## Running Migrations
+
+### Manual Execution
+
+Execute migrations manually using MySQL:
+
+```bash
+# Run a specific migration
+docker exec -ti featherpanel_backend mysql -u root -p featherpanel < /var/www/featherpanel/backend/storage/migrations/2025-01-15.14.30-create-users-table.sql
+
+# Run all migrations in order
+for file in /var/www/featherpanel/backend/storage/migrations/*.sql; do
+    docker exec -ti featherpanel_backend mysql -u root -p featherpanel < "$file"
+done
+```
+
+### Using Database Models
+
+Execute migrations programmatically:
+
+```php
+use App\App;
+
+$app = App::getInstance(true);
+$pdo = $app->getDatabase()->getPdo();
+
+// Read and execute migration file
+$migrationSql = file_get_contents('/path/to/migration.sql');
+$pdo->exec($migrationSql);
+```
+
+### Migration CLI Command
+
+Create a CLI command for running migrations:
+
+```php
+<?php
+
+namespace App\Cli\Commands;
+
+use App\App;
+use App\Cli\App as CliApp;
+use App\Cli\CommandBuilder;
+
+class Migrate extends CliApp implements CommandBuilder
+{
+    public static function execute(array $args): void
+    {
+        $cmdInstance = self::getInstance();
+
+        $cmdInstance->send('&aRunning database migrations...');
+
+        $migrationsDir = __DIR__ . '/../../storage/migrations';
+        $migrationFiles = glob($migrationsDir . '/*.sql');
+
+        sort($migrationFiles); // Run in chronological order
+
+        $app = App::getInstance(true);
+        $pdo = $app->getDatabase()->getPdo();
+
+        foreach ($migrationFiles as $file) {
+            $filename = basename($file);
+            $cmdInstance->send("&bRunning migration: {$filename}");
+
+            try {
+                $sql = file_get_contents($file);
+                $pdo->exec($sql);
+                $cmdInstance->send("&a✓ Migration completed: {$filename}");
+            } catch (\Exception $e) {
+                $cmdInstance->send("&c✗ Migration failed: {$filename} - " . $e->getMessage());
+                break;
+            }
+        }
+
+        $cmdInstance->send('&aAll migrations completed!');
+    }
+
+    public static function getDescription(): string
+    {
+        return 'Run database migrations';
+    }
+
+    public static function getSubCommands(): array
+    {
+        return [];
+    }
+}
+```
+
+## Migration Examples
+
+### Creating a New Feature Table
+
+```sql
+-- Migration: 2025-03-01.12.00-create-notifications.sql
+CREATE TABLE
+    IF NOT EXISTS `featherpanel_notifications` (
+        `id` int(11) NOT NULL AUTO_INCREMENT,
+        `user_id` int(11) NOT NULL,
+        `title` varchar(255) NOT NULL,
+        `message` text NOT NULL,
+        `type` enum('info', 'warning', 'error', 'success') NOT NULL DEFAULT 'info',
+        `read` enum('true', 'false') NOT NULL DEFAULT 'false',
+        `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        KEY `notifications_user_id_index` (`user_id`),
+        KEY `notifications_read_index` (`read`),
+        KEY `notifications_created_at_index` (`created_at`),
+        FOREIGN KEY (`user_id`) REFERENCES `featherpanel_users`(`id`) ON DELETE CASCADE
+    ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
+```
+
+### Adding Foreign Key Relationships
+
+```sql
+-- Migration: 2025-03-05.15.30-add-foreign-keys.sql
+-- Add foreign key constraints
+ALTER TABLE `featherpanel_servers`
+ADD CONSTRAINT `fk_servers_owner`
+    FOREIGN KEY (`owner_id`) REFERENCES `featherpanel_users`(`id`) ON DELETE CASCADE,
+ADD CONSTRAINT `fk_servers_node`
+    FOREIGN KEY (`node_id`) REFERENCES `featherpanel_nodes`(`id`) ON DELETE RESTRICT;
+
+ALTER TABLE `featherpanel_allocations`
+ADD CONSTRAINT `fk_allocations_node`
+    FOREIGN KEY (`node_id`) REFERENCES `featherpanel_nodes`(`id`) ON DELETE CASCADE;
+```
+
+### Data Migration
+
+```sql
+-- Migration: 2025-03-10.10.00-migrate-user-roles.sql
+-- Migrate existing user roles to new structure
+UPDATE `featherpanel_users`
+SET `role_id` = 2
+WHERE `username` IN ('admin', 'administrator');
+
+-- Add default role for users without roles
+UPDATE `featherpanel_users`
+SET `role_id` = 1
+WHERE `role_id` IS NULL OR `role_id` = 0;
+```
+
+## Migration Management
+
+### Tracking Executed Migrations
+
+Create a migrations table to track executed migrations:
+
+```sql
+-- Migration: 2025-01-01.00.00-create-migrations-table.sql
+CREATE TABLE
+    IF NOT EXISTS `featherpanel_migrations` (
+        `id` int(11) NOT NULL AUTO_INCREMENT,
+        `migration` varchar(255) NOT NULL,
+        `executed_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `unique_migration` (`migration`)
+    ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
+```
+
+### Checking Migration Status
+
+```php
+use App\App;
+
+function getExecutedMigrations(): array
+{
+    $app = App::getInstance(true);
+    $pdo = $app->getDatabase()->getPdo();
+
+    $stmt = $pdo->prepare("SELECT migration FROM featherpanel_migrations ORDER BY executed_at");
+    $stmt->execute();
+
+    return $stmt->fetchAll(\PDO::FETCH_COLUMN);
+}
+
+function getPendingMigrations(): array
+{
+    $executed = getExecutedMigrations();
+    $allMigrations = glob(__DIR__ . '/../../storage/migrations/*.sql');
+
+    $pending = [];
+    foreach ($allMigrations as $file) {
+        $filename = basename($file, '.sql');
+        if (!in_array($filename, $executed)) {
+            $pending[] = $filename;
+        }
+    }
+
+    return $pending;
+}
+```
+
+## Migration Rollback
+
+### Creating Rollback Migrations
+
+For complex changes, create rollback migrations:
+
+```sql
+-- Migration: 2025-03-15.14.00-rollback-user-changes.sql
+-- Rollback user table changes
+ALTER TABLE `featherpanel_users`
+DROP COLUMN `avatar`,
+DROP COLUMN `last_seen`;
+
+-- Restore original column definitions
+ALTER TABLE `featherpanel_users`
+MODIFY COLUMN `description` varchar(255) NOT NULL DEFAULT '';
+```
+
+### Backup Before Migration
+
+Always backup before running migrations:
+
+```bash
+# Create backup before migration
+docker exec -ti featherpanel_backend mysqldump -u root -p featherpanel > backup_$(date +%Y%m%d_%H%M%S).sql
+
+# Run migration
+docker exec -ti featherpanel_backend mysql -u root -p featherpanel < migration.sql
+```
+
+## Best Practices
+
+### 1. Test Migrations
+
+Always test migrations in a development environment:
+
+```bash
+# Test migration on development database
+docker exec -ti featherpanel_backend mysql -u root -p featherpanel_dev < migration.sql
+```
+
+### 2. Use Transactions
+
+Wrap migrations in transactions when possible:
+
+```sql
+-- ✅ Good - Use transactions for complex migrations
+START TRANSACTION;
+
+-- Multiple related changes
+ALTER TABLE `featherpanel_users` ADD COLUMN `new_field` varchar(255);
+UPDATE `featherpanel_users` SET `new_field` = 'default_value';
+ALTER TABLE `featherpanel_users` MODIFY COLUMN `new_field` varchar(255) NOT NULL;
+
+COMMIT;
+```
+
+### 3. Document Changes
+
+Add comments to explain migration purpose:
+
+```sql
+-- Migration: 2025-03-20.16.00-add-server-monitoring.sql
+-- Purpose: Add server monitoring capabilities
+-- Changes: Add monitoring columns and indexes
+
+-- Add server monitoring columns
+ALTER TABLE `featherpanel_servers`
+ADD COLUMN `monitoring_enabled` enum('true', 'false') NOT NULL DEFAULT 'false',
+ADD COLUMN `last_health_check` timestamp NULL,
+ADD COLUMN `health_status` enum('healthy', 'warning', 'critical') NOT NULL DEFAULT 'healthy';
+
+-- Add indexes for monitoring queries
+ALTER TABLE `featherpanel_servers`
+ADD KEY `servers_monitoring_enabled_index` (`monitoring_enabled`),
+ADD KEY `servers_health_status_index` (`health_status`);
+```
+
+### 4. Keep Migrations Small
+
+Keep migrations focused and small:
+
+```sql
+-- ✅ Good - Small, focused migration
+-- Migration: 2025-03-25.11.00-add-user-timezone.sql
+ALTER TABLE `featherpanel_users`
+ADD COLUMN `timezone` varchar(64) NOT NULL DEFAULT 'UTC' AFTER `email`;
+
+-- ❌ Bad - Large, complex migration
+-- Migration: 2025-03-25.11.00-major-schema-update.sql
+-- Multiple table changes, data migrations, etc.
+```
+
+### 5. Use Consistent Timestamps
+
+Use consistent timestamp formats:
+
+```sql
+-- ✅ Good - Consistent timestamp format
+`created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+`updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+
+-- ❌ Bad - Inconsistent formats
+`created_at` datetime NULL,
+`updated_at` timestamp NULL
+```
+
+## Migration Tools
+
+### Migration Runner Script
+
+Create a script to run migrations:
+
+```bash
+#!/bin/bash
+# migrate.sh
+
+MIGRATIONS_DIR="/var/www/featherpanel/backend/storage/migrations"
+DB_NAME="featherpanel"
+
+echo "Running database migrations..."
+
+for file in $MIGRATIONS_DIR/*.sql; do
+    if [ -f "$file" ]; then
+        echo "Running: $(basename "$file")"
+        docker exec -ti featherpanel_backend mysql -u root -p $DB_NAME < "$file"
+
+        if [ $? -eq 0 ]; then
+            echo "✓ Migration completed: $(basename "$file")"
+        else
+            echo "✗ Migration failed: $(basename "$file")"
+            exit 1
+        fi
+    fi
+done
+
+echo "All migrations completed successfully!"
+```
+
+### Migration Status Command
+
+```php
+// CLI command to check migration status
+class MigrationStatus extends CliApp implements CommandBuilder
+{
+    public static function execute(array $args): void
+    {
+        $cmdInstance = self::getInstance();
+
+        $pending = getPendingMigrations();
+        $executed = getExecutedMigrations();
+
+        $cmdInstance->send('&aMigration Status:');
+        $cmdInstance->send("&bExecuted: &f" . count($executed));
+        $cmdInstance->send("&bPending: &f" . count($pending));
+
+        if (!empty($pending)) {
+            $cmdInstance->send('&ePending migrations:');
+            foreach ($pending as $migration) {
+                $cmdInstance->send("  &7- {$migration}");
+            }
+        }
+    }
+}
+```
+

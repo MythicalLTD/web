@@ -1,0 +1,620 @@
+---
+id: docker-images
+title: Creating Custom Docker Images
+description: Creating custom Docker images for FeatherPanel spells
+---
+
+# Creating Custom Docker Images
+
+This guide covers creating custom Docker images specifically designed to work with FeatherPanel's spell system. These images must follow specific requirements to ensure compatibility and security.
+
+## Prerequisites
+
+Before creating a Docker image, ensure you have:
+
+- **Docker installed** and running
+- **Basic Docker knowledge** (Dockerfile, build process)
+- **Understanding of the target application** you're containerizing
+- **Access to a Docker registry** for image distribution
+
+## Docker Image Requirements
+
+### Mandatory Requirements
+
+All FeatherPanel Docker images must follow these requirements:
+
+#### 1. Container User
+```dockerfile
+# Must create a user named 'container'
+RUN adduser --disabled-password --home /home/container container
+
+# Must set user and home directory
+USER container
+ENV USER=container HOME=/home/container
+```
+
+#### 2. Working Directory
+```dockerfile
+# Must set working directory to /home/container
+WORKDIR /home/container
+```
+
+#### 3. Entrypoint Script
+```dockerfile
+# Must copy and use entrypoint script
+COPY ./entrypoint.sh /entrypoint.sh
+CMD ["/bin/bash", "/entrypoint.sh"]
+```
+
+## Creating the Dockerfile
+
+### Basic Dockerfile Structure
+
+```dockerfile
+# ----------------------------------
+# FeatherPanel Custom Dockerfile
+# Environment: [Your Environment]
+# Minimum Panel Version: 2.0.0
+# ----------------------------------
+FROM [base-image]
+
+MAINTAINER [Your Name], <your-email@example.com>
+
+# Install dependencies
+RUN [install-commands]
+
+# Create container user
+RUN adduser --disabled-password --home /home/container container
+
+# Set user and environment
+USER container
+ENV USER=container HOME=/home/container
+
+# Set working directory
+WORKDIR /home/container
+
+# Copy entrypoint script
+COPY ./entrypoint.sh /entrypoint.sh
+
+# Set entrypoint
+CMD ["/bin/bash", "/entrypoint.sh"]
+```
+
+### Example: Java Application
+
+```dockerfile
+# ----------------------------------
+# FeatherPanel Java Dockerfile
+# Environment: Java 17
+# Minimum Panel Version: 2.0.0
+# ----------------------------------
+FROM openjdk:17-jdk-alpine
+
+MAINTAINER FeatherPanel Team, <support@featherpanel.com>
+
+# Install dependencies
+RUN apk add --no-cache --update \
+    curl \
+    ca-certificates \
+    openssl \
+    git \
+    tar \
+    bash \
+    sqlite \
+    fontconfig \
+    && rm -rf /var/cache/apk/*
+
+# Create container user
+RUN adduser --disabled-password --home /home/container container
+
+# Set user and environment
+USER container
+ENV USER=container HOME=/home/container
+
+# Set working directory
+WORKDIR /home/container
+
+# Copy entrypoint script
+COPY ./entrypoint.sh /entrypoint.sh
+
+# Set entrypoint
+CMD ["/bin/bash", "/entrypoint.sh"]
+```
+
+### Example: Node.js Application
+
+```dockerfile
+# ----------------------------------
+# FeatherPanel Node.js Dockerfile
+# Environment: Node.js 18
+# Minimum Panel Version: 2.0.0
+# ----------------------------------
+FROM node:18-alpine
+
+MAINTAINER FeatherPanel Team, <support@featherpanel.com>
+
+# Install dependencies
+RUN apk add --no-cache --update \
+    curl \
+    ca-certificates \
+    openssl \
+    git \
+    tar \
+    bash \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/cache/apk/*
+
+# Create container user
+RUN adduser --disabled-password --home /home/container container
+
+# Set user and environment
+USER container
+ENV USER=container HOME=/home/container
+
+# Set working directory
+WORKDIR /home/container
+
+# Copy entrypoint script
+COPY ./entrypoint.sh /entrypoint.sh
+
+# Set entrypoint
+CMD ["/bin/bash", "/entrypoint.sh"]
+```
+
+### Example: Python Application
+
+```dockerfile
+# ----------------------------------
+# FeatherPanel Python Dockerfile
+# Environment: Python 3.11
+# Minimum Panel Version: 2.0.0
+# ----------------------------------
+FROM python:3.11-alpine
+
+MAINTAINER FeatherPanel Team, <support@featherpanel.com>
+
+# Install dependencies
+RUN apk add --no-cache --update \
+    curl \
+    ca-certificates \
+    openssl \
+    git \
+    tar \
+    bash \
+    build-base \
+    && rm -rf /var/cache/apk/*
+
+# Create container user
+RUN adduser --disabled-password --home /home/container container
+
+# Set user and environment
+USER container
+ENV USER=container HOME=/home/container
+
+# Set working directory
+WORKDIR /home/container
+
+# Copy entrypoint script
+COPY ./entrypoint.sh /entrypoint.sh
+
+# Set entrypoint
+CMD ["/bin/bash", "/entrypoint.sh"]
+```
+
+## Creating the Entrypoint Script
+
+### Basic Entrypoint Script
+
+```bash
+#!/bin/bash
+cd /home/container
+
+# Output current version (optional)
+[version-command]
+
+# Replace startup variables
+MODIFIED_STARTUP=`eval echo $(echo ${STARTUP} | sed -e 's/{{/${/g' -e 's/}}/}/g')`
+echo ":/home/container$ ${MODIFIED_STARTUP}"
+
+# Run the server
+${MODIFIED_STARTUP}
+```
+
+### Java Application Entrypoint
+
+```bash
+#!/bin/bash
+cd /home/container
+
+# Output Current Java Version
+java -version
+
+# Replace Startup Variables
+MODIFIED_STARTUP=`eval echo $(echo ${STARTUP} | sed -e 's/{{/${/g' -e 's/}}/}/g')`
+echo ":/home/container$ ${MODIFIED_STARTUP}"
+
+# Run the Server
+${MODIFIED_STARTUP}
+```
+
+### Node.js Application Entrypoint
+
+```bash
+#!/bin/bash
+cd /home/container
+
+# Output Current Node.js Version
+node --version
+npm --version
+
+# Install dependencies if package.json exists
+if [ -f package.json ]; then
+    echo "Installing dependencies..."
+    npm install
+fi
+
+# Replace Startup Variables
+MODIFIED_STARTUP=`eval echo $(echo ${STARTUP} | sed -e 's/{{/${/g' -e 's/}}/}/g')`
+echo ":/home/container$ ${MODIFIED_STARTUP}"
+
+# Run the Server
+${MODIFIED_STARTUP}
+```
+
+### Python Application Entrypoint
+
+```bash
+#!/bin/bash
+cd /home/container
+
+# Output Current Python Version
+python3 --version
+pip3 --version
+
+# Install dependencies if requirements.txt exists
+if [ -f requirements.txt ]; then
+    echo "Installing dependencies..."
+    pip3 install -r requirements.txt
+fi
+
+# Replace Startup Variables
+MODIFIED_STARTUP=`eval echo $(echo ${STARTUP} | sed -e 's/{{/${/g' -e 's/}}/}/g')`
+echo ":/home/container$ ${MODIFIED_STARTUP}"
+
+# Run the Server
+${MODIFIED_STARTUP}
+```
+
+### Game Server Entrypoint
+
+```bash
+#!/bin/bash
+cd /home/container
+
+# Output Server Information
+echo "Starting game server..."
+echo "Memory: ${SERVER_MEMORY}MB"
+echo "Port: ${SERVER_PORT}"
+
+# Create necessary directories
+mkdir -p logs
+mkdir -p config
+mkdir -p worlds
+
+# Replace Startup Variables
+MODIFIED_STARTUP=`eval echo $(echo ${STARTUP} | sed -e 's/{{/${/g' -e 's/}}/}/g')`
+echo ":/home/container$ ${MODIFIED_STARTUP}"
+
+# Run the Server
+${MODIFIED_STARTUP}
+```
+
+## Building and Testing
+
+### Building the Image
+
+```bash
+# Build the image
+docker build -t your-username/your-image:latest .
+
+# Tag for registry
+docker tag your-username/your-image:latest your-registry.com/your-username/your-image:latest
+
+# Push to registry
+docker push your-registry.com/your-username/your-image:latest
+```
+
+### Testing the Image
+
+```bash
+# Test the image locally
+docker run -it --rm \
+  -e STARTUP="echo 'Hello World'" \
+  -e SERVER_MEMORY="1024" \
+  -e SERVER_PORT="25565" \
+  your-username/your-image:latest
+
+# Test with actual application
+docker run -it --rm \
+  -e STARTUP="java -version" \
+  -e SERVER_MEMORY="1024" \
+  -e SERVER_PORT="25565" \
+  -v $(pwd)/test-data:/home/container \
+  your-username/your-image:latest
+```
+
+### Testing with FeatherPanel
+
+1. **Create a test spell** using your image
+2. **Create a test server** with the spell
+3. **Start the server** and monitor logs
+4. **Verify functionality** works as expected
+5. **Test stop/start** procedures
+
+## Advanced Configuration
+
+### Multi-stage Builds
+
+For complex applications, use multi-stage builds to reduce image size:
+
+```dockerfile
+# Build stage
+FROM node:18-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+
+# Runtime stage
+FROM node:18-alpine
+MAINTAINER FeatherPanel Team, <support@featherpanel.com>
+
+# Install runtime dependencies
+RUN apk add --no-cache --update \
+    curl \
+    ca-certificates \
+    openssl \
+    git \
+    tar \
+    bash \
+    && rm -rf /var/cache/apk/*
+
+# Create container user
+RUN adduser --disabled-password --home /home/container container
+
+# Set user and environment
+USER container
+ENV USER=container HOME=/home/container
+
+# Set working directory
+WORKDIR /home/container
+
+# Copy built application
+COPY --from=builder --chown=container:container /app/node_modules ./node_modules
+
+# Copy entrypoint script
+COPY ./entrypoint.sh /entrypoint.sh
+
+# Set entrypoint
+CMD ["/bin/bash", "/entrypoint.sh"]
+```
+
+### Custom Installation Scripts
+
+For applications that need custom installation:
+
+```dockerfile
+# Copy installation script
+COPY ./install.sh /install.sh
+RUN chmod +x /install.sh
+
+# Run installation
+RUN /install.sh
+
+# Clean up
+RUN rm /install.sh
+```
+
+### Environment-specific Configuration
+
+```dockerfile
+# Set environment variables
+ENV NODE_ENV=production
+ENV PYTHONUNBUFFERED=1
+ENV JAVA_OPTS="-Xms128M -Xmx512M"
+
+# Set timezone
+ENV TZ=UTC
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+```
+
+## Security Best Practices
+
+### User Security
+
+```dockerfile
+# Create non-root user
+RUN adduser --disabled-password --home /home/container container
+
+# Set proper permissions
+RUN chown -R container:container /home/container
+RUN chmod 755 /home/container
+
+# Switch to non-root user
+USER container
+```
+
+### File Permissions
+
+```dockerfile
+# Set proper file permissions
+RUN chmod +x /entrypoint.sh
+RUN chmod 755 /home/container
+
+# Remove sensitive files
+RUN rm -rf /tmp/* /var/tmp/*
+```
+
+### Network Security
+
+```dockerfile
+# Expose only necessary ports
+EXPOSE 25565
+
+# Set network policies
+RUN echo "net.ipv4.ip_forward=0" >> /etc/sysctl.conf
+```
+
+## Optimization Tips
+
+### Image Size Optimization
+
+```dockerfile
+# Use Alpine Linux base images
+FROM openjdk:17-jdk-alpine
+
+# Combine RUN commands
+RUN apk add --no-cache --update \
+    curl \
+    ca-certificates \
+    openssl \
+    && rm -rf /var/cache/apk/*
+
+# Remove unnecessary files
+RUN rm -rf /tmp/* /var/tmp/* /var/cache/apk/*
+```
+
+### Build Optimization
+
+```dockerfile
+# Use .dockerignore file
+# .dockerignore
+node_modules
+npm-debug.log
+.git
+.gitignore
+README.md
+Dockerfile
+.dockerignore
+
+# Copy files in optimal order
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+```
+
+### Runtime Optimization
+
+```dockerfile
+# Set optimal environment variables
+ENV NODE_OPTIONS="--max-old-space-size=512"
+ENV PYTHONUNBUFFERED=1
+ENV JAVA_OPTS="-Xms128M -Xmx512M"
+```
+
+## Common Issues and Solutions
+
+### Permission Issues
+
+```dockerfile
+# Fix permission issues
+RUN chown -R container:container /home/container
+RUN chmod -R 755 /home/container
+```
+
+### Missing Dependencies
+
+```dockerfile
+# Install all required dependencies
+RUN apk add --no-cache --update \
+    curl \
+    ca-certificates \
+    openssl \
+    git \
+    tar \
+    bash \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/cache/apk/*
+```
+
+### Entrypoint Script Issues
+
+```bash
+#!/bin/bash
+# Ensure script is executable
+chmod +x /entrypoint.sh
+
+# Handle errors gracefully
+set -e
+set -o pipefail
+
+# Add error handling
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to start server"
+    exit 1
+fi
+```
+
+## Distribution
+
+### Docker Registry
+
+```bash
+# Build and tag
+docker build -t your-registry.com/your-username/your-image:latest .
+docker tag your-registry.com/your-username/your-image:latest your-registry.com/your-username/your-image:v1.0.0
+
+# Push to registry
+docker push your-registry.com/your-username/your-image:latest
+docker push your-registry.com/your-username/your-image:v1.0.0
+```
+
+### GitHub Container Registry
+
+```bash
+# Login to GitHub Container Registry
+echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
+
+# Build and push
+docker build -t ghcr.io/your-username/your-image:latest .
+docker push ghcr.io/your-username/your-image:latest
+```
+
+### Docker Hub
+
+```bash
+# Login to Docker Hub
+docker login
+
+# Build and push
+docker build -t your-username/your-image:latest .
+docker push your-username/your-image:latest
+```
+
+## Best Practices
+
+### Image Design
+- **Use official base images** when possible
+- **Minimize image size** with multi-stage builds
+- **Follow security best practices** (non-root user)
+- **Include necessary dependencies** only
+- **Document image requirements** clearly
+
+### Build Process
+- **Use .dockerignore** to exclude unnecessary files
+- **Combine RUN commands** to reduce layers
+- **Cache dependencies** for faster builds
+- **Test builds** in clean environments
+- **Version your images** with semantic versioning
+
+### Runtime
+- **Handle errors gracefully** in entrypoint scripts
+- **Provide useful logging** for debugging
+- **Set appropriate environment variables**
+- **Optimize for container environment**
+- **Test thoroughly** before distribution
+
+This comprehensive guide should help you create robust, secure, and efficient Docker images for FeatherPanel spells that provide reliable server management and optimal performance.

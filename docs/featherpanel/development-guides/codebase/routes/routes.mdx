@@ -1,0 +1,597 @@
+---
+id: routes
+pagination_next: null
+pagination_prev: null
+---
+
+# Routing System
+
+FeatherPanel uses a powerful routing system built on Symfony Routing that provides automatic route discovery, permission-based access control, and organized route management. Routes are automatically indexed and loaded from the `routes` directory.
+
+## Overview
+
+The routing system consists of:
+
+- **Automatic Route Discovery**: Routes are automatically loaded from the `routes` directory
+- **Permission-based Routes**: Admin, user, and Wings routes with automatic permission checking
+- **Organized Structure**: Routes organized by functionality (admin, user, wings, system)
+- **Middleware Integration**: Automatic middleware application based on route type
+- **Symfony Routing**: Built on Symfony's powerful routing component
+
+## Route Directory Structure
+
+```
+backend/app/routes/
+├── web.php              # Public routes
+├── admin/               # Admin panel routes
+│   ├── allocations.php
+│   ├── users.php
+│   ├── servers.php
+│   └── ...
+├── user/                # User panel routes
+│   ├── auth.php
+│   ├── session.php
+│   ├── server/          # Server-specific routes
+│   └── ...
+├── wings/               # Wings daemon routes
+│   ├── nodes.php
+│   └── remote.php
+└── system/              # System routes
+    └── ...
+```
+
+## Route Registration Methods
+
+### Admin Routes
+
+Admin routes require authentication and admin permissions:
+
+```php
+use App\App;
+use App\Permissions;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\RouteCollection;
+
+return function (RouteCollection $routes): void {
+    App::getInstance(true)->registerAdminRoute(
+        $routes,
+        'admin-users',                    // Route name
+        '/api/admin/users',              // URL path
+        function (Request $request) {    // Controller function
+            return (new UsersController())->index($request);
+        },
+        Permissions::ADMIN_USERS_VIEW,   // Required permission
+        ['GET']                          // HTTP methods (optional)
+    );
+};
+```
+
+### User Routes
+
+User routes require authentication:
+
+```php
+use App\App;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\RouteCollection;
+
+return function (RouteCollection $routes): void {
+    App::getInstance(true)->registerAuthRoute(
+        $routes,
+        'user-profile',
+        '/api/user/profile',
+        function (Request $request) {
+            return (new ProfileController())->index($request);
+        },
+        ['GET']
+    );
+};
+```
+
+### Public API Routes
+
+Public routes require no authentication:
+
+```php
+use App\App;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\RouteCollection;
+
+return function (RouteCollection $routes): void {
+    App::getInstance(true)->registerApiRoute(
+        $routes,
+        'public-status',
+        '/api/status',
+        function (Request $request) {
+            return (new StatusController())->index($request);
+        },
+        ['GET']
+    );
+};
+```
+
+### Wings Routes
+
+Wings daemon communication routes:
+
+```php
+use App\App;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\RouteCollection;
+
+return function (RouteCollection $routes): void {
+    App::getInstance(true)->registerWingsRoute(
+        $routes,
+        'wings-nodes',
+        '/api/wings/nodes',
+        function (Request $request) {
+            return (new WingsController())->getNodes($request);
+        },
+        ['GET']
+    );
+};
+```
+
+### Server Routes
+
+Server-specific routes with server access validation:
+
+```php
+use App\App;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\RouteCollection;
+
+return function (RouteCollection $routes): void {
+    App::getInstance(true)->registerServerRoute(
+        $routes,
+        'server-console',
+        '/api/server/{serverShortUuid}/console',
+        function (Request $request) {
+            return (new ConsoleController())->index($request);
+        },
+        'serverShortUuid',               // Server UUID parameter
+        ['GET']
+    );
+};
+```
+
+## Route Types and Middleware
+
+### Route Registration Methods
+
+| Method | Authentication | Middleware | Use Case |
+|--------|----------------|------------|----------|
+| `registerAdminRoute()` | Required | AuthMiddleware + AdminMiddleware | Admin panel routes |
+| `registerAuthRoute()` | Required | AuthMiddleware | User panel routes |
+| `registerApiRoute()` | None | None | Public API routes |
+| `registerWingsRoute()` | Wings token | WingsMiddleware | Wings daemon routes |
+| `registerServerRoute()` | Required | AuthMiddleware + ServerMiddleware | Server-specific routes |
+
+### Automatic Middleware Application
+
+Routes automatically receive appropriate middleware:
+
+```php
+// Admin routes get:
+// - AuthMiddleware (authentication)
+// - AdminMiddleware (permission checking)
+
+// Auth routes get:
+// - AuthMiddleware (authentication)
+
+// Wings routes get:
+// - WingsMiddleware (Wings token validation)
+
+// Server routes get:
+// - AuthMiddleware (authentication)
+// - ServerMiddleware (server access validation)
+```
+
+## Route Parameters
+
+### URL Parameters
+
+Routes can accept URL parameters:
+
+```php
+App::getInstance(true)->registerAdminRoute(
+    $routes,
+    'admin-user-show',
+    '/api/admin/users/{id}',
+    function (Request $request, array $args) {
+        $id = $args['id'] ?? null;
+        if (!$id || !is_numeric($id)) {
+            return ApiResponse::error('Missing or invalid ID', 'INVALID_ID', 400);
+        }
+
+        return (new UsersController())->show($request, (int) $id);
+    },
+    Permissions::ADMIN_USERS_VIEW
+);
+```
+
+### Parameter Validation
+
+Always validate route parameters:
+
+```php
+function (Request $request, array $args) {
+    $id = $args['id'] ?? null;
+    if (!$id || !is_numeric($id)) {
+        return ApiResponse::error('Missing or invalid ID', 'INVALID_ID', 400);
+    }
+
+    // Use the validated parameter
+    return (new Controller())->method($request, (int) $id);
+}
+```
+
+## Complete Route Examples
+
+### Admin CRUD Routes
+
+```php
+<?php
+
+use App\App;
+use App\Permissions;
+use App\Helpers\ApiResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\RouteCollection;
+use App\Controllers\Admin\UsersController;
+
+return function (RouteCollection $routes): void {
+    // List users
+    App::getInstance(true)->registerAdminRoute(
+        $routes,
+        'admin-users-index',
+        '/api/admin/users',
+        function (Request $request) {
+            return (new UsersController())->index($request);
+        },
+        Permissions::ADMIN_USERS_VIEW
+    );
+
+    // Show user
+    App::getInstance(true)->registerAdminRoute(
+        $routes,
+        'admin-users-show',
+        '/api/admin/users/{id}',
+        function (Request $request, array $args) {
+            $id = $args['id'] ?? null;
+            if (!$id || !is_numeric($id)) {
+                return ApiResponse::error('Missing or invalid ID', 'INVALID_ID', 400);
+            }
+
+            return (new UsersController())->show($request, (int) $id);
+        },
+        Permissions::ADMIN_USERS_VIEW
+    );
+
+    // Create user
+    App::getInstance(true)->registerAdminRoute(
+        $routes,
+        'admin-users-create',
+        '/api/admin/users',
+        function (Request $request) {
+            return (new UsersController())->create($request);
+        },
+        Permissions::ADMIN_USERS_CREATE,
+        ['PUT']
+    );
+
+    // Update user
+    App::getInstance(true)->registerAdminRoute(
+        $routes,
+        'admin-users-update',
+        '/api/admin/users/{id}',
+        function (Request $request, array $args) {
+            $id = $args['id'] ?? null;
+            if (!$id || !is_numeric($id)) {
+                return ApiResponse::error('Missing or invalid ID', 'INVALID_ID', 400);
+            }
+
+            return (new UsersController())->update($request, (int) $id);
+        },
+        Permissions::ADMIN_USERS_EDIT,
+        ['PATCH']
+    );
+
+    // Delete user
+    App::getInstance(true)->registerAdminRoute(
+        $routes,
+        'admin-users-delete',
+        '/api/admin/users/{id}',
+        function (Request $request, array $args) {
+            $id = $args['id'] ?? null;
+            if (!$id || !is_numeric($id)) {
+                return ApiResponse::error('Missing or invalid ID', 'INVALID_ID', 400);
+            }
+
+            return (new UsersController())->delete($request, (int) $id);
+        },
+        Permissions::ADMIN_USERS_DELETE,
+        ['DELETE']
+    );
+};
+```
+
+### User Authentication Routes
+
+```php
+<?php
+
+use App\App;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\RouteCollection;
+use App\Controllers\User\Auth\LoginController;
+use App\Controllers\User\Auth\RegisterController;
+
+return function (RouteCollection $routes): void {
+    // Register (public)
+    App::getInstance(true)->registerApiRoute(
+        $routes,
+        'user-register',
+        '/api/user/auth/register',
+        function (Request $request) {
+            return (new RegisterController())->put($request);
+        },
+        ['PUT']
+    );
+
+    // Login (public)
+    App::getInstance(true)->registerApiRoute(
+        $routes,
+        'user-login',
+        '/api/user/auth/login',
+        function (Request $request) {
+            return (new LoginController())->put($request);
+        },
+        ['PUT']
+    );
+
+    // Profile (authenticated)
+    App::getInstance(true)->registerAuthRoute(
+        $routes,
+        'user-profile',
+        '/api/user/profile',
+        function (Request $request) {
+            return (new ProfileController())->index($request);
+        },
+        ['GET']
+    );
+};
+```
+
+### Server-specific Routes
+
+```php
+<?php
+
+use App\App;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\RouteCollection;
+use App\Controllers\User\Server\ConsoleController;
+
+return function (RouteCollection $routes): void {
+    // Server console
+    App::getInstance(true)->registerServerRoute(
+        $routes,
+        'server-console',
+        '/api/server/{serverShortUuid}/console',
+        function (Request $request) {
+            return (new ConsoleController())->index($request);
+        },
+        'serverShortUuid',
+        ['GET']
+    );
+
+    // Server files
+    App::getInstance(true)->registerServerRoute(
+        $routes,
+        'server-files',
+        '/api/server/{serverShortUuid}/files',
+        function (Request $request) {
+            return (new FilesController())->index($request);
+        },
+        'serverShortUuid',
+        ['GET']
+    );
+};
+```
+
+## Route Organization
+
+### File Naming Convention
+
+Route files should be named descriptively:
+
+```
+admin/
+├── users.php           # User management routes
+├── servers.php         # Server management routes
+├── allocations.php     # IP allocation routes
+└── settings.php        # System settings routes
+
+user/
+├── auth.php            # Authentication routes
+├── session.php         # Session management
+├── server/             # Server-specific routes
+│   ├── console.php
+│   ├── files.php
+│   └── databases.php
+└── ssh-keys.php        # SSH key management
+```
+
+### Route Naming Convention
+
+Use descriptive, hierarchical route names:
+
+```php
+// ✅ Good - Descriptive names
+'admin-users-index'
+'admin-users-create'
+'admin-users-show'
+'user-server-console'
+'user-server-files'
+
+// ❌ Bad - Unclear names
+'users'
+'create'
+'show'
+'console'
+```
+
+## Automatic Route Discovery
+
+### How It Works
+
+The App class automatically discovers and loads routes:
+
+```php
+// From App.php - registerApiRoutes method
+public function registerApiRoutes(RouteCollection $routes): void
+{
+    $routesDir = __DIR__ . '/routes';
+    $iterator = new \RecursiveIteratorIterator(
+        new \RecursiveDirectoryIterator($routesDir, \FilesystemIterator::SKIP_DOTS),
+        \RecursiveIteratorIterator::SELF_FIRST
+    );
+
+    foreach ($iterator as $file) {
+        if ($file->isFile() && $file->getExtension() === 'php') {
+            $register = require $file->getPathname();
+            if (is_callable($register)) {
+                $register($routes);
+            }
+        }
+    }
+}
+```
+
+### Route Loading Process
+
+1. **Scan Directory**: Recursively scan the `routes` directory
+2. **Load PHP Files**: Load all `.php` files in the directory
+3. **Execute Functions**: Execute the returned function with the RouteCollection
+4. **Register Routes**: Routes are automatically registered with Symfony
+
+## Best Practices
+
+### 1. Use Appropriate Route Types
+
+Choose the right route registration method:
+
+```php
+// ✅ Good - Use admin routes for admin functionality
+App::getInstance(true)->registerAdminRoute(
+    $routes,
+    'admin-users',
+    '/api/admin/users',
+    $controller,
+    Permissions::ADMIN_USERS_VIEW
+);
+
+// ✅ Good - Use auth routes for user functionality
+App::getInstance(true)->registerAuthRoute(
+    $routes,
+    'user-profile',
+    '/api/user/profile',
+    $controller
+);
+```
+
+### 2. Validate Route Parameters
+
+Always validate route parameters:
+
+```php
+// ✅ Good - Validate parameters
+function (Request $request, array $args) {
+    $id = $args['id'] ?? null;
+    if (!$id || !is_numeric($id)) {
+        return ApiResponse::error('Missing or invalid ID', 'INVALID_ID', 400);
+    }
+
+    return (new Controller())->method($request, (int) $id);
+}
+```
+
+### 3. Use Descriptive Route Names
+
+Choose clear, descriptive route names:
+
+```php
+// ✅ Good - Clear and descriptive
+'admin-users-create'
+'user-server-console'
+'wings-node-system'
+
+// ❌ Bad - Unclear
+'create'
+'console'
+'system'
+```
+
+### 4. Organize Routes by Functionality
+
+Group related routes in the same file:
+
+```php
+// ✅ Good - All user authentication routes in one file
+// user/auth.php
+- register
+- login
+- logout
+- forgot-password
+- reset-password
+```
+
+### 5. Use Appropriate HTTP Methods
+
+Choose the right HTTP method for each action:
+
+```php
+// ✅ Good - RESTful HTTP methods
+['GET']     // For reading data
+['PUT']     // For creating data
+['PATCH']   // For updating data
+['DELETE']  // For deleting data
+['POST']    // For actions that don't fit REST
+```
+
+### 6. Handle Errors Gracefully
+
+Always handle potential errors:
+
+```php
+// ✅ Good - Handle controller errors
+try {
+    return (new Controller())->method($request);
+} catch (\Exception $e) {
+    return ApiResponse::error('Operation failed', 'OPERATION_FAILED', 500);
+}
+```
+
+## Route Debugging
+
+### View Registered Routes
+
+Routes are automatically logged during startup:
+
+```
+[DEBUG] Registered routes: [
+    {
+        "name": "admin-users-index",
+        "path": "/api/admin/users",
+        "methods": ["GET"]
+    }
+]
+```
+
+### Common Issues
+
+1. **Route not found**: Check file location and naming
+2. **Permission denied**: Verify permission constants exist
+3. **Parameter validation failed**: Check parameter validation logic
+4. **Controller not found**: Verify controller class exists

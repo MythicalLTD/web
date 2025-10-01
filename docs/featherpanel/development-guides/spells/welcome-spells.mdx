@@ -1,0 +1,86 @@
+---
+id: welcome-spells
+title: Spell Development Guide
+description: Complete guide to creating custom spells for FeatherPanel
+---
+
+# FeatherPanel Spell System
+
+FeatherPanel uses a "spell" system (similar to Pterodactyl's "eggs") to define how different server types are configured and managed. Spells allow you to create custom server configurations, Docker images, and management scripts for any game or application.
+
+## What are Spells?
+
+Spells in FeatherPanel are configuration templates that define:
+
+- **Server startup commands** and parameters
+- **Docker container images** and configurations
+- **File management** and configuration parsing
+- **Environment variables** and settings
+- **Installation scripts** and dependencies
+- **Process management** and monitoring
+
+## Quick Start
+
+1. **Access Spell Manager** in FeatherPanel admin interface
+2. **Create a new spell** or copy from existing ones
+3. **Configure Docker image** and startup commands
+4. **Set up file management** and configuration parsing
+5. **Test your spell** with a sample server
+6. **Deploy and distribute** your spell
+
+## Documentation Structure
+
+- **[Spell Architecture](./architecture)** - How spells work and are structured
+- **[Creating Custom Spells](./creating-spells)** - Step-by-step spell creation guide
+- **[Docker Images](./docker-images)** - Creating custom Docker images for spells
+- **[Configuration Management](./configuration)** - File parsing and configuration
+- **[Spell Variables](./variables)** - Environment variables and settings
+- **[Process Management](./process-management)** - Server lifecycle and monitoring
+- **[Spell Examples](./examples)** - Complete spell examples and templates
+
+## What Spells Can Do
+
+FeatherPanel spells can:
+
+- **Define server types** (Minecraft, CS:GO, Discord bots, etc.)
+- **Manage Docker containers** with custom images
+- **Parse configuration files** (JSON, YAML, INI, Properties, XML)
+- **Handle environment variables** and dynamic settings
+- **Control server lifecycle** (start, stop, restart, install)
+- **Manage file permissions** and directory structure
+- **Provide installation scripts** for dependencies
+- **Monitor server health** and resource usage
+
+## Spell Types
+
+- **Game Servers** - Minecraft, CS:GO, Rust, etc.
+- **Application Servers** - Web servers, databases, APIs
+- **Bot Services** - Discord bots, IRC bots, etc.
+- **Development Environments** - IDEs, build tools, etc.
+- **Custom Applications** - Any containerized application
+
+## Getting Started
+
+The easiest way to create a spell is using the **Spell Manager** in the FeatherPanel admin interface:
+
+1. Navigate to **Admin → Spells**
+2. Click **"Create New Spell"**
+3. Configure your spell settings
+4. Set up Docker image and commands
+5. Configure file management and variables
+6. Test your spell with a sample server
+
+For advanced customization, see the [Creating Custom Spells](./creating-spells) guide.
+
+## Next Steps
+
+- Read about [Spell Architecture](./architecture) to understand how spells work
+- Learn about [Creating Custom Spells](./creating-spells) for step-by-step instructions
+- Explore [Docker Images](./docker-images) for container customization
+- Check out [Spell Examples](./examples) for complete working examples
+
+## Important Notes
+
+⚠️ **Warning**: You should not edit existing spells that ship with FeatherPanel. Each upgrade can make changes to these, and you'll lose any modifications you've made.
+
+✅ **Best Practice**: Always create new spells or copy existing ones as templates for your custom configurations.

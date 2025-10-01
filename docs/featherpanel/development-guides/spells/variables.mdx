@@ -1,0 +1,528 @@
+---
+id: variables
+title: Spell Variables
+description: Environment variables and settings management in FeatherPanel spells
+---
+
+# Spell Variables
+
+Spell variables are a powerful feature that allows users to customize server settings without modifying the startup command or configuration files directly. They provide a user-friendly interface for configuring server parameters while maintaining security and validation.
+
+## Variable System Overview
+
+### What are Spell Variables?
+
+Spell variables are:
+- **Environment variables** that can be used in startup commands and configuration files
+- **User-configurable settings** with validation rules and default values
+- **Secure parameters** that can be hidden or restricted from users
+- **Dynamic values** that are replaced at runtime
+
+### Variable Types
+
+#### 1. System Variables (Built-in)
+Variables provided by FeatherPanel automatically:
+- `SERVER_MEMORY` - Allocated memory in MB
+- `SERVER_PORT` - Primary server port
+- `SERVER_IP` - Server IP address
+- `TZ` - Timezone setting
+- `P_SERVER_UUID` - Server UUID
+- `P_SERVER_LOCATION` - Server location
+
+#### 2. Custom Variables (User-defined)
+Variables defined in spell configuration:
+- `SERVER_JARFILE` - JAR file name
+- `MAX_PLAYERS` - Maximum players
+- `WORLD_NAME` - World name
+- `DIFFICULTY` - Game difficulty
+
+## Creating Variables
+
+### Basic Variable Structure
+
+```json
+{
+  "name": "Server JAR File",
+  "description": "The JAR file to run for the server",
+  "env_variable": "SERVER_JARFILE",
+  "default_value": "server.jar",
+  "user_viewable": true,
+  "user_editable": true,
+  "rules": "required|string|between:1,255"
+}
+```
+
+### Variable Properties
+
+| Property | Type | Description | Required |
+|----------|------|-------------|----------|
+| `name` | string | Display name for the variable | Yes |
+| `description` | string | Help text for users | Yes |
+| `env_variable` | string | Environment variable name (uppercase) | Yes |
+| `default_value` | string | Default value if not set | No |
+| `user_viewable` | boolean | Can users see this variable? | Yes |
+| `user_editable` | boolean | Can users modify this variable? | Yes |
+| `rules` | string | Validation rules (Laravel format) | Yes |
+
+## Variable Types and Examples
+
+### String Variables
+
+For text-based configuration values:
+
+```json
+{
+  "name": "World Name",
+  "description": "The name of the world to use",
+  "env_variable": "WORLD_NAME",
+  "default_value": "world",
+  "user_viewable": true,
+  "user_editable": true,
+  "rules": "required|string|between:1,32"
+}
+```
+
+**Usage:**
+```bash
+# In startup command
+java -jar server.jar --world={{WORLD_NAME}}
+
+# In configuration file
+"level-name": "{{WORLD_NAME}}"
+```
+
+### Numeric Variables
+
+For numeric configuration values:
+
+```json
+{
+  "name": "Max Players",
+  "description": "Maximum number of players allowed",
+  "env_variable": "MAX_PLAYERS",
+  "default_value": "20",
+  "user_viewable": true,
+  "user_editable": true,
+  "rules": "required|integer|min:1|max:100"
+}
+```
+
+**Usage:**
+```bash
+# In startup command
+java -jar server.jar --max-players={{MAX_PLAYERS}}
+
+# In configuration file
+"max-players": "{{MAX_PLAYERS}}"
+```
+
+### Boolean Variables
+
+For true/false configuration values:
+
+```json
+{
+  "name": "Enable PvP",
+  "description": "Allow player versus player combat",
+  "env_variable": "ENABLE_PVP",
+  "default_value": "false",
+  "user_viewable": true,
+  "user_editable": true,
+  "rules": "required|boolean"
+}
+```
+
+**Usage:**
+```bash
+# In startup command
+java -jar server.jar --pvp={{ENABLE_PVP}}
+
+# In configuration file
+"pvp": "{{ENABLE_PVP}}"
+```
+
+### Select Variables
+
+For predefined option lists:
+
+```json
+{
+  "name": "Difficulty",
+  "description": "Game difficulty level",
+  "env_variable": "DIFFICULTY",
+  "default_value": "normal",
+  "user_viewable": true,
+  "user_editable": true,
+  "rules": "required|in:peaceful,easy,normal,hard"
+}
+```
+
+**Usage:**
+```bash
+# In startup command
+java -jar server.jar --difficulty={{DIFFICULTY}}
+
+# In configuration file
+"difficulty": "{{DIFFICULTY}}"
+```
+
+### Password Variables
+
+For sensitive configuration values:
+
+```json
+{
+  "name": "RCON Password",
+  "description": "Password for RCON access",
+  "env_variable": "RCON_PASSWORD",
+  "default_value": "",
+  "user_viewable": false,
+  "user_editable": true,
+  "rules": "required|string|min:8|max:32"
+}
+```
+
+**Usage:**
+```bash
+# In startup command
+java -jar server.jar --rcon-password={{RCON_PASSWORD}}
+
+# In configuration file
+"rcon.password": "{{RCON_PASSWORD}}"
+```
+
+## Validation Rules
+
+### Laravel Validation Rules
+
+FeatherPanel uses Laravel validation rules for variable validation:
+
+#### Basic Rules
+- `required` - Field is required
+- `string` - Must be a string
+- `integer` - Must be an integer
+- `boolean` - Must be true or false
+- `email` - Must be a valid email address
+- `url` - Must be a valid URL
+
+#### Length Rules
+- `min:value` - Minimum length or value
+- `max:value` - Maximum length or value
+- `between:min,max` - Value between min and max
+
+#### Format Rules
+- `regex:pattern` - Must match regular expression
+- `in:value1,value2,value3` - Must be one of the listed values
+- `not_in:value1,value2,value3` - Must not be one of the listed values
+
+### Validation Examples
+
+#### File Name Validation
+```json
+{
+  "rules": "required|string|regex:/^[a-zA-Z0-9._-]+\.jar$/"
+}
+```
+Validates that the value is a JAR file name with only alphanumeric characters, dots, underscores, and hyphens.
+
+#### Port Number Validation
+```json
+{
+  "rules": "required|integer|between:1024,65535"
+}
+```
+Validates that the value is an integer between 1024 and 65535.
+
+#### Email Validation
+```json
+{
+  "rules": "required|email"
+}
+```
+Validates that the value is a valid email address.
+
+#### URL Validation
+```json
+{
+  "rules": "required|url"
+}
+```
+Validates that the value is a valid URL.
+
+#### Select List Validation
+```json
+{
+  "rules": "required|in:vanilla,forge,fabric,spigot,paper"
+}
+```
+Validates that the value is one of the specified options.
+
+## Variable Permissions
+
+### Permission Levels
+
+#### Users Can View
+- Users can see the variable name and current value
+- Variable appears in the server management interface
+- Value is visible in startup command preview
+- Useful for informational variables
+
+#### Users Can Edit
+- Users can modify the variable value
+- Variable appears as an input field in the interface
+- Changes are validated according to rules
+- Useful for user-configurable settings
+
+#### Hidden Variables
+- Variables are not visible to users
+- Used for internal configuration
+- Still accessible in startup commands and config files
+- Useful for sensitive or system-level settings
+
+### Permission Examples
+
+#### Public Variable (View + Edit)
+```json
+{
+  "name": "Server Name",
+  "env_variable": "SERVER_NAME",
+  "user_viewable": true,
+  "user_editable": true,
+  "rules": "required|string|max:64"
+}
+```
+
+#### Read-Only Variable (View Only)
+```json
+{
+  "name": "Server Version",
+  "env_variable": "SERVER_VERSION",
+  "user_viewable": true,
+  "user_editable": false,
+  "rules": "required|string"
+}
+```
+
+#### Hidden Variable (Neither)
+```json
+{
+  "name": "Internal Config",
+  "env_variable": "INTERNAL_CONFIG",
+  "user_viewable": false,
+  "user_editable": false,
+  "rules": "required|string"
+}
+```
+
+## Using Variables
+
+### In Startup Commands
+
+Variables are replaced in startup commands using double curly braces:
+
+```bash
+# Basic usage
+java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar {{SERVER_JARFILE}}
+
+# With additional parameters
+java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar {{SERVER_JARFILE}} --world={{WORLD_NAME}} --max-players={{MAX_PLAYERS}}
+
+# With conditional logic
+java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar {{SERVER_JARFILE}} {{ENABLE_RCON:--rcon --rcon-password={{RCON_PASSWORD}}}}
+```
+
+### In Configuration Files
+
+Variables are replaced in configuration files during parsing:
+
+```json
+{
+  "config_files": {
+    "server.properties": {
+      "parser": "properties",
+      "find": {
+        "server-port": "{{SERVER_PORT}}",
+        "max-players": "{{MAX_PLAYERS}}",
+        "level-name": "{{WORLD_NAME}}",
+        "difficulty": "{{DIFFICULTY}}",
+        "pvp": "{{ENABLE_PVP}}",
+        "rcon.password": "{{RCON_PASSWORD}}"
+      }
+    }
+  }
+}
+```
+
+### In Environment Variables
+
+Variables are available as environment variables in the container:
+
+```bash
+# In entrypoint script
+export SERVER_NAME="{{SERVER_NAME}}"
+export MAX_PLAYERS="{{MAX_PLAYERS}}"
+export WORLD_NAME="{{WORLD_NAME}}"
+
+# In shell scripts
+echo "Starting server: ${SERVER_NAME}"
+echo "Max players: ${MAX_PLAYERS}"
+echo "World: ${WORLD_NAME}"
+```
+
+## Advanced Variable Features
+
+### Conditional Variables
+
+Variables can be used conditionally in startup commands:
+
+```bash
+# Only include RCON if enabled
+java -jar server.jar {{ENABLE_RCON:--rcon --rcon-password={{RCON_PASSWORD}}}}
+
+# Only include debug mode if enabled
+java -jar server.jar {{DEBUG_MODE:--debug}}
+
+# Multiple conditions
+java -jar server.jar {{ENABLE_RCON:--rcon --rcon-password={{RCON_PASSWORD}}}} {{DEBUG_MODE:--debug}}
+```
+
+### Variable Dependencies
+
+Variables can depend on other variables:
+
+```json
+{
+  "variables": [
+    {
+      "name": "Enable RCON",
+      "env_variable": "ENABLE_RCON",
+      "default_value": "false",
+      "rules": "required|boolean"
+    },
+    {
+      "name": "RCON Port",
+      "env_variable": "RCON_PORT",
+      "default_value": "25575",
+      "rules": "required|integer|between:1024,65535",
+      "depends_on": "ENABLE_RCON"
+    }
+  ]
+}
+```
+
+### Variable Groups
+
+Variables can be grouped for better organization:
+
+```json
+{
+  "variable_groups": [
+    {
+      "name": "Server Settings",
+      "variables": [
+        {
+          "name": "Max Players",
+          "env_variable": "MAX_PLAYERS",
+          "default_value": "20",
+          "rules": "required|integer|min:1|max:100"
+        },
+        {
+          "name": "World Name",
+          "env_variable": "WORLD_NAME",
+          "default_value": "world",
+          "rules": "required|string|max:32"
+        }
+      ]
+    },
+    {
+      "name": "RCON Settings",
+      "variables": [
+        {
+          "name": "Enable RCON",
+          "env_variable": "ENABLE_RCON",
+          "default_value": "false",
+          "rules": "required|boolean"
+        },
+        {
+          "name": "RCON Password",
+          "env_variable": "RCON_PASSWORD",
+          "default_value": "",
+          "rules": "required|string|min:8|max:32"
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Best Practices
+
+### Variable Design
+
+1. **Use descriptive names** and descriptions
+2. **Set appropriate validation rules** for each variable
+3. **Provide helpful default values**
+4. **Group related variables** logically
+5. **Document variable usage** and effects
+
+### Security Considerations
+
+1. **Hide sensitive variables** from users
+2. **Use strong validation rules** for passwords
+3. **Sanitize user input** before use
+4. **Limit variable permissions** appropriately
+5. **Audit variable usage** regularly
+
+### User Experience
+
+1. **Provide clear descriptions** for all variables
+2. **Use intuitive variable names**
+3. **Set sensible defaults** for common use cases
+4. **Group related variables** together
+5. **Provide examples** where helpful
+
+### Performance
+
+1. **Minimize variable count** to reduce overhead
+2. **Use efficient validation rules**
+3. **Cache variable values** when possible
+4. **Optimize variable replacement** in startup commands
+5. **Monitor variable usage** for optimization opportunities
+
+## Troubleshooting
+
+### Common Issues
+
+#### Variables Not Replaced
+- Check variable names are uppercase and use underscores
+- Ensure variables are defined in spell configuration
+- Verify default values are set for all variables
+- Test variable replacement manually
+
+#### Validation Errors
+- Check validation rules are correct for variable type
+- Ensure rules match Laravel validation format
+- Test validation with sample values
+- Review error messages for specific issues
+
+#### Permission Issues
+- Verify user has permission to view/edit variables
+- Check variable permissions are set correctly
+- Ensure users have appropriate server permissions
+- Review FeatherPanel permission system
+
+#### Default Value Issues
+- Ensure default values match validation rules
+- Check default values are appropriate for variable type
+- Test default values with validation rules
+- Provide fallback values for optional variables
+
+### Debugging Tips
+
+1. **Enable debug logging** in FeatherPanel
+2. **Check variable values** in server logs
+3. **Test variable replacement** manually
+4. **Validate variable rules** with sample data
+5. **Use Docker exec** to inspect environment variables
+
+This comprehensive variable system provides flexible and secure configuration management for FeatherPanel spells while maintaining ease of use and validation.

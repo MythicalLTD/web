@@ -1,5 +1,68 @@
 ---
 id: welcome-developers
+title: Plugin Development Guide
+description: Complete guide to developing plugins for FeatherPanel
+pagination_prev: null
 ---
 
-# Welcome
+# FeatherPanel Plugin System
+
+FeatherPanel features a comprehensive plugin system that allows developers to extend functionality through modular addons. This guide covers everything you need to know about creating, developing, and managing plugins.
+
+## Quick Start
+
+1. **Enable Developer Mode** in FeatherPanel settings
+2. **Use the Plugin Manager** to create new plugins (recommended)
+3. **Follow the file structure** and implement required interfaces
+4. **Test your plugin** using the built-in validation tools
+
+## Documentation Structure
+
+- **[Plugin Architecture](./architecture)** - How plugins work and are loaded
+- **[Plugin Configuration](./configuration)** - conf.yml and settings management
+- **[Plugin Events & Hooks](./events)** - Event system and hooking into FeatherPanel
+- **[Plugin Development](./development)** - Creating plugins and file structure
+- **[Plugin Dependencies](./dependencies)** - Managing dependencies and requirements
+- **[Plugin Examples](./examples)** - Complete plugin examples and templates
+
+## What Plugins Can Do
+
+FeatherPanel plugins can:
+
+- **Hook into system events** (user login, server creation, etc.)
+- **Add database tables** with automatic migrations
+- **Create scheduled tasks** (cron jobs)
+- **Add CLI commands** for server management
+- **Integrate with the frontend** (dashboard, admin panel)
+- **Create API endpoints** for external integrations
+- **Manage settings** with persistent storage
+- **Handle file uploads** and public assets
+
+## Plugin Types
+
+- **Event-based Plugins** - React to system events
+- **Database Plugins** - Add data storage and migrations
+- **Cron Plugins** - Background scheduled tasks
+- **CLI Plugins** - Command-line tools
+- **Frontend Plugins** - UI components and dashboards
+- **API Plugins** - REST endpoints and webhooks
+- **Middleware Plugins** - Request/response processing
+
+## Getting Started
+
+The easiest way to create a plugin is using the **Plugin Manager** in the FeatherPanel admin interface:
+
+1. Navigate to **Admin → Plugin Manager**
+2. Click **"Create New Plugin"**
+3. Fill in your plugin details
+4. The system generates a complete plugin structure
+5. Customize the generated code for your needs
+
+For manual creation, see the [Plugin Development](./development) guide.
+
+## Next Steps
+
+- Read about [Plugin Architecture](./architecture) to understand how plugins work
+- Learn about [Plugin Configuration](./configuration) for setting up your plugin
+- Explore [Plugin Events & Hooks](./events) to integrate with FeatherPanel
+- Check out [Plugin Examples](./examples) for complete working examples

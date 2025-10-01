@@ -1,0 +1,554 @@
+---
+id: process-management
+title: Process Management
+description: Server lifecycle and monitoring in FeatherPanel spells
+---
+
+# Process Management
+
+FeatherPanel's process management system handles the complete lifecycle of server processes, from creation to termination, including health monitoring, resource management, and error handling.
+
+## Process Lifecycle
+
+### 1. Process Creation
+
+#### Container Initialization
+```bash
+# Create Docker container
+docker create \
+  --name server-{uuid} \
+  --memory {memory}M \
+  --cpus {cpu} \
+  --network {network} \
+  --publish {port}:{port} \
+  --volume {data}:/home/container \
+  --env-file {env} \
+  {image}
+```
+
+#### Environment Setup
+```bash
+# Set environment variables
+export SERVER_MEMORY=1024
+export SERVER_PORT=25565
+export SERVER_IP=0.0.0.0
+export TZ=UTC
+export P_SERVER_UUID=539fdca8-4a08-4551-a8d2-8ee5475b50d9
+```
+
+#### File System Preparation
+```bash
+# Create necessary directories
+mkdir -p /home/container/logs
+mkdir -p /home/container/config
+mkdir -p /home/container/worlds
+mkdir -p /home/container/plugins
+
+# Set proper permissions
+chown -R container:container /home/container
+chmod -R 755 /home/container
+```
+
+### 2. Process Startup
+
+#### Configuration Processing
+```bash
+# Parse configuration files
+for file in "${CONFIG_FILES[@]}"; do
+  parse_config_file "$file"
+done
+
+# Replace variables in startup command
+MODIFIED_STARTUP=$(eval echo "$(echo "${STARTUP}" | sed -e 's/{{/${/g' -e 's/}}/}/g')")
+```
+
+#### Process Execution
+```bash
+# Start the server process
+exec ${MODIFIED_STARTUP}
+```
+
+#### Health Monitoring
+```bash
+# Monitor process health
+while true; do
+  if ! pgrep -f "${PROCESS_NAME}" > /dev/null; then
+    echo "Process died, exiting..."
+    exit 1
+  fi
+  sleep 30
+done
+```
+
+### 3. Process Monitoring
+
+#### Resource Monitoring
+```bash
+# Monitor CPU usage
+CPU_USAGE=$(top -bn1 | grep "${PROCESS_NAME}" | awk '{print $9}')
+
+# Monitor memory usage
+MEMORY_USAGE=$(ps -o pid,vsz,rss,comm -p "${PID}" | tail -1 | awk '{print $3}')
+
+# Monitor disk usage
+DISK_USAGE=$(du -sh /home/container | cut -f1)
+```
+
+#### Log Monitoring
+```bash
+# Monitor log files
+tail -f /home/container/logs/server.log | while read line; do
+  echo "$(date): $line" >> /var/log/featherpanel/server-${UUID}.log
+done
+```
+
+#### Network Monitoring
+```bash
+# Monitor network connections
+NETSTAT=$(netstat -an | grep ":${SERVER_PORT}" | wc -l)
+
+# Monitor bandwidth usage
+BANDWIDTH=$(cat /proc/net/dev | grep eth0 | awk '{print $2, $10}')
+```
+
+### 4. Process Shutdown
+
+#### Graceful Shutdown
+```bash
+# Send stop command to server
+echo "${STOP_COMMAND}" | nc localhost ${RCON_PORT}
+
+# Wait for graceful shutdown
+timeout=30
+while [ $timeout -gt 0 ]; do
+  if ! pgrep -f "${PROCESS_NAME}" > /dev/null; then
+    echo "Server stopped gracefully"
+    exit 0
+  fi
+  sleep 1
+  timeout=$((timeout - 1))
+done
+```
+
+#### Force Shutdown
+```bash
+# Force kill process if graceful shutdown fails
+if pgrep -f "${PROCESS_NAME}" > /dev/null; then
+  echo "Force killing server process..."
+  pkill -9 -f "${PROCESS_NAME}"
+fi
+```
+
+#### Cleanup
+```bash
+# Clean up temporary files
+rm -rf /tmp/server-*
+rm -rf /var/tmp/server-*
+
+# Clean up log files
+find /home/container/logs -name "*.log" -mtime +7 -delete
+```
+
+## Health Monitoring
+
+### Health Check Types
+
+#### 1. Process Health
+```bash
+# Check if process is running
+check_process_health() {
+  if pgrep -f "${PROCESS_NAME}" > /dev/null; then
+    return 0
+  else
+    return 1
+  fi
+}
+```
+
+#### 2. Port Health
+```bash
+# Check if port is listening
+check_port_health() {
+  if netstat -an | grep ":${SERVER_PORT}" | grep LISTEN > /dev/null; then
+    return 0
+  else
+    return 1
+  fi
+}
+```
+
+#### 3. Response Health
+```bash
+# Check if server responds to requests
+check_response_health() {
+  if curl -s --connect-timeout 5 "http://localhost:${SERVER_PORT}" > /dev/null; then
+    return 0
+  else
+    return 1
+  fi
+}
+```
+
+#### 4. Resource Health
+```bash
+# Check resource usage
+check_resource_health() {
+  CPU_USAGE=$(top -bn1 | grep "${PROCESS_NAME}" | awk '{print $9}')
+  MEMORY_USAGE=$(ps -o pid,vsz,rss,comm -p "${PID}" | tail -1 | awk '{print $3}')
+
+  if [ "$CPU_USAGE" -gt 90 ] || [ "$MEMORY_USAGE" -gt 1048576 ]; then
+    return 1
+  else
+    return 0
+  fi
+}
+```
+
+### Health Check Configuration
+
+```json
+{
+  "health_checks": {
+    "process": {
+      "enabled": true,
+      "interval": 30,
+      "timeout": 5
+    },
+    "port": {
+      "enabled": true,
+      "interval": 60,
+      "timeout": 10
+    },
+    "response": {
+      "enabled": true,
+      "interval": 120,
+      "timeout": 15
+    },
+    "resource": {
+      "enabled": true,
+      "interval": 300,
+      "timeout": 5
+    }
+  }
+}
+```
+
+## Resource Management
+
+### CPU Management
+
+#### CPU Limits
+```bash
+# Set CPU limit
+docker update --cpus="1.0" server-{uuid}
+
+# Monitor CPU usage
+CPU_USAGE=$(docker stats --no-stream --format "table {{.CPUPerc}}" server-{uuid} | tail -1)
+```
+
+#### CPU Throttling
+```bash
+# Throttle CPU usage
+if [ "$CPU_USAGE" -gt 80 ]; then
+  echo "CPU usage high, throttling..."
+  docker update --cpus="0.5" server-{uuid}
+fi
+```
+
+### Memory Management
+
+#### Memory Limits
+```bash
+# Set memory limit
+docker update --memory="1024M" server-{uuid}
+
+# Monitor memory usage
+MEMORY_USAGE=$(docker stats --no-stream --format "table {{.MemUsage}}" server-{uuid} | tail -1)
+```
+
+#### Memory Swapping
+```bash
+# Enable/disable swap
+docker update --memory-swap="2048M" server-{uuid}
+```
+
+#### Out of Memory Handling
+```bash
+# Handle OOM events
+handle_oom() {
+  echo "Out of memory detected, restarting server..."
+  docker restart server-{uuid}
+}
+```
+
+### Disk Management
+
+#### Disk Limits
+```bash
+# Set disk limit
+docker update --storage-opt size=10G server-{uuid}
+
+# Monitor disk usage
+DISK_USAGE=$(docker exec server-{uuid} df -h /home/container | tail -1 | awk '{print $5}')
+```
+
+#### Disk Cleanup
+```bash
+# Clean up old files
+cleanup_disk() {
+  # Remove old log files
+  find /home/container/logs -name "*.log" -mtime +7 -delete
+
+  # Remove temporary files
+  rm -rf /home/container/tmp/*
+
+  # Remove old backups
+  find /home/container/backups -name "*.zip" -mtime +30 -delete
+}
+```
+
+### Network Management
+
+#### Network Limits
+```bash
+# Set network limit
+docker update --network-alias server-{uuid} server-{uuid}
+
+# Monitor network usage
+NETWORK_USAGE=$(docker stats --no-stream --format "table {{.NetIO}}" server-{uuid} | tail -1)
+```
+
+#### Bandwidth Throttling
+```bash
+# Throttle bandwidth
+if [ "$BANDWIDTH_USAGE" -gt 1000000 ]; then
+  echo "Bandwidth usage high, throttling..."
+  docker update --network-alias server-{uuid} server-{uuid}
+fi
+```
+
+## Error Handling
+
+### Error Types
+
+#### 1. Process Errors
+```bash
+# Handle process crashes
+handle_process_error() {
+  echo "Process crashed, attempting restart..."
+  docker restart server-{uuid}
+
+  # Wait for restart
+  sleep 10
+
+  # Check if restart was successful
+  if ! pgrep -f "${PROCESS_NAME}" > /dev/null; then
+    echo "Restart failed, marking server as failed"
+    mark_server_failed
+  fi
+}
+```
+
+#### 2. Resource Errors
+```bash
+# Handle resource exhaustion
+handle_resource_error() {
+  echo "Resource exhaustion detected, scaling down..."
+
+  # Reduce memory limit
+  docker update --memory="512M" server-{uuid}
+
+  # Reduce CPU limit
+  docker update --cpus="0.5" server-{uuid}
+
+  # Restart server
+  docker restart server-{uuid}
+}
+```
+
+#### 3. Network Errors
+```bash
+# Handle network errors
+handle_network_error() {
+  echo "Network error detected, reconnecting..."
+
+  # Restart network
+  docker network disconnect bridge server-{uuid}
+  docker network connect bridge server-{uuid}
+
+  # Restart server
+  docker restart server-{uuid}
+}
+```
+
+#### 4. File System Errors
+```bash
+# Handle file system errors
+handle_filesystem_error() {
+  echo "File system error detected, repairing..."
+
+  # Check file system
+  docker exec server-{uuid} fsck /home/container
+
+  # Repair permissions
+  docker exec server-{uuid} chown -R container:container /home/container
+
+  # Restart server
+  docker restart server-{uuid}
+}
+```
+
+### Error Recovery
+
+#### Automatic Recovery
+```bash
+# Automatic recovery process
+automatic_recovery() {
+  local max_attempts=3
+  local attempt=1
+
+  while [ $attempt -le $max_attempts ]; do
+    echo "Recovery attempt $attempt of $max_attempts"
+
+    # Try to restart server
+    docker restart server-{uuid}
+
+    # Wait for startup
+    sleep 30
+
+    # Check if server is healthy
+    if check_server_health; then
+      echo "Recovery successful"
+      return 0
+    fi
+
+    attempt=$((attempt + 1))
+  done
+
+  echo "Recovery failed after $max_attempts attempts"
+  return 1
+}
+```
+
+#### Manual Recovery
+```bash
+# Manual recovery process
+manual_recovery() {
+  echo "Manual recovery required"
+
+  # Stop server
+  docker stop server-{uuid}
+
+  # Backup data
+  docker cp server-{uuid}:/home/container /backup/server-{uuid}-$(date +%Y%m%d-%H%M%S)
+
+  # Recreate container
+  docker rm server-{uuid}
+  docker create --name server-{uuid} [options] {image}
+
+  # Restore data
+  docker cp /backup/server-{uuid}-latest/. server-{uuid}:/home/container/
+
+  # Start server
+  docker start server-{uuid}
+}
+```
+
+## Log Management
+
+### Log Collection
+
+#### Container Logs
+```bash
+# Collect container logs
+docker logs server-{uuid} > /var/log/featherpanel/server-{uuid}.log
+
+# Follow container logs
+docker logs -f server-{uuid}
+```
+
+#### Application Logs
+```bash
+# Collect application logs
+docker exec server-{uuid} find /home/container/logs -name "*.log" -exec cat {} \;
+```
+
+#### System Logs
+```bash
+# Collect system logs
+journalctl -u docker.service > /var/log/featherpanel/system.log
+```
+
+### Log Rotation
+
+#### Automatic Rotation
+```bash
+# Rotate logs automatically
+logrotate -f /etc/logrotate.d/featherpanel
+```
+
+#### Manual Rotation
+```bash
+# Rotate logs manually
+rotate_logs() {
+  # Compress old logs
+  find /var/log/featherpanel -name "*.log" -mtime +7 -exec gzip {} \;
+
+  # Remove very old logs
+  find /var/log/featherpanel -name "*.log.gz" -mtime +30 -delete
+}
+```
+
+### Log Analysis
+
+#### Error Detection
+```bash
+# Detect errors in logs
+detect_errors() {
+  grep -i "error\|exception\|fatal\|critical" /var/log/featherpanel/server-{uuid}.log
+}
+```
+
+#### Performance Analysis
+```bash
+# Analyze performance from logs
+analyze_performance() {
+  grep -i "performance\|slow\|timeout" /var/log/featherpanel/server-{uuid}.log
+}
+```
+
+## Best Practices
+
+### Process Design
+
+1. **Use proper signal handling** for graceful shutdown
+2. **Implement health checks** for process monitoring
+3. **Handle errors gracefully** with appropriate recovery
+4. **Monitor resource usage** to prevent exhaustion
+5. **Log important events** for debugging and analysis
+
+### Resource Management
+
+1. **Set appropriate limits** for CPU, memory, and disk
+2. **Monitor resource usage** continuously
+3. **Implement automatic scaling** when possible
+4. **Clean up resources** regularly
+5. **Handle resource exhaustion** gracefully
+
+### Error Handling
+
+1. **Implement comprehensive error handling** for all scenarios
+2. **Provide meaningful error messages** for debugging
+3. **Implement automatic recovery** where possible
+4. **Log all errors** for analysis and improvement
+5. **Test error scenarios** thoroughly
+
+### Monitoring
+
+1. **Monitor all critical metrics** continuously
+2. **Set up alerts** for important events
+3. **Implement health checks** for all components
+4. **Collect and analyze logs** regularly
+5. **Review and improve** monitoring based on data
+
+This comprehensive process management system ensures reliable server operation while providing the tools needed to monitor, maintain, and troubleshoot server processes effectively.

@@ -1,0 +1,130 @@
+---
+id: dirs
+pagination_prev: null
+---
+# FeatherPanel Dirs
+
+## Understanding the File Structure
+
+Below is the main directory structure of the FeatherPanel codebase:
+
+## 📁 Project Structure
+
+FeatherPanel follows a modern full-stack architecture with clear separation between backend and frontend components:
+
+```
+featherpanel/
+├── backend/                    # PHP Laravel-based API server
+│   ├── app/
+│   │   ├── Chat/              # Core data models
+│   │   │   ├── Server.php     # Server management
+│   │   │   ├── User.php       # User accounts
+│   │   │   ├── Node.php       # Server nodes
+│   │   │   ├── Database.php   # Database instances
+│   │   │   ├── Backup.php     # Backup management
+│   │   │   ├── Permission.php # User permissions
+│   │   │   ├── Role.php       # User roles
+│   │   │   └── ...            # Other models
+│   │   ├── Controllers/       # API endpoints
+│   │   │   ├── Admin/         # Admin panel APIs
+│   │   │   ├── User/          # User panel APIs
+│   │   │   └── Wings/         # Wings daemon APIs
+│   │   ├── Middleware/        # Request processing
+│   │   │   ├── AuthMiddleware.php      # Authentication
+│   │   │   ├── AdminMiddleware.php     # Admin access
+│   │   │   └── ServerMiddleware.php    # Server access
+│   │   ├── Plugins/           # Plugin system
+│   │   │   ├── PluginManager.php       # Plugin management
+│   │   │   ├── PluginEvents.php        # Event system
+│   │   │   └── ...            # Plugin infrastructure
+│   │   ├── routes/            # API route definitions
+│   │   │   ├── admin/         # Admin routes
+│   │   │   ├── user/          # User routes
+│   │   │   └── wings/         # Wings routes
+│   │   ├── Services/          # Wings Talking Logic (Responses/Requests)
+│   │   ├── Helpers/           # Utility functions
+│   │   └── Permissions.php     # Defines all permission for backend!
+
+│   ├── public/                # Web server entry point
+│   ├── storage/               # File storage & configuration
+│   │   ├── config/            # Configuration files (including .env)
+│   │   ├── addons/            # Plugins and extensions
+│   │   ├── cron/              # Cron job definitions
+│   │   ├── caches/            # Cache files
+│   │   ├── logs/              # Log files
+│   │   ├── migrations/        # Database migration files
+│   │   ├── packages/          # Composer vendor packages
+│   │   └── tests/             # Unit and feature tests for backend code
+│   └── composer.json          # PHP dependencies
+├── frontend/                   # Vue.js web interface
+│   ├── src/
+│   │   ├── components/        # Reusable UI components
+│   │   │   ├── server/        # Server management UI
+│   │   │   ├── dashboard/     # Dashboard widgets
+│   │   │   ├── account/       # Account management
+│   │   │   └── ui/            # Base UI components (shacdn-vue)
+│   │   ├── pages/             # Route pages
+│   │   │   ├── admin/         # Admin panel pages
+│   │   │   ├── auth/          # Authentication pages
+│   │   │   └── dashboard/     # User dashboard
+│   │   ├── composables/       # Vue composition functions
+│   │   │   ├── useWingsWebSocket.ts    # Real-time updates
+│   │   │   ├── useTheme.ts             # Theme management
+│   │   │   └── useNavigation.ts        # Navigation/Sidebar logic
+│   │   ├── stores/            # State management
+│   │   │   ├── session.ts     # User session
+│   │   │   ├── dashboard.ts   # Dashboard state
+│   │   │   └── settings.ts    # App settings
+│   │   ├── services/          # API communication
+│   │   │   ├── pluginAPI.ts   # Plugin management
+│   │   │   └── pluginLoader.ts # Plugin loading
+│   │   ├── types/             # TypeScript definitions
+│   │   │   ├── server.ts      # Server types
+│   │   │   ├── admin.ts       # Admin types
+│   │   │   └── plugin.d.ts    # Plugin types
+│   │   ├── lib/               # Shared utilities and libraries
+│   │   │   └── permissions.ts # Frontend permission logic
+│   │   └── router/            # Vue Router configuration
+│   └── package.json           # Node.js dependencies
+|
+├── docs/                      # Project documentation
+│   ├── codebase/              # Codebase documentation
+│   └── PERMISSIONS.md         # Permission system docs
+├── .github/                   # GitHub workflows & templates
+│   ├── workflows/             # CI/CD pipelines
+│   │   ├── backend.yml        # Backend testing
+│   │   ├── frontend.yml       # Frontend testing
+│   │   └── docker.yml         # Container builds
+│   └── ISSUE_TEMPLATE/        # Issue templates
+├── docker-compose.yml         # Production environment
+├── docker-compose-dev.yml     # Development containers
+└── LICENSE                    # Project license
+```
+
+
+## 🏗️ Architecture Overview
+
+### Backend (PHP, Laravel)
+- **Chat**: Represent core data entities such as servers, users, nodes, databases, backups, permissions, and roles.
+- **Controllers**: Define RESTful API endpoints for both admin and user panels, as well as the Wings daemon.
+- **Middleware**: Handle authentication, admin access, and server access for API requests.
+- **Plugins**: Provide a plugin system for extending backend functionality, including event hooks and plugin management.
+- **Services**: Contain business logic and manage communication with the Wings daemon.
+- **Routes**: Organize API endpoints by user type (admin, user, wings).
+- **Helpers**: Utility functions for backend operations.
+
+### Frontend (Vue 3, TypeScript)
+- **Components**: Reusable UI elements, including server management, dashboard widgets, account management, and base UI (shacdn-vue).
+- **Pages**: Route-based components for admin, authentication, and user dashboard sections.
+- **Composables**: Vue composition functions for real-time updates, theme management, and navigation logic.
+- **Stores**: Pinia-based state management for session, dashboard, and settings.
+- **Services**: API communication and plugin management.
+- **Types**: TypeScript definitions for servers, admin, and plugins.
+- **Router**: Vue Router configuration for navigation.
+
+### Key Features
+- **Plugin System**: Extensible backend and frontend plugin architecture.
+- **Multi-tenancy**: Support for multiple server nodes and users.
+- **Real-time Updates**: WebSocket integration for live server and dashboard updates.
+- **Security**: Role-based permissions, authentication middleware, and secure API endpoints.
+- **Containerization**: Docker-based development and production environments.

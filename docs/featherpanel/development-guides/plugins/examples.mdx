@@ -1,0 +1,1203 @@
+---
+id: examples
+title: Plugin Examples
+description: Complete plugin examples and templates for FeatherPanel
+---
+
+# Plugin Examples
+
+This section provides complete, working examples of FeatherPanel plugins to help you understand different plugin types and implementation patterns.
+
+## Example 1: Simple Hello World Plugin
+
+A basic plugin that demonstrates the minimum required structure.
+
+### conf.yml
+```yaml
+plugin:
+  name: "Hello World Plugin"
+  identifier: "hello_world"
+  description: "A simple hello world plugin"
+  version: "1.0.0"
+  target: "v2"
+  author: ["Developer"]
+  icon: "https://example.com/icon.png"
+  flags: ["hasEvents"]
+  dependencies: []
+  requiredConfigs: []
+```
+
+### HelloWorld.php
+```php
+<?php
+
+namespace App\Addons\hello_world;
+
+use App\Plugins\AppPlugin;
+use App\Plugins\PluginEvents;
+use App\Plugins\Events\Events\AppEvent;
+
+class HelloWorld implements AppPlugin
+{
+    public static function processEvents(PluginEvents $event): void
+    {
+        // Hook into router ready event
+        $event->on(AppEvent::onRouterReady(), function ($router) {
+            // Add a simple route
+            $router->add('hello-world', new Route(
+                '/api/hello-world',
+                [
+                    '_controller' => function ($request) {
+                        return new Response('Hello World from Plugin!', 200, [
+                            'Content-Type' => 'text/plain'
+                        ]);
+                    }
+                ]
+            ));
+        });
+
+        // Hook into user login
+        $event->on('user.login', function ($user) {
+            error_log("Hello World Plugin: User {$user['email']} logged in");
+        });
+    }
+
+    public static function pluginInstall(): void
+    {
+        // Simple installation - just log
+        error_log("Hello World Plugin installed successfully");
+    }
+
+    public static function pluginUninstall(): void
+    {
+        // Simple cleanup - just log
+        error_log("Hello World Plugin uninstalled");
+    }
+}
+```
+
+## Example 2: User Activity Logger Plugin
+
+A plugin that logs user activities to a database.
+
+### conf.yml
+```yaml
+plugin:
+  name: "User Activity Logger"
+  identifier: "user_activity_logger"
+  description: "Logs user activities to database"
+  version: "1.0.0"
+  target: "v2"
+  author: ["Activity Team"]
+  icon: "https://example.com/activity-icon.png"
+  flags:
+    - "hasEvents"
+    - "hasInstallScript"
+    - "hasRemovalScript"
+  dependencies:
+    - "php=8.1"
+    - "php-ext=json"
+  requiredConfigs:
+    - "log_level"
+    - "retention_days"
+
+config:
+  - name: "log_level"
+    display_name: "Log Level"
+    type: "text"
+    description: "Minimum log level to record"
+    required: true
+    validation:
+      regex: "/^(info|warning|error|debug)$/"
+      message: "Must be one of: info, warning, error, debug"
+    default: "info"
+
+  - name: "retention_days"
+    display_name: "Retention Days"
+    type: "number"
+    description: "Number of days to keep logs"
+    required: true
+    validation:
+      min: 1
+      max: 365
+      message: "Must be between 1 and 365 days"
+    default: "30"
+```
+
+### UserActivityLogger.php
+```php
+<?php
+
+namespace App\Addons\user_activity_logger;
+
+use App\Plugins\AppPlugin;
+use App\Plugins\PluginEvents;
+use App\Plugins\PluginSettings;
+use App\Chat\Database;
+
+class UserActivityLogger implements AppPlugin
+{
+    public static function processEvents(PluginEvents $event): void
+    {
+        // Log user login
+        $event->on('user.login', function ($user) {
+            self::logActivity($user['id'], 'login', 'User logged in');
+        });
+
+        // Log user logout
+        $event->on('user.logout', function ($user) {
+            self::logActivity($user['id'], 'logout', 'User logged out');
+        });
+
+        // Log server creation
+        $event->on('server.created', function ($server) {
+            self::logActivity($server['owner_id'], 'server_created', 'Created server: ' . $server['name']);
+        });
+
+        // Log server deletion
+        $event->on('server.deleted', function ($serverId, $serverData) {
+            self::logActivity($serverData['owner_id'], 'server_deleted', 'Deleted server: ' . $serverData['name']);
+        });
+    }
+
+    public static function pluginInstall(): void
+    {
+        // Create log table
+        $db = new Database(
+            $_ENV['DATABASE_HOST'] ?? '127.0.0.1',
+            $_ENV['DATABASE_DATABASE'] ?? '',
+            $_ENV['DATABASE_USER'] ?? '',
+            $_ENV['DATABASE_PASSWORD'] ?? '',
+            (int) ($_ENV['DATABASE_PORT'] ?? 3306)
+        );
+
+        $pdo = $db->getPdo();
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS `featherpanel_user_activity_logs` (
+                `id` INT NOT NULL AUTO_INCREMENT,
+                `user_id` INT NOT NULL,
+                `action` VARCHAR(50) NOT NULL,
+                `description` TEXT NOT NULL,
+                `level` VARCHAR(20) DEFAULT 'info',
+                `ip_address` VARCHAR(45),
+                `user_agent` TEXT,
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`),
+                INDEX `idx_user_id` (`user_id`),
+                INDEX `idx_action` (`action`),
+                INDEX `idx_created_at` (`created_at`)
+            ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci
+        ");
+
+        // Set default settings
+        PluginSettings::setSetting('user_activity_logger', 'log_level', 'info');
+        PluginSettings::setSetting('user_activity_logger', 'retention_days', '30');
+    }
+
+    public static function pluginUninstall(): void
+    {
+        // Remove log table
+        $db = new Database(
+            $_ENV['DATABASE_HOST'] ?? '127.0.0.1',
+            $_ENV['DATABASE_DATABASE'] ?? '',
+            $_ENV['DATABASE_USER'] ?? '',
+            $_ENV['DATABASE_PASSWORD'] ?? '',
+            (int) ($_ENV['DATABASE_PORT'] ?? 3306)
+        );
+
+        $pdo = $db->getPdo();
+        $pdo->exec("DROP TABLE IF EXISTS `featherpanel_user_activity_logs`");
+
+        // Remove settings
+        PluginSettings::deleteSettings('user_activity_logger', 'log_level');
+        PluginSettings::deleteSettings('user_activity_logger', 'retention_days');
+    }
+
+    private static function logActivity(int $userId, string $action, string $description): void
+    {
+        try {
+            $logLevel = PluginSettings::getSetting('user_activity_logger', 'log_level') ?? 'info';
+            $minLevel = self::getLogLevelPriority($logLevel);
+            $currentLevel = self::getLogLevelPriority('info'); // Default level
+
+            if ($currentLevel < $minLevel) {
+                return; // Skip logging if below minimum level
+            }
+
+            $db = new Database(
+                $_ENV['DATABASE_HOST'] ?? '127.0.0.1',
+                $_ENV['DATABASE_DATABASE'] ?? '',
+                $_ENV['DATABASE_USER'] ?? '',
+                $_ENV['DATABASE_PASSWORD'] ?? '',
+                (int) ($_ENV['DATABASE_PORT'] ?? 3306)
+            );
+
+            $pdo = $db->getPdo();
+            $stmt = $pdo->prepare("
+                INSERT INTO featherpanel_user_activity_logs
+                (user_id, action, description, level, ip_address, user_agent)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ");
+
+            $stmt->execute([
+                $userId,
+                $action,
+                $description,
+                'info',
+                $_SERVER['REMOTE_ADDR'] ?? null,
+                $_SERVER['HTTP_USER_AGENT'] ?? null
+            ]);
+        } catch (\Exception $e) {
+            error_log("UserActivityLogger error: " . $e->getMessage());
+        }
+    }
+
+    private static function getLogLevelPriority(string $level): int
+    {
+        return match ($level) {
+            'debug' => 0,
+            'info' => 1,
+            'warning' => 2,
+            'error' => 3,
+            default => 1
+        };
+    }
+}
+```
+
+### Migration: 2024-01-15-14.30-create-activity-logs.sql
+```sql
+-- Create user activity logs table
+CREATE TABLE IF NOT EXISTS `featherpanel_user_activity_logs` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `user_id` INT NOT NULL,
+    `action` VARCHAR(50) NOT NULL,
+    `description` TEXT NOT NULL,
+    `level` VARCHAR(20) DEFAULT 'info',
+    `ip_address` VARCHAR(45),
+    `user_agent` TEXT,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    INDEX `idx_user_id` (`user_id`),
+    INDEX `idx_action` (`action`),
+    INDEX `idx_created_at` (`created_at`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
+
+-- Insert initial log entry
+INSERT IGNORE INTO `featherpanel_user_activity_logs`
+(`user_id`, `action`, `description`, `level`)
+VALUES (1, 'install', 'User Activity Logger plugin installed', 'info');
+```
+
+### Cron: CleanupCron.php
+```php
+<?php
+
+namespace App\Addons\user_activity_logger\Cron;
+
+use App\Cron\Cron;
+use App\Cron\TimeTask;
+use App\Chat\TimedTask;
+use App\Plugins\PluginSettings;
+use App\Chat\Database;
+
+class CleanupCron implements TimeTask
+{
+    public function run()
+    {
+        $cron = new Cron('user-activity-logger-cleanup', '1D'); // Run daily
+        try {
+            $cron->runIfDue(function () {
+                $this->cleanupOldLogs();
+                TimedTask::markRun('user-activity-logger-cleanup', true, 'Cleanup completed');
+            });
+        } catch (\Exception $e) {
+            $app = \App\App::getInstance(false, true);
+            $app->getLogger()->error('Failed to run cleanup cron: ' . $e->getMessage());
+            TimedTask::markRun('user-activity-logger-cleanup', false, $e->getMessage());
+        }
+    }
+
+    private function cleanupOldLogs(): void
+    {
+        $retentionDays = PluginSettings::getSetting('user_activity_logger', 'retention_days') ?? 30;
+
+        $db = new Database(
+            $_ENV['DATABASE_HOST'] ?? '127.0.0.1',
+            $_ENV['DATABASE_DATABASE'] ?? '',
+            $_ENV['DATABASE_USER'] ?? '',
+            $_ENV['DATABASE_PASSWORD'] ?? '',
+            (int) ($_ENV['DATABASE_PORT'] ?? 3306)
+        );
+
+        $pdo = $db->getPdo();
+        $stmt = $pdo->prepare("
+            DELETE FROM featherpanel_user_activity_logs
+            WHERE created_at < DATE_SUB(NOW(), INTERVAL ? DAY)
+        ");
+        $stmt->execute([$retentionDays]);
+    }
+}
+```
+
+## Example 3: API Integration Plugin
+
+A plugin that integrates with external APIs and provides webhook functionality.
+
+### conf.yml
+```yaml
+plugin:
+  name: "API Integration Plugin"
+  identifier: "api_integration"
+  description: "Integrates with external APIs and webhooks"
+  version: "1.0.0"
+  target: "v2"
+  author: ["API Team"]
+  icon: "https://example.com/api-icon.png"
+  flags:
+    - "hasEvents"
+    - "hasInstallScript"
+    - "hasRemovalScript"
+  dependencies:
+    - "php=8.1"
+    - "php-ext=curl"
+    - "php-ext=json"
+    - "composer=guzzlehttp/guzzle:^7.0"
+  requiredConfigs:
+    - "api_key"
+    - "api_url"
+    - "webhook_url"
+
+config:
+  - name: "api_key"
+    display_name: "API Key"
+    type: "password"
+    description: "Your API authentication key"
+    required: true
+    validation:
+      regex: "/^[a-zA-Z0-9]{32,}$/"
+      message: "API key must be at least 32 alphanumeric characters"
+    default: ""
+
+  - name: "api_url"
+    display_name: "API Base URL"
+    type: "url"
+    description: "Base URL for the API"
+    required: true
+    validation:
+      regex: "/^https:\\/\\/.+/"
+      message: "Must be a valid HTTPS URL"
+    default: "https://api.example.com"
+
+  - name: "webhook_url"
+    display_name: "Webhook URL"
+    type: "url"
+    description: "URL to receive webhook notifications"
+    required: false
+    validation:
+      regex: "/^https:\\/\\/.+/"
+      message: "Must be a valid HTTPS URL"
+    default: ""
+
+  - name: "timeout"
+    display_name: "Request Timeout"
+    type: "number"
+    description: "API request timeout in seconds"
+    required: false
+    validation:
+      min: 5
+      max: 300
+      message: "Timeout must be between 5 and 300 seconds"
+    default: "30"
+
+  - name: "enable_logging"
+    display_name: "Enable Logging"
+    type: "boolean"
+    description: "Enable detailed API request logging"
+    required: false
+    default: "true"
+```
+
+### ApiIntegration.php
+```php
+<?php
+
+namespace App\Addons\api_integration;
+
+use App\Plugins\AppPlugin;
+use App\Plugins\PluginEvents;
+use App\Plugins\PluginSettings;
+use App\Plugins\Events\Events\AppEvent;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
+
+class ApiIntegration implements AppPlugin
+{
+    private static Client $httpClient;
+
+    public static function processEvents(PluginEvents $event): void
+    {
+        // Initialize HTTP client
+        self::initializeHttpClient();
+
+        // Hook into router ready event
+        $event->on(AppEvent::onRouterReady(), function ($router) {
+            // Add webhook endpoint
+            $router->add('api-integration-webhook', new Route(
+                '/api/integration/webhook',
+                [
+                    '_controller' => [self::class, 'handleWebhook'],
+                    '_method' => ['POST']
+                ]
+            ));
+
+            // Add API status endpoint
+            $router->add('api-integration-status', new Route(
+                '/api/integration/status',
+                [
+                    '_controller' => [self::class, 'getStatus'],
+                    '_method' => ['GET']
+                ]
+            ));
+        });
+
+        // Hook into server events
+        $event->on('server.created', function ($server) {
+            self::notifyApi('server.created', $server);
+        });
+
+        $event->on('server.started', function ($server) {
+            self::notifyApi('server.started', $server);
+        });
+
+        $event->on('server.stopped', function ($server) {
+            self::notifyApi('server.stopped', $server);
+        });
+    }
+
+    public static function pluginInstall(): void
+    {
+        // Create API logs table
+        $db = new \App\Chat\Database(
+            $_ENV['DATABASE_HOST'] ?? '127.0.0.1',
+            $_ENV['DATABASE_DATABASE'] ?? '',
+            $_ENV['DATABASE_USER'] ?? '',
+            $_ENV['DATABASE_PASSWORD'] ?? '',
+            (int) ($_ENV['DATABASE_PORT'] ?? 3306)
+        );
+
+        $pdo = $db->getPdo();
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS `featherpanel_api_integration_logs` (
+                `id` INT NOT NULL AUTO_INCREMENT,
+                `endpoint` VARCHAR(255) NOT NULL,
+                `method` VARCHAR(10) NOT NULL,
+                `status_code` INT,
+                `response_time` INT,
+                `request_data` TEXT,
+                `response_data` TEXT,
+                `error_message` TEXT,
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`),
+                INDEX `idx_endpoint` (`endpoint`),
+                INDEX `idx_created_at` (`created_at`)
+            ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci
+        ");
+
+        // Set default settings
+        PluginSettings::setSetting('api_integration', 'timeout', '30');
+        PluginSettings::setSetting('api_integration', 'enable_logging', 'true');
+    }
+
+    public static function pluginUninstall(): void
+    {
+        // Remove API logs table
+        $db = new \App\Chat\Database(
+            $_ENV['DATABASE_HOST'] ?? '127.0.0.1',
+            $_ENV['DATABASE_DATABASE'] ?? '',
+            $_ENV['DATABASE_USER'] ?? '',
+            $_ENV['DATABASE_PASSWORD'] ?? '',
+            (int) ($_ENV['DATABASE_PORT'] ?? 3306)
+        );
+
+        $pdo = $db->getPdo();
+        $pdo->exec("DROP TABLE IF EXISTS `featherpanel_api_integration_logs`");
+    }
+
+    private static function initializeHttpClient(): void
+    {
+        $timeout = PluginSettings::getSetting('api_integration', 'timeout') ?? 30;
+
+        self::$httpClient = new Client([
+            'timeout' => $timeout,
+            'headers' => [
+                'User-Agent' => 'FeatherPanel-API-Integration/1.0',
+                'Content-Type' => 'application/json'
+            ]
+        ]);
+    }
+
+    private static function notifyApi(string $event, array $data): void
+    {
+        $webhookUrl = PluginSettings::getSetting('api_integration', 'webhook_url');
+        if (empty($webhookUrl)) {
+            return;
+        }
+
+        try {
+            $payload = [
+                'event' => $event,
+                'data' => $data,
+                'timestamp' => time(),
+                'source' => 'featherpanel'
+            ];
+
+            $startTime = microtime(true);
+            $response = self::$httpClient->post($webhookUrl, [
+                'json' => $payload,
+                'headers' => [
+                    'Authorization' => 'Bearer ' . PluginSettings::getSetting('api_integration', 'api_key')
+                ]
+            ]);
+
+            $responseTime = (microtime(true) - $startTime) * 1000; // Convert to milliseconds
+
+            if (PluginSettings::getSetting('api_integration', 'enable_logging') === 'true') {
+                self::logApiRequest($webhookUrl, 'POST', $response->getStatusCode(), $responseTime, $payload, $response->getBody()->getContents());
+            }
+        } catch (RequestException $e) {
+            $responseTime = (microtime(true) - $startTime) * 1000;
+            self::logApiRequest($webhookUrl, 'POST', $e->getResponse()?->getStatusCode() ?? 0, $responseTime, $payload, null, $e->getMessage());
+        }
+    }
+
+    private static function logApiRequest(string $endpoint, string $method, int $statusCode, int $responseTime, array $requestData, ?string $responseData, ?string $errorMessage = null): void
+    {
+        try {
+            $db = new \App\Chat\Database(
+                $_ENV['DATABASE_HOST'] ?? '127.0.0.1',
+                $_ENV['DATABASE_DATABASE'] ?? '',
+                $_ENV['DATABASE_USER'] ?? '',
+                $_ENV['DATABASE_PASSWORD'] ?? '',
+                (int) ($_ENV['DATABASE_PORT'] ?? 3306)
+            );
+
+            $pdo = $db->getPdo();
+            $stmt = $pdo->prepare("
+                INSERT INTO featherpanel_api_integration_logs
+                (endpoint, method, status_code, response_time, request_data, response_data, error_message)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ");
+
+            $stmt->execute([
+                $endpoint,
+                $method,
+                $statusCode,
+                $responseTime,
+                json_encode($requestData),
+                $responseData,
+                $errorMessage
+            ]);
+        } catch (\Exception $e) {
+            error_log("API Integration logging error: " . $e->getMessage());
+        }
+    }
+
+    public static function handleWebhook($request): \Symfony\Component\HttpFoundation\Response
+    {
+        $payload = json_decode($request->getContent(), true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return new \Symfony\Component\HttpFoundation\Response('Invalid JSON', 400);
+        }
+
+        // Process webhook payload
+        self::processWebhookPayload($payload);
+
+        return new \Symfony\Component\HttpFoundation\Response('OK', 200);
+    }
+
+    public static function getStatus($request): \Symfony\Component\HttpFoundation\Response
+    {
+        $status = [
+            'plugin' => 'api_integration',
+            'version' => '1.0.0',
+            'status' => 'active',
+            'api_url' => PluginSettings::getSetting('api_integration', 'api_url'),
+            'webhook_configured' => !empty(PluginSettings::getSetting('api_integration', 'webhook_url')),
+            'timestamp' => time()
+        ];
+
+        return new \Symfony\Component\HttpFoundation\JsonResponse($status);
+    }
+
+    private static function processWebhookPayload(array $payload): void
+    {
+        // Process incoming webhook data
+        error_log("Received webhook: " . json_encode($payload));
+
+        // Add your webhook processing logic here
+    }
+}
+```
+
+## Example 4: Frontend Dashboard Plugin
+
+A plugin that adds a custom dashboard to the FeatherPanel frontend.
+
+### conf.yml
+```yaml
+plugin:
+  name: "Custom Dashboard Plugin"
+  identifier: "custom_dashboard"
+  description: "Adds a custom dashboard to FeatherPanel"
+  version: "1.0.0"
+  target: "v2"
+  author: ["Dashboard Team"]
+  icon: "https://example.com/dashboard-icon.png"
+  flags: ["hasEvents"]
+  dependencies:
+    - "php=8.1"
+    - "php-ext=json"
+  requiredConfigs: []
+```
+
+### CustomDashboard.php
+```php
+<?php
+
+namespace App\Addons\custom_dashboard;
+
+use App\Plugins\AppPlugin;
+use App\Plugins\PluginEvents;
+use App\Plugins\Events\Events\AppEvent;
+
+class CustomDashboard implements AppPlugin
+{
+    public static function processEvents(PluginEvents $event): void
+    {
+        // Hook into router ready event
+        $event->on(AppEvent::onRouterReady(), function ($router) {
+            // Add dashboard API endpoints
+            $router->add('custom-dashboard-data', new Route(
+                '/api/custom-dashboard/data',
+                [
+                    '_controller' => [self::class, 'getDashboardData'],
+                    '_method' => ['GET']
+                ]
+            ));
+        });
+    }
+
+    public static function pluginInstall(): void
+    {
+        // Create dashboard data table
+        $db = new \App\Chat\Database(
+            $_ENV['DATABASE_HOST'] ?? '127.0.0.1',
+            $_ENV['DATABASE_DATABASE'] ?? '',
+            $_ENV['DATABASE_USER'] ?? '',
+            $_ENV['DATABASE_PASSWORD'] ?? '',
+            (int) ($_ENV['DATABASE_PORT'] ?? 3306)
+        );
+
+        $pdo = $db->getPdo();
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS `featherpanel_custom_dashboard_stats` (
+                `id` INT NOT NULL AUTO_INCREMENT,
+                `metric_name` VARCHAR(100) NOT NULL,
+                `metric_value` DECIMAL(10,2) NOT NULL,
+                `metric_date` DATE NOT NULL,
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`),
+                INDEX `idx_metric_name` (`metric_name`),
+                INDEX `idx_metric_date` (`metric_date`)
+            ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci
+        ");
+    }
+
+    public static function pluginUninstall(): void
+    {
+        // Remove dashboard data table
+        $db = new \App\Chat\Database(
+            $_ENV['DATABASE_HOST'] ?? '127.0.0.1',
+            $_ENV['DATABASE_DATABASE'] ?? '',
+            $_ENV['DATABASE_USER'] ?? '',
+            $_ENV['DATABASE_PASSWORD'] ?? '',
+            (int) ($_ENV['DATABASE_PORT'] ?? 3306)
+        );
+
+        $pdo = $db->getPdo();
+        $pdo->exec("DROP TABLE IF EXISTS `featherpanel_custom_dashboard_stats`");
+    }
+
+    public static function getDashboardData($request): \Symfony\Component\HttpFoundation\Response
+    {
+        $db = new \App\Chat\Database(
+            $_ENV['DATABASE_HOST'] ?? '127.0.0.1',
+            $_ENV['DATABASE_DATABASE'] ?? '',
+            $_ENV['DATABASE_USER'] ?? '',
+            $_ENV['DATABASE_PASSWORD'] ?? '',
+            (int) ($_ENV['DATABASE_PORT'] ?? 3306)
+        );
+
+        $pdo = $db->getPdo();
+
+        // Get dashboard statistics
+        $stats = [];
+        $stmt = $pdo->query("
+            SELECT metric_name, AVG(metric_value) as avg_value, COUNT(*) as count
+            FROM featherpanel_custom_dashboard_stats
+            WHERE metric_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+            GROUP BY metric_name
+        ");
+
+        while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+            $stats[$row['metric_name']] = [
+                'average' => (float) $row['avg_value'],
+                'count' => (int) $row['count']
+            ];
+        }
+
+        $data = [
+            'stats' => $stats,
+            'timestamp' => time(),
+            'plugin' => 'custom_dashboard'
+        ];
+
+        return new \Symfony\Component\HttpFoundation\JsonResponse($data);
+    }
+}
+```
+
+### Frontend/index.js
+```javascript
+class CustomDashboard {
+    constructor() {
+        this.api = null;
+        this.ui = new CustomDashboardUI();
+    }
+
+    async init(api) {
+        this.api = api;
+        console.log('Custom Dashboard Plugin initialized!');
+        this.ui.init();
+    }
+
+    showDashboard() {
+        console.log('Opening Custom Dashboard...');
+        this.ui.showModal('dashboard', 'Custom Dashboard', this.getDashboardContent());
+        this.loadDashboardData();
+    }
+
+    async loadDashboardData() {
+        try {
+            const response = await this.api.get('/api/custom-dashboard/data');
+            const data = await response.json();
+            this.updateDashboard(data);
+        } catch (error) {
+            console.error('Failed to load dashboard data:', error);
+        }
+    }
+
+    updateDashboard(data) {
+        const statsContainer = document.querySelector('.custom-dashboard-stats');
+        if (statsContainer) {
+            statsContainer.innerHTML = this.renderStats(data.stats);
+        }
+    }
+
+    renderStats(stats) {
+        let html = '<div class="stats-grid">';
+
+        for (const [metric, data] of Object.entries(stats)) {
+            html += `
+                <div class="stat-card">
+                    <h3>${metric}</h3>
+                    <div class="stat-value">${data.average.toFixed(2)}</div>
+                    <div class="stat-count">${data.count} records</div>
+                </div>
+            `;
+        }
+
+        html += '</div>';
+        return html;
+    }
+
+    getDashboardContent() {
+        return `
+            <div class="custom-dashboard-container">
+                <div class="dashboard-header">
+                    <h2>Custom Dashboard</h2>
+                    <button class="refresh-btn" onclick="window.CustomDashboard.loadDashboardData()">
+                        Refresh
+                    </button>
+                </div>
+                <div class="custom-dashboard-stats">
+                    <div class="loading">Loading dashboard data...</div>
+                </div>
+            </div>
+        `;
+    }
+}
+
+class CustomDashboardUI {
+    constructor() {
+        this.modals = new Map();
+        this.createStyles();
+    }
+
+    createStyles() {
+        const style = document.createElement('style');
+        style.textContent = `
+            .custom-dashboard-container {
+                padding: 20px;
+            }
+
+            .dashboard-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 20px;
+            }
+
+            .refresh-btn {
+                background: #3b82f6;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 6px;
+                cursor: pointer;
+            }
+
+            .stats-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 16px;
+            }
+
+            .stat-card {
+                background: white;
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+                padding: 16px;
+                text-align: center;
+            }
+
+            .stat-card h3 {
+                margin: 0 0 8px 0;
+                font-size: 0.875rem;
+                color: #6b7280;
+                text-transform: uppercase;
+            }
+
+            .stat-value {
+                font-size: 2rem;
+                font-weight: bold;
+                color: #111827;
+                margin-bottom: 4px;
+            }
+
+            .stat-count {
+                font-size: 0.875rem;
+                color: #6b7280;
+            }
+
+            .loading {
+                text-align: center;
+                padding: 40px;
+                color: #6b7280;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    showModal(id, title, content) {
+        // Modal implementation similar to previous examples
+        console.log(`Showing modal: ${title}`);
+    }
+
+    init() {
+        console.log('Custom Dashboard UI initialized');
+    }
+}
+
+// Initialize plugin
+async function initCustomDashboard() {
+    const api = window.FeatherPanel.api;
+    const plugin = new CustomDashboard();
+    await plugin.init(api);
+    window.CustomDashboard = plugin;
+}
+
+initCustomDashboard();
+```
+
+### Frontend/sidebar.json
+```json
+{
+  "dashboard": {
+    "/custom-dashboard": {
+      "name": "Custom Dashboard",
+      "icon": "📊",
+      "js": "if (window.CustomDashboard) { window.CustomDashboard.showDashboard(); }",
+      "description": "View custom dashboard with statistics",
+      "category": "general"
+    }
+  }
+}
+```
+
+## Example 5: CLI Command Plugin
+
+A plugin that provides CLI commands for server management.
+
+### conf.yml
+```yaml
+plugin:
+  name: "Server Management CLI"
+  identifier: "server_management_cli"
+  description: "Provides CLI commands for server management"
+  version: "1.0.0"
+  target: "v2"
+  author: ["CLI Team"]
+  icon: "https://example.com/cli-icon.png"
+  flags: ["hasEvents"]
+  dependencies:
+    - "php=8.1"
+    - "php-ext=json"
+  requiredConfigs: []
+```
+
+### ServerManagementCli.php
+```php
+<?php
+
+namespace App\Addons\server_management_cli;
+
+use App\Plugins\AppPlugin;
+use App\Plugins\PluginEvents;
+
+class ServerManagementCli implements AppPlugin
+{
+    public static function processEvents(PluginEvents $event): void
+    {
+        // This plugin only provides CLI commands
+        // No event processing needed
+    }
+
+    public static function pluginInstall(): void
+    {
+        // Create CLI logs table
+        $db = new \App\Chat\Database(
+            $_ENV['DATABASE_HOST'] ?? '127.0.0.1',
+            $_ENV['DATABASE_DATABASE'] ?? '',
+            $_ENV['DATABASE_USER'] ?? '',
+            $_ENV['DATABASE_PASSWORD'] ?? '',
+            (int) ($_ENV['DATABASE_PORT'] ?? 3306)
+        );
+
+        $pdo = $db->getPdo();
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS `featherpanel_cli_logs` (
+                `id` INT NOT NULL AUTO_INCREMENT,
+                `command` VARCHAR(100) NOT NULL,
+                `arguments` TEXT,
+                `output` TEXT,
+                `exit_code` INT,
+                `execution_time` INT,
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`),
+                INDEX `idx_command` (`command`),
+                INDEX `idx_created_at` (`created_at`)
+            ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci
+        ");
+    }
+
+    public static function pluginUninstall(): void
+    {
+        // Remove CLI logs table
+        $db = new \App\Chat\Database(
+            $_ENV['DATABASE_HOST'] ?? '127.0.0.1',
+            $_ENV['DATABASE_DATABASE'] ?? '',
+            $_ENV['DATABASE_USER'] ?? '',
+            $_ENV['DATABASE_PASSWORD'] ?? '',
+            (int) ($_ENV['DATABASE_PORT'] ?? 3306)
+        );
+
+        $pdo = $db->getPdo();
+        $pdo->exec("DROP TABLE IF EXISTS `featherpanel_cli_logs`");
+    }
+}
+```
+
+### Commands/ServerCommand.php
+```php
+<?php
+
+namespace App\Addons\server_management_cli\Commands;
+
+use App\Cli\App;
+use App\Cli\CommandBuilder;
+use App\Chat\Database;
+
+class ServerCommand implements CommandBuilder
+{
+    public static function execute(array $args): void
+    {
+        $app = App::getInstance();
+
+        if (empty($args)) {
+            self::showHelp($app);
+            return;
+        }
+
+        $subcommand = $args[0];
+
+        switch ($subcommand) {
+            case 'list':
+                self::listServers($app);
+                break;
+            case 'status':
+                self::showServerStatus($app, $args[1] ?? null);
+                break;
+            case 'restart':
+                self::restartServer($app, $args[1] ?? null);
+                break;
+            case 'logs':
+                self::showServerLogs($app, $args[1] ?? null);
+                break;
+            default:
+                $app->send("&cUnknown subcommand: {$subcommand}");
+                self::showHelp($app);
+                break;
+        }
+    }
+
+    public static function getDescription(): string
+    {
+        return "Manage FeatherPanel servers via CLI";
+    }
+
+    public static function getSubCommands(): array
+    {
+        return [
+            'list' => 'List all servers',
+            'status <server_id>' => 'Show server status',
+            'restart <server_id>' => 'Restart a server',
+            'logs <server_id>' => 'Show server logs'
+        ];
+    }
+
+    private static function showHelp(App $app): void
+    {
+        $app->send("&aServer Management CLI");
+        $app->send("&7Usage: php cli.php server_management_cli [subcommand]");
+        $app->send("");
+        $app->send("&7Available subcommands:");
+        $app->send("&7  list                    - List all servers");
+        $app->send("&7  status <server_id>      - Show server status");
+        $app->send("&7  restart <server_id>     - Restart a server");
+        $app->send("&7  logs <server_id>        - Show server logs");
+    }
+
+    private static function listServers(App $app): void
+    {
+        $db = new Database(
+            $_ENV['DATABASE_HOST'] ?? '127.0.0.1',
+            $_ENV['DATABASE_DATABASE'] ?? '',
+            $_ENV['DATABASE_USER'] ?? '',
+            $_ENV['DATABASE_PASSWORD'] ?? '',
+            (int) ($_ENV['DATABASE_PORT'] ?? 3306)
+        );
+
+        $pdo = $db->getPdo();
+        $stmt = $pdo->query("
+            SELECT id, name, status, created_at
+            FROM servers
+            ORDER BY created_at DESC
+        ");
+
+        $app->send("&aServer List:");
+        $app->send("&7ID | Name | Status | Created");
+        $app->send("&7---|------|--------|--------");
+
+        while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+            $status = $row['status'] === 'running' ? '&a' : '&c';
+            $app->send("&7{$row['id']} | {$row['name']} | {$status}{$row['status']} | {$row['created_at']}");
+        }
+    }
+
+    private static function showServerStatus(App $app, ?string $serverId): void
+    {
+        if (!$serverId) {
+            $app->send("&cServer ID is required");
+            return;
+        }
+
+        $db = new Database(
+            $_ENV['DATABASE_HOST'] ?? '127.0.0.1',
+            $_ENV['DATABASE_DATABASE'] ?? '',
+            $_ENV['DATABASE_USER'] ?? '',
+            $_ENV['DATABASE_PASSWORD'] ?? '',
+            (int) ($_ENV['DATABASE_PORT'] ?? 3306)
+        );
+
+        $pdo = $db->getPdo();
+        $stmt = $pdo->prepare("SELECT * FROM servers WHERE id = ?");
+        $stmt->execute([$serverId]);
+        $server = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$server) {
+            $app->send("&cServer not found: {$serverId}");
+            return;
+        }
+
+        $app->send("&aServer Status: {$server['name']}");
+        $app->send("&7ID: {$server['id']}");
+        $app->send("&7Status: {$server['status']}");
+        $app->send("&7Type: {$server['type']}");
+        $app->send("&7Created: {$server['created_at']}");
+        $app->send("&7Updated: {$server['updated_at']}");
+    }
+
+    private static function restartServer(App $app, ?string $serverId): void
+    {
+        if (!$serverId) {
+            $app->send("&cServer ID is required");
+            return;
+        }
+
+        $app->send("&aRestarting server {$serverId}...");
+
+        // Add server restart logic here
+        // This would typically call the server management API
+
+        $app->send("&aServer {$serverId} restarted successfully");
+    }
+
+    private static function showServerLogs(App $app, ?string $serverId): void
+    {
+        if (!$serverId) {
+            $app->send("&cServer ID is required");
+            return;
+        }
+
+        $app->send("&aServer Logs: {$serverId}");
+        $app->send("&7[This would show server logs]");
+
+        // Add log retrieval logic here
+    }
+}
+```
+
+These examples demonstrate different types of FeatherPanel plugins and their implementation patterns. Each example includes:
+
+- Complete configuration files
+- Main plugin class with proper interfaces
+- Database migrations
+- Event handling
+- Frontend integration (where applicable)
+- CLI commands (where applicable)
+- Proper error handling and logging
+
+Use these examples as starting points for your own plugins, adapting them to your specific needs and requirements.

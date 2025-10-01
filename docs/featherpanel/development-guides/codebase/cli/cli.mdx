@@ -1,0 +1,488 @@
+---
+id: cli
+pagination_next: null
+pagination_prev: null
+---
+
+# Command Line Interface (CLI)
+
+FeatherPanel provides a powerful command-line interface for administrative tasks, maintenance operations, and plugin management. The CLI system supports Minecraft-style color codes, automatic command discovery, and plugin command integration.
+
+## Overview
+
+The CLI system consists of:
+
+- **Command Registration**: Automatic discovery of built-in and plugin commands
+- **Color Support**: Minecraft-style color codes for beautiful console output
+- **Plugin Integration**: Support for plugin-specific commands
+- **Command Builder**: Interface for creating custom commands
+- **Output Processing**: Intelligent log level coloring and formatting
+
+## Running CLI Commands
+
+### Basic Usage
+
+```bash
+# Run CLI commands using Docker
+docker exec -ti featherpanel_backend php cli <command> [arguments]
+
+# Examples
+docker exec -ti featherpanel_backend php cli help
+docker exec -ti featherpanel_backend php cli migrate
+docker exec -ti featherpanel_backend php cli rebuild
+```
+
+### Docker Container
+
+CLI commands must be run inside the FeatherPanel Docker container:
+- **Container Name**: `featherpanel_backend`
+- **Command**: `docker exec -ti featherpanel_backend php cli <command>`
+- **Working Directory**: `/var/www/featherpanel/backend` (inside container)
+
+## Creating Custom Commands
+
+### Command Structure
+
+All commands must implement the `CommandBuilder` interface:
+
+```php
+<?php
+
+namespace App\Cli\Commands;
+
+use App\Cli\App;
+use App\Cli\CommandBuilder;
+
+class MyCommand extends App implements CommandBuilder
+{
+    public static function execute(array $args): void
+    {
+        $cmdInstance = self::getInstance();
+
+        // Your command logic here
+        $cmdInstance->send('&aHello from my custom command!');
+    }
+
+    public static function getDescription(): string
+    {
+        return 'Description of what this command does';
+    }
+
+    public static function getSubCommands(): array
+    {
+        return [
+            'subcommand1' => 'Description of subcommand 1',
+            'subcommand2' => 'Description of subcommand 2'
+        ];
+    }
+}
+```
+
+### Command File Location
+
+Place your command file in:
+```
+backend/app/Cli/Commands/MyCommand.php
+```
+
+The command will be automatically discovered and available as:
+```bash
+docker exec -ti featherpanel_backend php cli mycommand
+```
+
+## Color Codes
+
+### Minecraft-Style Color Codes
+
+FeatherPanel CLI supports Minecraft-style color codes using the `&` symbol:
+
+```php
+// Basic colors
+$cmdInstance->send('&0Black text');
+$cmdInstance->send('&1Dark blue text');
+$cmdInstance->send('&2Dark green text');
+$cmdInstance->send('&3Dark aqua text');
+$cmdInstance->send('&4Dark red text');
+$cmdInstance->send('&5Dark purple text');
+$cmdInstance->send('&6Gold text');
+$cmdInstance->send('&7Gray text');
+$cmdInstance->send('&8Dark gray text');
+$cmdInstance->send('&9Blue text');
+$cmdInstance->send('&aGreen text');
+$cmdInstance->send('&bAqua text');
+$cmdInstance->send('&cRed text');
+$cmdInstance->send('&dLight purple text');
+$cmdInstance->send('&eYellow text');
+$cmdInstance->send('&fWhite text');
+
+// Formatting
+$cmdInstance->send('&lBold text');
+$cmdInstance->send('&mStrikethrough text');
+$cmdInstance->send('&nUnderlined text');
+$cmdInstance->send('&rReset formatting');
+```
+
+### Available Colors
+
+| Code | Color | Description |
+|------|-------|-------------|
+| `&0` | Black | Dark black text |
+| `&1` | Dark Blue | Dark blue text |
+| `&2` | Dark Green | Dark green text |
+| `&3` | Dark Aqua | Dark cyan text |
+| `&4` | Dark Red | Dark red text |
+| `&5` | Dark Purple | Dark magenta text |
+| `&6` | Gold | Dark yellow text |
+| `&7` | Gray | Light gray text |
+| `&8` | Dark Gray | Dark gray text |
+| `&9` | Blue | Light blue text |
+| `&a` | Green | Light green text |
+| `&b` | Aqua | Light cyan text |
+| `&c` | Red | Light red text |
+| `&d` | Light Purple | Light magenta text |
+| `&e` | Yellow | Light yellow text |
+| `&f` | White | White text |
+
+### Formatting Codes
+
+| Code | Effect | Description |
+|------|--------|-------------|
+| `&l` | Bold | Makes text bold |
+| `&m` | Strikethrough | Strikes through text |
+| `&n` | Underline | Underlines text |
+| `&r` | Reset | Resets all formatting |
+
+## Command Examples
+
+### Basic Command with Colors
+
+```php
+<?php
+
+namespace App\Cli\Commands;
+
+use App\Cli\App;
+use App\Cli\CommandBuilder;
+
+class Status extends App implements CommandBuilder
+{
+    public static function execute(array $args): void
+    {
+        $cmdInstance = self::getInstance();
+
+        $cmdInstance->send($cmdInstance->bars);
+        $cmdInstance->send('&5&lFeatherPanel &7- &d&lStatus');
+        $cmdInstance->send('');
+
+        // Check database connection
+        try {
+            $db = App::getInstance(true)->getDatabase();
+            $cmdInstance->send('&a✓ Database connection: &fActive');
+        } catch (\Exception $e) {
+            $cmdInstance->send('&c✗ Database connection: &fFailed');
+        }
+
+        // Check Redis connection
+        if (defined('REDIS_ENABLED') && REDIS_ENABLED) {
+            $cmdInstance->send('&a✓ Redis connection: &fActive');
+        } else {
+            $cmdInstance->send('&e⚠ Redis connection: &fDisabled');
+        }
+
+        $cmdInstance->send('');
+        $cmdInstance->send($cmdInstance->bars);
+    }
+
+    public static function getDescription(): string
+    {
+        return 'Show FeatherPanel system status';
+    }
+
+    public static function getSubCommands(): array
+    {
+        return [];
+    }
+}
+```
+
+### Command with Subcommands
+
+```php
+<?php
+
+namespace App\Cli\Commands;
+
+use App\Cli\App;
+use App\Cli\CommandBuilder;
+
+class User extends App implements CommandBuilder
+{
+    public static function execute(array $args): void
+    {
+        $cmdInstance = self::getInstance();
+
+        if (empty($args)) {
+            $cmdInstance->send('&cUsage: docker exec -ti featherpanel_backend php cli user <subcommand>');
+            $cmdInstance->send('&7Available subcommands:');
+            foreach (self::getSubCommands() as $subCmd => $desc) {
+                $cmdInstance->send("  &b{$subCmd} &8- &7{$desc}");
+            }
+            return;
+        }
+
+        $subcommand = $args[0];
+
+        switch ($subcommand) {
+            case 'create':
+                self::createUser($args);
+                break;
+            case 'list':
+                self::listUsers();
+                break;
+            default:
+                $cmdInstance->send("&cUnknown subcommand: {$subcommand}");
+        }
+    }
+
+    private static function createUser(array $args): void
+    {
+        $cmdInstance = self::getInstance();
+
+        if (count($args) < 4) {
+            $cmdInstance->send('&cUsage: docker exec -ti featherpanel_backend php cli user create <username> <email> <password>');
+            return;
+        }
+
+        $username = $args[1];
+        $email = $args[2];
+        $password = $args[3];
+
+        // Create user logic here
+        $cmdInstance->send("&a✓ User '{$username}' created successfully!");
+    }
+
+    private static function listUsers(): void
+    {
+        $cmdInstance = self::getInstance();
+
+        // List users logic here
+        $cmdInstance->send('&bUser List:');
+        $cmdInstance->send('&7- admin (admin@example.com)');
+        $cmdInstance->send('&7- user1 (user1@example.com)');
+    }
+
+    public static function getDescription(): string
+    {
+        return 'Manage users';
+    }
+
+    public static function getSubCommands(): array
+    {
+        return [
+            'create' => 'Create a new user',
+            'list' => 'List all users'
+        ];
+    }
+}
+```
+
+## Plugin Commands
+
+### Creating Plugin Commands
+
+Plugin commands are automatically discovered from the `Commands` folder in each plugin:
+
+```
+backend/storage/addons/MyPlugin/Commands/MyPluginCommand.php
+```
+
+### Plugin Command Structure
+
+```php
+<?php
+
+namespace App\Addons\MyPlugin\Commands;
+
+use App\Cli\App;
+use App\Cli\CommandBuilder;
+
+class MyPluginCommand extends App implements CommandBuilder
+{
+    public static function execute(array $args): void
+    {
+        $cmdInstance = self::getInstance();
+        $cmdInstance->send('&aHello from MyPlugin!');
+    }
+
+    public static function getDescription(): string
+    {
+        return 'MyPlugin command description';
+    }
+
+    public static function getSubCommands(): array
+    {
+        return [];
+    }
+}
+```
+
+### Running Plugin Commands
+
+```bash
+# Plugin commands are available automatically
+docker exec -ti featherpanel_backend php cli myplugincommand
+```
+
+## Output Methods
+
+### Sending Messages
+
+```php
+$cmdInstance = self::getInstance();
+
+// Send a message with newline
+$cmdInstance->send('&aThis is a green message');
+
+// Send raw output (no prefix)
+$cmdInstance->sendOutput('Raw output without prefix');
+
+// Send output with newline (no prefix)
+$cmdInstance->sendOutputWithNewLine('Output with newline');
+```
+
+### Using Predefined Elements
+
+```php
+$cmdInstance = self::getInstance();
+
+// Use predefined prefix
+$cmdInstance->send('&aMessage with prefix');
+
+// Use predefined bars
+$cmdInstance->send($cmdInstance->bars);
+```
+
+## Built-in Commands
+
+### Help Command
+
+```bash
+docker exec -ti featherpanel_backend php cli help
+```
+
+Shows all available commands including:
+- Built-in commands
+- Plugin commands
+- Command descriptions
+- Subcommands
+
+### Available Built-in Commands
+
+- **`help`**: Show help for all commands
+- **`migrate`**: Run database migrations
+- **`rebuild`**: Rebuild application cache and assets
+
+## Advanced Features
+
+### Output Processing
+
+The CLI automatically processes output and applies colors based on log levels:
+
+- **DEBUG**: Blue color (`\e[34m`)
+- **INFO**: Green color (`\e[32m`)
+- **WARNING**: Yellow color (`\e[33m`)
+- **ERROR**: Red color (`\e[31m`)
+- **CRITICAL**: Magenta color (`\e[35m`)
+
+### Command Discovery
+
+The CLI automatically discovers commands from:
+1. **Built-in commands**: `backend/app/Cli/Commands/`
+2. **Plugin commands**: `backend/storage/addons/{Plugin}/Commands/`
+
+### Error Handling
+
+```php
+public static function execute(array $args): void
+{
+    $cmdInstance = self::getInstance();
+
+    try {
+        // Your command logic
+        $cmdInstance->send('&aCommand executed successfully!');
+    } catch (\Exception $e) {
+        $cmdInstance->send('&cError: ' . $e->getMessage());
+        exit(1);
+    }
+}
+```
+
+## Best Practices
+
+### 1. Use Descriptive Commands
+
+```php
+// ✅ Good - Clear command name and description
+class CreateUser extends App implements CommandBuilder
+{
+    public static function getDescription(): string
+    {
+        return 'Create a new user account';
+    }
+}
+```
+
+### 2. Provide Help for Subcommands
+
+```php
+// ✅ Good - Show usage for subcommands
+if (empty($args)) {
+    $cmdInstance->send('&cUsage: docker exec -ti featherpanel_backend php cli user <subcommand>');
+    $cmdInstance->send('&7Available subcommands:');
+    foreach (self::getSubCommands() as $subCmd => $desc) {
+        $cmdInstance->send("  &b{$subCmd} &8- &7{$desc}");
+    }
+    return;
+}
+```
+
+### 3. Use Appropriate Colors
+
+```php
+// ✅ Good - Use colors meaningfully
+$cmdInstance->send('&a✓ Success message');
+$cmdInstance->send('&c✗ Error message');
+$cmdInstance->send('&e⚠ Warning message');
+$cmdInstance->send('&bℹ Info message');
+```
+
+### 4. Handle Arguments Properly
+
+```php
+// ✅ Good - Validate arguments
+if (count($args) < 2) {
+    $cmdInstance->send('&cUsage: docker exec -ti featherpanel_backend php cli command <required_arg> [optional_arg]');
+    return;
+}
+
+$requiredArg = $args[0];
+$optionalArg = $args[1] ?? 'default_value';
+```
+
+### 5. Use Transactions for Database Operations
+
+```php
+// ✅ Good - Use transactions for database operations
+$pdo = App::getInstance(true)->getDatabase()->getPdo();
+$pdo->beginTransaction();
+
+try {
+    // Database operations
+    $pdo->commit();
+    $cmdInstance->send('&a✓ Operation completed successfully!');
+} catch (\Exception $e) {
+    $pdo->rollback();
+    $cmdInstance->send('&c✗ Operation failed: ' . $e->getMessage());
+    exit(1);
+}
+```

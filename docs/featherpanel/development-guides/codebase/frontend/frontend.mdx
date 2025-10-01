@@ -1,0 +1,975 @@
+---
+id: frontend
+pagination_next: null
+pagination_prev: null
+---
+
+# Frontend Development
+
+FeatherPanel uses a modern Vue 3 + TypeScript + Vite stack for its frontend. The application is built with composition API, Pinia for state management, Vue Router for routing, and Tailwind CSS for styling.
+
+## Overview
+
+The frontend provides:
+
+- **Modern Vue 3**: Composition API with `<script setup>` syntax
+- **TypeScript**: Full type safety across the application
+- **Vite**: Fast build tool with HMR (Hot Module Replacement)
+- **Tailwind CSS**: Utility-first CSS framework
+- **Vue Router**: File-based auto-indexed routing
+- **Pinia**: Modern state management
+- **Vue I18n**: Internationalization support
+- **Component Library**: Custom UI components based on shadcn/ui
+
+## Tech Stack
+
+### Core Dependencies
+
+```json
+{
+  "vue": "^3.5.22",
+  "vite": "7.1.7",
+  "typescript": "~5.9.2",
+  "pinia": "^3.0.3",
+  "vue-router": "^4.5.1",
+  "vue-i18n": "^11.1.12",
+  "tailwindcss": "^4.1.13",
+  "axios": "^1.12.2"
+}
+```
+
+### Additional Libraries
+
+- **`@vueuse/core`**: Collection of Vue composition utilities
+- **`reka-ui`**: Headless UI components
+- **`lucide-vue-next`**: Icon library
+- **`vue-toastification`**: Toast notifications
+- **`ace-builds`**: Code editor
+- **`qrcode`**: QR code generation for 2FA
+
+## Project Structure
+
+```
+frontend/
+├── src/
+│   ├── App.vue                 # Root component with transitions
+│   ├── main.ts                 # Application entry point
+│   ├── assets/                 # Static assets (images, sounds, CSS)
+│   ├── components/             # Reusable Vue components
+│   │   ├── account/           # Account-related components
+│   │   ├── dashboard/         # Dashboard components
+│   │   ├── server/            # Server management components
+│   │   ├── ui/                # Base UI components (shadcn-style)
+│   │   ├── AppSidebar.vue
+│   │   ├── AppFooter.vue
+│   │   └── ...
+│   ├── composables/           # Reusable composition functions
+│   │   ├── useLanguage.ts
+│   │   ├── useTheme.ts
+│   │   ├── useBackground.ts
+│   │   └── ...
+│   ├── layouts/               # Layout components
+│   │   ├── AuthLayout.vue
+│   │   ├── DashboardLayout.vue
+│   │   └── ErrorLayout.vue
+│   ├── pages/                 # Page components (routes)
+│   │   ├── auth/             # Authentication pages
+│   │   ├── dashboard/        # Dashboard pages
+│   │   ├── admin/            # Admin panel pages
+│   │   └── errors/           # Error pages
+│   ├── router/                # Vue Router configuration
+│   │   ├── index.ts          # Router setup with auto-indexing
+│   │   └── routes/           # Route definitions
+│   │       ├── admin/        # Admin routes
+│   │       ├── client/       # Client routes
+│   │       └── errors.ts     # Error routes
+│   ├── stores/                # Pinia stores
+│   │   ├── session.ts        # User session store
+│   │   ├── settings.ts       # App settings store
+│   │   └── dashboard.ts      # Dashboard state
+│   ├── types/                 # TypeScript type definitions
+│   ├── locale/                # Internationalization files
+│   │   └── en.yml            # English translations
+│   ├── lib/                   # Utility libraries
+│   │   ├── utils.ts
+│   │   ├── permissions.ts
+│   │   └── storage.ts
+│   └── services/              # Service layer
+│       ├── pluginAPI.ts
+│       └── pluginLoader.ts
+├── public/                     # Public static files
+├── vite.config.ts             # Vite configuration
+├── tsconfig.json              # TypeScript configuration
+├── tailwind.config.js         # Tailwind CSS configuration
+└── package.json               # Dependencies and scripts
+```
+
+## Application Entry Point
+
+### main.ts
+
+The application bootstraps in `src/main.ts`:
+
+```typescript
+import './assets/main.css';
+import 'vue-toastification/dist/index.css';
+
+import { createApp } from 'vue';
+import { createPinia } from 'pinia';
+import App from './App.vue';
+import { createTerminal } from 'vue-web-terminal';
+import router from './router';
+import { createI18n } from 'vue-i18n';
+import Toast from 'vue-toastification';
+
+// Create app instance
+const app = createApp(App);
+
+// Initialize Pinia
+const pinia = createPinia();
+
+// Initialize i18n
+const locale = localStorage.getItem('locale') || 'EN';
+const i18n = createI18n({
+    legacy: false,
+    locale: locale,
+    fallbackLocale: 'EN',
+    runtimeOnly: true,
+    messages: { EN: {} },
+});
+
+// Load translations
+const loadLocaleMessages = async (locale: string) => {
+    const messages = await import(`@/locale/${locale.toLowerCase()}.yml`);
+    i18n.global.setLocaleMessage(locale, messages.default);
+};
+
+await loadLocaleMessages(locale);
+
+// Register plugins
+app.use(i18n);
+app.use(pinia);
+app.use(router);
+app.use(createTerminal());
+app.use(Toast, {
+    position: 'top-right',
+    timeout: 5000,
+    // ... other options
+});
+
+// Mount app
+app.mount('#app');
+```
+
+## Layouts
+
+Layouts define the overall page structure and are used to wrap pages with common elements.
+
+### Available Layouts
+
+#### DashboardLayout
+
+Used for authenticated dashboard pages:
+
+```vue
+<template>
+    <DashboardLayout :breadcrumbs="[
+        { text: 'Dashboard', href: '/dashboard' },
+        { text: 'Servers', isCurrent: true }
+    ]">
+        <div class="flex flex-col gap-6">
+            <!-- Your page content here -->
+        </div>
+    </DashboardLayout>
+</template>
+
+<script setup lang="ts">
+import DashboardLayout from '@/layouts/DashboardLayout.vue';
+</script>
+```
+
+**Features:**
+- Sidebar navigation
+- Breadcrumb navigation
+- Header with sidebar toggle
+- Footer
+- macOS-style dock
+
+**Props:**
+```typescript
+interface BreadcrumbEntry {
+    text: string;
+    href?: string;
+    isCurrent?: boolean;
+}
+
+defineProps<{
+    breadcrumbs?: BreadcrumbEntry[]
+}>();
+```
+
+#### AuthLayout
+
+Used for authentication pages (login, register, etc.):
+
+```vue
+<template>
+    <div class="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10">
+        <!-- Logo and branding -->
+        <!-- Theme toggle -->
+        <!-- Router view for auth pages -->
+    </div>
+</template>
+```
+
+**Features:**
+- Centered content
+- Theme toggle button
+- Background customization
+- Smooth form transitions
+- App logo and branding
+
+#### ErrorLayout
+
+Used for error pages (404, 403, 500):
+
+```vue
+<template>
+    <ErrorLayout title="404 Not Found" message="The page you are looking for does not exist.">
+        <!-- Optional custom content -->
+    </ErrorLayout>
+</template>
+```
+
+## Creating Pages
+
+### Basic Page Structure
+
+Create a new Vue component in the `src/pages/` directory:
+
+```vue
+<!-- src/pages/dashboard/MyNewPage.vue -->
+<template>
+    <DashboardLayout :breadcrumbs="breadcrumbs">
+        <div class="flex flex-col gap-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>{{ $t('myPage.title') }}</CardTitle>
+                    <CardDescription>{{ $t('myPage.description') }}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <!-- Your content here -->
+                    <p>{{ message }}</p>
+                </CardContent>
+            </Card>
+        </div>
+    </DashboardLayout>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue';
+import { useSessionStore } from '@/stores/session';
+import DashboardLayout from '@/layouts/DashboardLayout.vue';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+
+// State
+const message = ref('Hello, World!');
+const sessionStore = useSessionStore();
+
+// Computed
+const breadcrumbs = computed(() => [
+    { text: $t('common.dashboard'), href: '/dashboard' },
+    { text: $t('myPage.title'), isCurrent: true }
+]);
+
+// Lifecycle
+onMounted(async () => {
+    await sessionStore.checkSessionOrRedirect();
+    // Load your data here
+});
+</script>
+```
+
+### Page with Data Fetching
+
+```vue
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import axios from 'axios';
+import { useToast } from 'vue-toastification';
+import DashboardLayout from '@/layouts/DashboardLayout.vue';
+
+const toast = useToast();
+const loading = ref(true);
+const data = ref<any[]>([]);
+const error = ref<string | null>(null);
+
+const fetchData = async () => {
+    loading.value = true;
+    error.value = null;
+
+    try {
+        const response = await axios.get('/api/my-endpoint');
+        if (response.data && response.data.success) {
+            data.value = response.data.data;
+        } else {
+            throw new Error('Failed to fetch data');
+        }
+    } catch (err: any) {
+        error.value = err.message;
+        toast.error($t('myPage.fetchError'));
+    } finally {
+        loading.value = false;
+    }
+};
+
+onMounted(() => {
+    fetchData();
+});
+</script>
+
+<template>
+    <DashboardLayout>
+        <div v-if="loading">
+            <p>{{ $t('common.loading') }}</p>
+        </div>
+
+        <div v-else-if="error">
+            <Alert variant="destructive">
+                <AlertTitle>{{ $t('common.error') }}</AlertTitle>
+                <AlertDescription>{{ error }}</AlertDescription>
+            </Alert>
+            <Button @click="fetchData">{{ $t('common.retry') }}</Button>
+        </div>
+
+        <div v-else>
+            <!-- Render your data -->
+            <div v-for="item in data" :key="item.id">
+                {{ item.name }}
+            </div>
+        </div>
+    </DashboardLayout>
+</template>
+```
+
+## Routing
+
+### Auto-Indexed Routes
+
+Routes are automatically discovered from the `src/router/routes/` directory:
+
+```typescript
+// src/router/index.ts
+async function loadRoutes(): Promise<RouteRecordRaw[]> {
+    const routes: RouteRecordRaw[] = [];
+
+    // Use Vite's glob import to get all route files
+    const routeModules = import.meta.glob('./routes/**/*.ts', { eager: true });
+
+    for (const path in routeModules) {
+        const module = routeModules[path] as { default: RouteRecordRaw[] };
+        if (module.default && Array.isArray(module.default)) {
+            routes.push(...module.default);
+        }
+    }
+
+    return routes;
+}
+```
+
+### Creating New Routes
+
+Create a new route file in `src/router/routes/`:
+
+```typescript
+// src/router/routes/client/myroutes.ts
+import type { RouteRecordRaw } from 'vue-router';
+
+const myRoutes: RouteRecordRaw[] = [
+    {
+        path: '/my-page',
+        name: 'MyPage',
+        component: () => import('@/pages/dashboard/MyNewPage.vue'),
+    },
+    {
+        path: '/my-page/:id',
+        name: 'MyPageDetail',
+        component: () => import('@/pages/dashboard/MyPageDetail.vue'),
+    },
+];
+
+export default myRoutes;
+```
+
+### Route Examples
+
+#### Client Routes
+
+```typescript
+// src/router/routes/client/client.ts
+const clientRoutes: RouteRecordRaw[] = [
+    {
+        path: '/dashboard',
+        name: 'Dashboard',
+        component: () => import('@/pages/dashboard/Dashboard.vue'),
+    },
+    {
+        path: '/server/:uuidShort',
+        name: 'ServerConsole',
+        component: () => import('@/pages/dashboard/server/ServerConsole.vue'),
+    },
+];
+```
+
+#### Admin Routes
+
+```typescript
+// src/router/routes/admin/home.ts
+const adminRoutes: RouteRecordRaw[] = [
+    {
+        path: '/admin',
+        name: 'Admin',
+        component: () => import('@/pages/admin/Home.vue'),
+    },
+    {
+        path: '/admin/users',
+        name: 'AdminUsers',
+        component: () => import('@/pages/admin/Users.vue'),
+    },
+];
+```
+
+#### Auth Routes with Layout
+
+```typescript
+// src/router/routes/client/auth.ts
+const authRoutes: RouteRecordRaw[] = [
+    {
+        path: '/auth',
+        component: () => import('@/layouts/AuthLayout.vue'),
+        children: [
+            {
+                path: 'login',
+                name: 'Login',
+                component: () => import('@/pages/auth/Login.vue')
+            },
+            {
+                path: 'register',
+                name: 'Register',
+                component: () => import('@/pages/auth/Register.vue')
+            },
+        ],
+    },
+];
+```
+
+### Route Navigation
+
+```vue
+<script setup lang="ts">
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+
+const navigateToPage = () => {
+    router.push('/my-page');
+};
+
+const navigateWithParams = (id: string) => {
+    router.push({ name: 'MyPageDetail', params: { id } });
+};
+
+const navigateWithQuery = () => {
+    router.push({ path: '/my-page', query: { filter: 'active' } });
+};
+</script>
+
+<template>
+    <!-- Router link -->
+    <router-link to="/dashboard">Dashboard</router-link>
+
+    <!-- Named route -->
+    <router-link :to="{ name: 'ServerConsole', params: { uuidShort: 'abc123' } }">
+        View Server
+    </router-link>
+
+    <!-- Programmatic navigation -->
+    <Button @click="navigateToPage">Go to My Page</Button>
+</template>
+```
+
+## Internationalization (i18n)
+
+### Language Files
+
+Translations are stored in YAML files in `src/locale/`:
+
+```yaml
+# src/locale/en.yml
+common:
+    dashboard: 'Dashboard'
+    servers: 'Servers'
+    loading: 'Loading...'
+    save: 'Save'
+    cancel: 'Cancel'
+
+myPage:
+    title: 'My Page'
+    description: 'This is my custom page'
+    message: 'Welcome to {appName}'
+    itemCount: 'You have {count} items'
+```
+
+### Using Translations in Components
+
+```vue
+<template>
+    <div>
+        <!-- Simple translation -->
+        <h1>{{ $t('myPage.title') }}</h1>
+
+        <!-- Translation with interpolation -->
+        <p>{{ $t('myPage.message', { appName: 'FeatherPanel' }) }}</p>
+
+        <!-- Translation with pluralization -->
+        <p>{{ $t('myPage.itemCount', { count: items.length }) }}</p>
+
+        <!-- Translation in attributes -->
+        <input :placeholder="$t('common.search')" />
+    </div>
+</template>
+
+<script setup lang="ts">
+import { useI18n } from 'vue-i18n';
+
+const { t, locale } = useI18n();
+
+// Use in script
+const title = t('myPage.title');
+const currentLocale = locale.value; // 'EN'
+</script>
+```
+
+### Language Composable
+
+```typescript
+// src/composables/useLanguage.ts
+import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+export interface Language {
+    code: string;
+    name: string;
+    flag: string;
+}
+
+export const availableLanguages: Language[] = [
+    { code: 'en', name: 'English', flag: '🇺🇸' }
+];
+
+export function useLanguage() {
+    const { locale } = useI18n();
+    const currentLanguage = ref<Language | null>(null);
+
+    const changeLanguage = async (language: Language) => {
+        locale.value = language.code.toUpperCase();
+        currentLanguage.value = language;
+        localStorage.setItem('locale', language.code);
+        window.location.reload();
+    };
+
+    return {
+        currentLanguage,
+        availableLanguages,
+        changeLanguage
+    };
+}
+```
+
+### Adding New Language
+
+1. Create a new YAML file in `src/locale/`:
+```yaml
+# src/locale/es.yml
+common:
+    dashboard: 'Panel de Control'
+    servers: 'Servidores'
+    loading: 'Cargando...'
+```
+
+2. Add to available languages:
+```typescript
+// src/composables/useLanguage.ts
+export const availableLanguages: Language[] = [
+    { code: 'en', name: 'English', flag: '🇺🇸' },
+    { code: 'es', name: 'Español', flag: '🇪🇸' }
+];
+```
+
+3. Load in main.ts:
+```typescript
+const loadLocaleMessages = async (locale: string) => {
+    const messages = await import(`@/locale/${locale.toLowerCase()}.yml`);
+    i18n.global.setLocaleMessage(locale, messages.default);
+};
+```
+
+## State Management (Pinia)
+
+### Creating a Store
+
+```typescript
+// src/stores/myStore.ts
+import { defineStore } from 'pinia';
+import axios from 'axios';
+
+export interface MyData {
+    id: number;
+    name: string;
+    value: string;
+}
+
+export const useMyStore = defineStore('myStore', {
+    state: () => ({
+        data: [] as MyData[],
+        loading: false,
+        error: null as string | null,
+    }),
+
+    actions: {
+        async fetchData() {
+            this.loading = true;
+            this.error = null;
+
+            try {
+                const response = await axios.get('/api/my-data');
+                if (response.data && response.data.success) {
+                    this.data = response.data.data;
+                } else {
+                    throw new Error('Failed to fetch data');
+                }
+            } catch (error: any) {
+                this.error = error.message;
+                throw error;
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async createItem(item: Partial<MyData>) {
+            const response = await axios.post('/api/my-data', item);
+            if (response.data && response.data.success) {
+                this.data.push(response.data.data);
+            }
+        },
+
+        async updateItem(id: number, updates: Partial<MyData>) {
+            const response = await axios.put(`/api/my-data/${id}`, updates);
+            if (response.data && response.data.success) {
+                const index = this.data.findIndex(item => item.id === id);
+                if (index !== -1) {
+                    this.data[index] = { ...this.data[index], ...updates };
+                }
+            }
+        },
+
+        async deleteItem(id: number) {
+            await axios.delete(`/api/my-data/${id}`);
+            this.data = this.data.filter(item => item.id !== id);
+        },
+    },
+
+    getters: {
+        getItemById: (state) => (id: number) => {
+            return state.data.find(item => item.id === id);
+        },
+
+        itemCount: (state) => state.data.length,
+    },
+});
+```
+
+### Using a Store in Components
+
+```vue
+<script setup lang="ts">
+import { onMounted } from 'vue';
+import { useMyStore } from '@/stores/myStore';
+import { storeToRefs } from 'pinia';
+
+const myStore = useMyStore();
+
+// Get reactive state
+const { data, loading, error } = storeToRefs(myStore);
+
+// Use actions
+const handleCreate = async () => {
+    await myStore.createItem({ name: 'New Item', value: 'test' });
+};
+
+const handleUpdate = async (id: number) => {
+    await myStore.updateItem(id, { name: 'Updated' });
+};
+
+const handleDelete = async (id: number) => {
+    await myStore.deleteItem(id);
+};
+
+onMounted(() => {
+    myStore.fetchData();
+});
+</script>
+
+<template>
+    <div v-if="loading">Loading...</div>
+    <div v-else-if="error">Error: {{ error }}</div>
+    <div v-else>
+        <p>Total items: {{ myStore.itemCount }}</p>
+        <div v-for="item in data" :key="item.id">
+            {{ item.name }}
+            <Button @click="handleUpdate(item.id)">Edit</Button>
+            <Button @click="handleDelete(item.id)">Delete</Button>
+        </div>
+        <Button @click="handleCreate">Create New</Button>
+    </div>
+</template>
+```
+
+### Session Store
+
+The session store manages user authentication:
+
+```typescript
+// src/stores/session.ts
+import { defineStore } from 'pinia';
+import axios from 'axios';
+
+export const useSessionStore = defineStore('session', {
+    state: () => ({
+        user: null as UserInfo | null,
+        isSessionChecked: false,
+        permissions: [] as string[],
+    }),
+
+    actions: {
+        async checkSessionOrRedirect(router?: Router) {
+            const res = await axios.get('/api/user/session');
+            if (res.data && res.data.success) {
+                this.user = res.data.data.user_info;
+                this.permissions = res.data.data.permissions;
+                this.isSessionChecked = true;
+                return true;
+            }
+            // Redirect to login if invalid
+            return false;
+        },
+
+        async logout() {
+            await axios.post('/api/user/auth/logout');
+            this.clearSession();
+        },
+    },
+
+    getters: {
+        hasPermission: (state) => (permission: string): boolean => {
+            if (state.permissions.includes('admin.root')) return true;
+            return state.permissions.includes(permission);
+        },
+    },
+});
+```
+
+## UI Components
+
+### Using Base Components
+
+```vue
+<script setup lang="ts">
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+</script>
+
+<template>
+    <!-- Card -->
+    <Card>
+        <CardHeader>
+            <CardTitle>My Card</CardTitle>
+            <CardDescription>Card description</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <!-- Form -->
+            <div class="space-y-4">
+                <div>
+                    <Label for="name">Name</Label>
+                    <Input id="name" v-model="name" placeholder="Enter name" />
+                </div>
+
+                <Button @click="handleSubmit">Submit</Button>
+            </div>
+        </CardContent>
+    </Card>
+
+    <!-- Alert -->
+    <Alert variant="destructive">
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>Something went wrong</AlertDescription>
+    </Alert>
+
+    <!-- Dialog -->
+    <Dialog v-model:open="isOpen">
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Confirm Action</DialogTitle>
+                <DialogDescription>Are you sure?</DialogDescription>
+            </DialogHeader>
+            <Button @click="confirm">Yes</Button>
+        </DialogContent>
+    </Dialog>
+</template>
+```
+
+## Development
+
+### Running Development Server
+
+```bash
+# Install dependencies
+pnpm install
+
+# Start dev server
+pnpm dev
+
+# The app will be available at http://localhost:5173
+```
+
+### Building for Production
+
+```bash
+# Type check
+pnpm type-check
+
+# Build
+pnpm build
+
+# Preview production build
+pnpm preview
+```
+
+### Linting and Formatting
+
+```bash
+# Run linter and formatter
+pnpm lint
+
+# Format code
+pnpm format
+```
+
+## Best Practices
+
+### 1. Use Composition API with `<script setup>`
+
+```vue
+<!-- ✅ Good -->
+<script setup lang="ts">
+import { ref, computed } from 'vue';
+
+const count = ref(0);
+const double = computed(() => count.value * 2);
+</script>
+
+<!-- ❌ Bad - Options API -->
+<script lang="ts">
+export default {
+    data() {
+        return { count: 0 };
+    },
+    computed: {
+        double() {
+            return this.count * 2;
+        }
+    }
+};
+</script>
+```
+
+### 2. Use Composables for Reusable Logic
+
+```typescript
+// ✅ Good - Create composable
+// src/composables/useCounter.ts
+export function useCounter(initialValue = 0) {
+    const count = ref(initialValue);
+    const increment = () => count.value++;
+    const decrement = () => count.value--;
+    return { count, increment, decrement };
+}
+
+// Use in component
+const { count, increment, decrement } = useCounter(10);
+```
+
+### 3. Use TypeScript Interfaces
+
+```typescript
+// ✅ Good - Define interfaces
+interface User {
+    id: number;
+    username: string;
+    email: string;
+}
+
+const user = ref<User | null>(null);
+```
+
+### 4. Use Proper Error Handling
+
+```typescript
+// ✅ Good
+const fetchData = async () => {
+    loading.value = true;
+    error.value = null;
+
+    try {
+        const response = await axios.get('/api/data');
+        data.value = response.data;
+    } catch (err: any) {
+        error.value = err.message;
+        toast.error('Failed to fetch data');
+    } finally {
+        loading.value = false;
+    }
+};
+```
+
+### 5. Use Translations for All Text
+
+```vue
+<!-- ✅ Good -->
+<h1>{{ $t('myPage.title') }}</h1>
+
+<!-- ❌ Bad - Hardcoded text -->
+<h1>My Page</h1>
+```
+
+### 6. Use Lazy Loading for Routes
+
+```typescript
+// ✅ Good
+{
+    path: '/admin',
+    component: () => import('@/pages/admin/Home.vue'),
+}
+
+// ❌ Bad - Eager loading
+import AdminHome from '@/pages/admin/Home.vue';
+{
+    path: '/admin',
+    component: AdminHome,
+}
+```
+

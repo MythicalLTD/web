@@ -1,0 +1,734 @@
+---
+id: mail
+pagination_next: null
+pagination_prev: null
+---
+
+# Mail System
+
+FeatherPanel provides a comprehensive mail system for sending emails to users. The system includes template management, queue processing, and automatic mail delivery through cron jobs.
+
+## Overview
+
+The mail system consists of:
+
+- **Mail Templates**: Predefined email templates with variable substitution
+- **Mail Queue**: Queue system for processing emails asynchronously
+- **Mail List**: Tracking system for sent emails
+- **Template Processing**: Variable replacement and HTML email generation
+- **Cron Integration**: Automatic mail sending through cron jobs
+
+## How Mail System Works
+
+### Mail Flow
+
+1. **Template Creation**: Email templates are created with placeholders
+2. **Queue Addition**: Emails are added to the mail queue
+3. **Cron Processing**: MailSender cron job processes the queue
+4. **SMTP Delivery**: Emails are sent via SMTP
+5. **Status Tracking**: Mail status is tracked and updated
+
+### Mail Components
+
+- **MailQueue**: Stores emails waiting to be sent
+- **MailList**: Tracks sent emails and their status
+- **MailTemplate**: Manages email templates
+- **Mail Templates**: Individual email template classes
+
+## Creating Mail Templates
+
+### Basic Mail Template Structure
+
+```php
+<?php
+
+namespace App\Mail\templates;
+
+use App\Chat\MailList;
+use App\Chat\MailQueue;
+use App\Chat\MailTemplate;
+
+class MyEmailTemplate
+{
+    /**
+     * Get the email template with variables replaced.
+     */
+    public static function getTemplate(array $data): string
+    {
+        if (!self::validateData($data)) {
+            return '';
+        }
+
+        return self::parseTemplate(
+            MailTemplate::getByName('my_template')['body'] ?? '',
+            $data
+        );
+    }
+
+    /**
+     * Parse template variables.
+     */
+    public static function parseTemplate(string $template, array $data): string
+    {
+        $template = str_replace('{app_name}', $data['app_name'], $template);
+        $template = str_replace('{user_name}', $data['user_name'], $template);
+        $template = str_replace('{custom_data}', $data['custom_data'], $template);
+
+        return $template;
+    }
+
+    /**
+     * Send the email.
+     */
+    public static function send(array $data): void
+    {
+        if (!self::validateRequiredData($data)) {
+            return;
+        }
+
+        if ($data['enabled'] == 'false') {
+            return;
+        }
+
+        $template = self::getTemplate($data);
+
+        // Add to mail queue
+        $queueId = MailQueue::create([
+            'user_uuid' => $data['uuid'],
+            'subject' => $data['subject'],
+            'body' => $template,
+        ]);
+
+        if ($queueId === false) {
+            return;
+        }
+
+        // Add to mail list
+        MailList::create([
+            'queue_id' => $queueId,
+            'user_uuid' => $data['uuid'],
+        ]);
+    }
+
+    /**
+     * Validate required data.
+     */
+    private static function validateRequiredData(array $data): bool
+    {
+        $required = [
+            'email', 'subject', 'app_name', 'app_url',
+            'first_name', 'last_name', 'username', 'uuid', 'enabled'
+        ];
+
+        foreach ($required as $field) {
+            if (!isset($data[$field])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+}
+```
+
+### Advanced Mail Template with Custom Variables
+
+```php
+<?php
+
+namespace App\Mail\templates;
+
+use App\Chat\MailList;
+use App\Chat\MailQueue;
+use App\Chat\MailTemplate;
+
+class ServerNotification extends MyEmailTemplate
+{
+    public static function getTemplate(array $data): string
+    {
+        if (!self::validateServerData($data)) {
+            return '';
+        }
+
+        return self::parseTemplate(
+            MailTemplate::getByName('server_notification')['body'] ?? '',
+            array_merge($data, [
+                'server_dashboard_url' => $data['app_url'] . '/server/' . $data['server_uuid'],
+                'notification_type' => $data['notification_type'],
+                'server_status' => $data['server_status'],
+            ])
+        );
+    }
+
+    public static function parseTemplate(string $template, array $data): string
+    {
+        // Call parent method for basic variables
+        $template = parent::parseTemplate($template, $data);
+
+        // Add server-specific variables
+        $template = str_replace('{server_name}', $data['server_name'], $template);
+        $template = str_replace('{server_uuid}', $data['server_uuid'], $template);
+        $template = str_replace('{server_ip}', $data['server_ip'], $template);
+        $template = str_replace('{server_port}', $data['server_port'], $template);
+        $template = str_replace('{server_dashboard_url}', $data['server_dashboard_url'], $template);
+        $template = str_replace('{notification_type}', $data['notification_type'], $template);
+        $template = str_replace('{server_status}', $data['server_status'], $template);
+
+        return $template;
+    }
+
+    public static function send(array $data): void
+    {
+        if (!self::validateServerData($data)) {
+            return;
+        }
+
+        parent::send($data);
+    }
+
+    private static function validateServerData(array $data): bool
+    {
+        if (!parent::validateRequiredData($data)) {
+            return false;
+        }
+
+        $serverRequired = ['server_name', 'server_uuid', 'server_ip', 'server_port'];
+        foreach ($serverRequired as $field) {
+            if (!isset($data[$field]) || empty($data[$field])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+}
+```
+
+## Available Mail Templates
+
+### Built-in Templates
+
+- **Welcome**: Welcome email for new users
+- **ForgotPassword**: Password reset emails
+- **AccountBanned**: Account suspension notifications
+- **AccountUnBanned**: Account restoration notifications
+- **AccountDeleted**: Account deletion notifications
+- **ServerCreated**: Server creation notifications
+- **ServerDeleted**: Server deletion notifications
+- **ServerBanned**: Server suspension notifications
+- **ServerUnbanned**: Server restoration notifications
+
+### Template Variables
+
+#### Common Variables
+- `{app_name}` - Application name
+- `{app_url}` - Application URL
+- `{first_name}` - User's first name
+- `{last_name}` - User's last name
+- `{email}` - User's email address
+- `{username}` - User's username
+- `{dashboard_url}` - Dashboard URL
+- `{support_url}` - Support URL
+
+#### Server-specific Variables
+- `{server_name}` - Server name
+- `{server_uuid}` - Server UUID
+- `{server_ip}` - Server IP address
+- `{server_port}` - Server port
+- `{server_dashboard_url}` - Server dashboard URL
+
+#### Custom Variables
+- `{reset_url}` - Password reset URL
+- `{notification_type}` - Type of notification
+- `{server_status}` - Server status
+
+## Sending Emails
+
+### Using Mail Templates
+
+```php
+use App\Mail\templates\Welcome;
+use App\Mail\templates\ForgotPassword;
+use App\Mail\templates\ServerCreated;
+
+// Send welcome email
+Welcome::send([
+    'email' => 'user@example.com',
+    'subject' => 'Welcome to FeatherPanel!',
+    'app_name' => 'FeatherPanel',
+    'app_url' => 'https://panel.example.com',
+    'first_name' => 'John',
+    'last_name' => 'Doe',
+    'username' => 'johndoe',
+    'uuid' => 'user-uuid-here',
+    'enabled' => 'true',
+    'app_support_url' => 'https://discord.gg/support'
+]);
+
+// Send password reset email
+ForgotPassword::send([
+    'email' => 'user@example.com',
+    'subject' => 'Password Reset Request',
+    'app_name' => 'FeatherPanel',
+    'app_url' => 'https://panel.example.com',
+    'first_name' => 'John',
+    'last_name' => 'Doe',
+    'username' => 'johndoe',
+    'uuid' => 'user-uuid-here',
+    'enabled' => 'true',
+    'app_support_url' => 'https://discord.gg/support',
+    'reset_url' => 'https://panel.example.com/reset?token=abc123'
+]);
+
+// Send server creation notification
+ServerCreated::send([
+    'email' => 'user@example.com',
+    'subject' => 'Your server is ready!',
+    'app_name' => 'FeatherPanel',
+    'app_url' => 'https://panel.example.com',
+    'first_name' => 'John',
+    'last_name' => 'Doe',
+    'username' => 'johndoe',
+    'uuid' => 'user-uuid-here',
+    'enabled' => 'true',
+    'app_support_url' => 'https://discord.gg/support',
+    'server_name' => 'My Minecraft Server',
+    'server_ip' => '192.168.1.100',
+    'server_port' => '25565',
+    'panel_url' => 'https://panel.example.com/dashboard'
+]);
+```
+
+### Direct Mail Queue Usage
+
+```php
+use App\Chat\MailQueue;
+use App\Chat\MailList;
+
+// Add email directly to queue
+$queueId = MailQueue::create([
+    'user_uuid' => 'user-uuid-here',
+    'subject' => 'Custom Email Subject',
+    'body' => '<h1>Hello {first_name}!</h1><p>This is a custom email.</p>',
+]);
+
+if ($queueId !== false) {
+    // Add to mail list for tracking
+    MailList::create([
+        'queue_id' => $queueId,
+        'user_uuid' => 'user-uuid-here',
+    ]);
+}
+```
+
+## Mail Configuration
+
+### SMTP Configuration
+
+Mail sending is configured through the configuration system:
+
+```php
+use App\App;
+use App\Config\ConfigInterface;
+
+$app = App::getInstance(true);
+$config = $app->getConfig();
+
+// Check if mail is enabled
+$mailEnabled = $config->getSetting(ConfigInterface::SMTP_ENABLED, 'false');
+
+// Get SMTP settings
+$smtpHost = $config->getSetting(ConfigInterface::SMTP_HOST);
+$smtpPort = $config->getSetting(ConfigInterface::SMTP_PORT);
+$smtpUser = $config->getSetting(ConfigInterface::SMTP_USER);
+$smtpPass = $config->getSetting(ConfigInterface::SMTP_PASS);
+$smtpFrom = $config->getSetting(ConfigInterface::SMTP_FROM);
+$smtpEncryption = $config->getSetting(ConfigInterface::SMTP_ENCRYPTION);
+```
+
+### Required SMTP Settings
+
+- **SMTP_ENABLED**: Enable/disable mail sending
+- **SMTP_HOST**: SMTP server hostname
+- **SMTP_PORT**: SMTP server port
+- **SMTP_USER**: SMTP username
+- **SMTP_PASS**: SMTP password
+- **SMTP_FROM**: From email address
+- **SMTP_ENCRYPTION**: Encryption type (ssl/tls)
+
+## Mail Processing
+
+### How Mails are Processed
+
+1. **Queue Creation**: Emails are added to `featherpanel_mail_queue`
+2. **Cron Processing**: MailSender cron job runs every minute
+3. **SMTP Sending**: Emails are sent via PHPMailer
+4. **Status Updates**: Mail status is updated (sent/failed)
+5. **Retry Logic**: Failed emails are retried up to 3 times
+
+### Mail Status Tracking
+
+- **pending**: Email waiting to be sent
+- **sent**: Email sent successfully
+- **failed**: Email failed to send
+- **locked**: Email currently being processed
+
+## Creating Custom Mail Templates
+
+### Step 1: Create Template Class
+
+```php
+<?php
+
+namespace App\Mail\templates;
+
+use App\Chat\MailList;
+use App\Chat\MailQueue;
+use App\Chat\MailTemplate;
+
+class CustomNotification
+{
+    public static function getTemplate(array $data): string
+    {
+        if (!self::validateData($data)) {
+            return '';
+        }
+
+        return self::parseTemplate(
+            MailTemplate::getByName('custom_notification')['body'] ?? '',
+            $data
+        );
+    }
+
+    public static function parseTemplate(string $template, array $data): string
+    {
+        // Replace common variables
+        $template = str_replace('{app_name}', $data['app_name'], $template);
+        $template = str_replace('{user_name}', $data['user_name'], $template);
+
+        // Replace custom variables
+        $template = str_replace('{notification_title}', $data['notification_title'], $template);
+        $template = str_replace('{notification_message}', $data['notification_message'], $template);
+        $template = str_replace('{action_url}', $data['action_url'], $template);
+
+        return $template;
+    }
+
+    public static function send(array $data): void
+    {
+        if (!self::validateRequiredData($data)) {
+            return;
+        }
+
+        if ($data['enabled'] == 'false') {
+            return;
+        }
+
+        $template = self::getTemplate($data);
+
+        $queueId = MailQueue::create([
+            'user_uuid' => $data['uuid'],
+            'subject' => $data['subject'],
+            'body' => $template,
+        ]);
+
+        if ($queueId !== false) {
+            MailList::create([
+                'queue_id' => $queueId,
+                'user_uuid' => $data['uuid'],
+            ]);
+        }
+    }
+
+    private static function validateRequiredData(array $data): bool
+    {
+        $required = [
+            'email', 'subject', 'app_name', 'app_url',
+            'user_name', 'uuid', 'enabled', 'notification_title',
+            'notification_message', 'action_url'
+        ];
+
+        foreach ($required as $field) {
+            if (!isset($data[$field]) || empty($data[$field])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+}
+```
+
+### Step 2: Create Database Template
+
+Add the template to the database:
+
+```sql
+INSERT INTO featherpanel_mail_templates (name, subject, body) VALUES (
+    'custom_notification',
+    'Custom Notification - {app_name}',
+    '<h1>Hello {user_name}!</h1>
+     <h2>{notification_title}</h2>
+     <p>{notification_message}</p>
+     <a href="{action_url}">Take Action</a>
+     <p>Best regards,<br>{app_name} Team</p>'
+);
+```
+
+### Step 3: Use the Template
+
+```php
+use App\Mail\templates\CustomNotification;
+
+CustomNotification::send([
+    'email' => 'user@example.com',
+    'subject' => 'Important Notification',
+    'app_name' => 'FeatherPanel',
+    'app_url' => 'https://panel.example.com',
+    'user_name' => 'John Doe',
+    'uuid' => 'user-uuid-here',
+    'enabled' => 'true',
+    'notification_title' => 'Server Maintenance Scheduled',
+    'notification_message' => 'Your server will be under maintenance tomorrow.',
+    'action_url' => 'https://panel.example.com/maintenance'
+]);
+```
+
+## Mail Queue Management
+
+### Viewing Mail Queue
+
+```php
+use App\Chat\MailQueue;
+
+// Get all pending emails
+$pendingEmails = MailQueue::getPending();
+
+// Get failed emails
+$failedEmails = MailQueue::getFailed();
+
+// Get sent emails
+$sentEmails = MailQueue::getSent();
+```
+
+### Mail Queue Operations
+
+```php
+use App\Chat\MailQueue;
+
+// Update mail status
+MailQueue::update($mailId, ['status' => 'sent']);
+
+// Lock mail for processing
+MailQueue::update($mailId, ['locked' => 'true']);
+
+// Unlock mail after processing
+MailQueue::update($mailId, ['locked' => 'false']);
+
+// Delete processed mail
+MailQueue::delete($mailId);
+```
+
+## Best Practices
+
+### 1. Validate Required Data
+
+Always validate required data before sending:
+
+```php
+// ✅ Good - Validate required fields
+private static function validateRequiredData(array $data): bool
+{
+    $required = ['email', 'subject', 'app_name', 'uuid', 'enabled'];
+
+    foreach ($required as $field) {
+        if (!isset($data[$field]) || empty($data[$field])) {
+            return false;
+        }
+    }
+
+    return true;
+}
+```
+
+### 2. Check Mail Configuration
+
+Always check if mail is enabled:
+
+```php
+// ✅ Good - Check mail configuration
+if ($data['enabled'] == 'false') {
+    return; // Don't send if mail is disabled
+}
+```
+
+### 3. Use Template Variables
+
+Use template variables for dynamic content:
+
+```php
+// ✅ Good - Use template variables
+$template = str_replace('{user_name}', $data['user_name'], $template);
+$template = str_replace('{server_name}', $data['server_name'], $template);
+
+// ❌ Bad - Hardcoded content
+$template = str_replace('{user_name}', 'John Doe', $template);
+```
+
+### 4. Handle Queue Failures
+
+Handle mail queue creation failures:
+
+```php
+// ✅ Good - Handle queue failures
+$queueId = MailQueue::create($mailData);
+
+if ($queueId === false) {
+    // Log error or handle failure
+    return;
+}
+```
+
+### 5. Use Appropriate Subjects
+
+Choose clear, descriptive email subjects:
+
+```php
+// ✅ Good - Clear subjects
+'subject' => 'Welcome to FeatherPanel!'
+'subject' => 'Password Reset Request'
+'subject' => 'Server Maintenance Notification'
+
+// ❌ Bad - Unclear subjects
+'subject' => 'Notification'
+'subject' => 'Update'
+'subject' => 'Message'
+```
+
+### 6. Test Mail Templates
+
+Always test mail templates before deployment:
+
+```php
+// ✅ Good - Test template generation
+$template = MyEmailTemplate::getTemplate($testData);
+if (empty($template)) {
+    // Handle template generation failure
+    return;
+}
+```
+
+## Mail Template Examples
+
+### Welcome Email Template
+
+```php
+class Welcome extends MyEmailTemplate
+{
+    public static function getTemplate(array $data): string
+    {
+        return self::parseTemplate(
+            MailTemplate::getByName('account_created')['body'] ?? '',
+            [
+                'app_name' => $data['app_name'],
+                'app_url' => $data['app_url'],
+                'first_name' => $data['first_name'],
+                'last_name' => $data['last_name'],
+                'email' => $data['email'],
+                'username' => $data['username'],
+                'dashboard_url' => $data['app_url'] . '/dashboard',
+                'support_url' => $data['app_support_url'],
+            ]
+        );
+    }
+}
+```
+
+### Password Reset Template
+
+```php
+class ForgotPassword extends MyEmailTemplate
+{
+    public static function getTemplate(array $data): string
+    {
+        return self::parseTemplate(
+            MailTemplate::getByName('forgot_password')['body'] ?? '',
+            array_merge($data, [
+                'reset_url' => $data['reset_url'],
+            ])
+        );
+    }
+
+    public static function parseTemplate(string $template, array $data): string
+    {
+        $template = parent::parseTemplate($template, $data);
+        $template = str_replace('{reset_url}', $data['reset_url'], $template);
+
+        return $template;
+    }
+}
+```
+
+## Mail System Integration
+
+### Integration with Controllers
+
+```php
+use App\Mail\templates\Welcome;
+
+class RegisterController
+{
+    public function put(Request $request): Response
+    {
+        // Create user
+        $userId = User::createUser($userData);
+
+        if ($userId !== false) {
+            // Send welcome email
+            Welcome::send([
+                'email' => $userData['email'],
+                'subject' => 'Welcome to FeatherPanel!',
+                'app_name' => $this->getAppName(),
+                'app_url' => $this->getAppUrl(),
+                'first_name' => $userData['first_name'],
+                'last_name' => $userData['last_name'],
+                'username' => $userData['username'],
+                'uuid' => $userData['uuid'],
+                'enabled' => $this->isMailEnabled(),
+                'app_support_url' => $this->getSupportUrl()
+            ]);
+        }
+
+        return ApiResponse::success(['id' => $userId], 'User created successfully');
+    }
+}
+```
+
+### Integration with Cron Jobs
+
+```php
+use App\Cron\Cron;
+use App\Cron\TimeTask;
+
+class MailSender implements TimeTask
+{
+    public function run()
+    {
+        $cron = new Cron('mail-sender', '1M');
+
+        $cron->runIfDue(function () {
+            $this->processMailQueue();
+        });
+    }
+
+    private function processMailQueue()
+    {
+        // Process pending emails
+        $pendingEmails = MailQueue::getPending();
+
+        foreach ($pendingEmails as $email) {
+            $this->sendEmail($email);
+        }
+    }
+}
+```

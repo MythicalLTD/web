@@ -1,0 +1,935 @@
+---
+id: middleware
+pagination_next: null
+pagination_prev: null
+---
+
+# Middleware System
+
+FeatherPanel uses a middleware system to handle request processing, authentication, authorization, and other cross-cutting concerns. Middleware provides a clean way to add functionality to routes without cluttering controllers.
+
+## Overview
+
+The middleware system provides:
+
+- **Request Processing**: Intercept and modify requests before they reach controllers
+- **Authentication**: Handle user authentication via sessions or API keys
+- **Authorization**: Check user permissions and access rights
+- **Server Access Control**: Validate server ownership and access permissions
+- **Wings Integration**: Authenticate Wings daemon requests
+- **Request Attributes**: Attach data to requests for downstream use
+
+## Middleware Interface
+
+All middleware classes must implement the `MiddlewareInterface`:
+
+```php
+<?php
+
+namespace App\Middleware;
+
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+interface MiddlewareInterface
+{
+    public function handle(Request $request, callable $next): Response;
+}
+```
+
+### Interface Methods
+
+- **`handle(Request $request, callable $next): Response`**: Process the request and call the next middleware or controller
+
+## Built-in Middleware
+
+### AuthMiddleware
+
+Handles user authentication via sessions or API keys.
+
+#### Authentication Methods
+
+1. **Session Authentication**: Uses `remember_token` cookie
+2. **API Key Authentication**: Uses `Authorization: Bearer <public_key>` header
+
+#### Implementation
+
+```php
+<?php
+
+namespace App\Middleware;
+
+use App\Chat\User;
+use App\Chat\ApiClient;
+use App\Helpers\ApiResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class AuthMiddleware implements MiddlewareInterface
+{
+    public function handle(Request $request, callable $next): Response
+    {
+        // First try remember token authentication (for web sessions)
+        if (isset($_COOKIE['remember_token'])) {
+            $userInfo = User::getUserByRememberToken($_COOKIE['remember_token']);
+            if ($userInfo == null) {
+                return ApiResponse::error('You are not allowed to access this resource!', 'INVALID_ACCOUNT_TOKEN', 400, []);
+            }
+            if ($userInfo['banned'] == 'true') {
+                return ApiResponse::error('User is banned', 'USER_BANNED');
+            }
+            // Attach user info to the request attributes for downstream use
+            $request->attributes->set('user', $userInfo);
+            $request->attributes->set('auth_type', 'session');
+
+        } else {
+            // Check for Authorization header (Bearer token for API keys)
+            $authHeader = $request->headers->get('Authorization');
+            if ($authHeader && preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+                $publicKey = $matches[1];
+
+                // Validate the API client using the public key
+                $apiClient = ApiClient::getApiClientByPublicKey($publicKey);
+                if ($apiClient == null) {
+                    return ApiResponse::error('Invalid API key', 'INVALID_API_KEY', 401, []);
+                }
+
+                // Get the user associated with this API client
+                $userInfo = User::getUserByUuid($apiClient['user_uuid']);
+                if ($userInfo == null) {
+                    return ApiResponse::error('API client user not found', 'USER_NOT_FOUND', 404, []);
+                }
+                if ($userInfo['banned'] == 'true') {
+                    return ApiResponse::error('User is banned', 'USER_BANNED');
+                }
+
+                // Attach user info and API client info to the request attributes
+                $request->attributes->set('user', $userInfo);
+                $request->attributes->set('api_client', $apiClient);
+                $request->attributes->set('auth_type', 'api_key');
+            } else {
+                return ApiResponse::error('You are not allowed to access this resource!', 'INVALID_ACCOUNT_TOKEN', 400, []);
+            }
+        }
+
+        return $next($request);
+    }
+
+    /**
+     * Get the authenticated user from the request (if available).
+     */
+    public static function getCurrentUser(Request $request): ?array
+    {
+        return $request->attributes->get('user');
+    }
+
+    /**
+     * Get the API client from the request (if authenticated via API key).
+     */
+    public static function getCurrentApiClient(Request $request): ?array
+    {
+        return $request->attributes->get('api_client');
+    }
+
+    /**
+     * Get the authentication type from the request.
+     */
+    public static function getAuthType(Request $request): ?string
+    {
+        return $request->attributes->get('auth_type');
+    }
+
+    /**
+     * Check if the request is authenticated via API key.
+     */
+    public static function isApiKeyAuth(Request $request): bool
+    {
+        return $request->attributes->get('auth_type') === 'api_key';
+    }
+
+    /**
+     * Check if the request is authenticated via session.
+     */
+    public static function isSessionAuth(Request $request): bool
+    {
+        return $request->attributes->get('auth_type') === 'session';
+    }
+}
+```
+
+#### Usage in Controllers
+
+```php
+use App\Middleware\AuthMiddleware;
+use Symfony\Component\HttpFoundation\Request;
+
+class UserController
+{
+    public function profile(Request $request)
+    {
+        $user = AuthMiddleware::getCurrentUser($request);
+        $authType = AuthMiddleware::getAuthType($request);
+
+        if (AuthMiddleware::isApiKeyAuth($request)) {
+            $apiClient = AuthMiddleware::getCurrentApiClient($request);
+            // Handle API key authentication
+        }
+
+        return ApiResponse::success(['user' => $user]);
+    }
+}
+```
+
+### AdminMiddleware
+
+Handles admin permission validation.
+
+#### Implementation
+
+```php
+<?php
+
+namespace App\Middleware;
+
+use App\Chat\User;
+use App\Helpers\ApiResponse;
+use App\Helpers\PermissionHelper;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class AdminMiddleware implements MiddlewareInterface
+{
+    public function handle(Request $request, callable $next): Response
+    {
+        $user = $request->attributes->get('user');
+        $permission = $request->attributes->get('permission');
+
+        if (!$user) {
+            return ApiResponse::error('User not authenticated', 'NOT_AUTHENTICATED', 401, []);
+        }
+
+        if (!$permission || !PermissionHelper::hasPermission($user['uuid'], $permission)) {
+            return ApiResponse::error('You are not allowed to access this resource!', 'NOT_AUTHORIZED', 403, [
+                'user' => $user,
+                'permission' => $permission,
+                'userId' => $user['uuid'],
+            ]);
+        }
+
+        return $next($request);
+    }
+
+    /**
+     * Get the authenticated user from the request (if available).
+     */
+    public static function getCurrentUser(Request $request): ?array
+    {
+        return $request->attributes->get('user');
+    }
+}
+```
+
+#### Usage in Routes
+
+```php
+// In route registration
+App::getInstance(true)->registerAdminRoute(
+    $routes,
+    'admin-users',
+    '/api/admin/users',
+    function (Request $request) {
+        return (new UsersController())->index($request);
+    },
+    Permissions::ADMIN_USERS_VIEW, // This permission is checked by AdminMiddleware
+);
+```
+
+### ServerMiddleware
+
+Handles server access validation and ownership checks.
+
+#### Implementation
+
+```php
+<?php
+
+namespace App\Middleware;
+
+use App\App;
+use App\Chat\User;
+use App\Chat\Server;
+use App\Permissions;
+use App\Helpers\ApiResponse;
+use App\Helpers\ServerGateway;
+use App\Helpers\PermissionHelper;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class ServerMiddleware implements MiddlewareInterface
+{
+    public function handle(Request $request, callable $next): Response
+    {
+        $user = $request->attributes->get('user');
+
+        if (!$user) {
+            return ApiResponse::error('User not authenticated', 'NOT_AUTHENTICATED', 401, []);
+        }
+
+        // Resolve server UUID from route attributes
+        $serverUuid = null;
+        $serverParamName = $request->attributes->get('server');
+        if ($serverParamName && $request->attributes->has($serverParamName)) {
+            $serverUuid = (string) $request->attributes->get($serverParamName);
+        }
+        if (!$serverUuid) {
+            $serverUuid = (string) ($request->attributes->get('uuidShort') ?? $request->get('uuidShort'));
+        }
+
+        if (!$serverUuid) {
+            return ApiResponse::error('Server UUID not provided', 'SERVER_UUID_MISSING', 400, []);
+        }
+
+        // Get the server details first
+        $server = $this->getServerByUuid($serverUuid);
+
+        if (!$server) {
+            return ApiResponse::error('Server not found', 'SERVER_NOT_FOUND', 404, [
+                'serverUuid' => $serverUuid,
+                'server' => $server,
+                'user' => $user,
+                'request' => $request,
+            ]);
+        }
+
+        // Check if user can access the server (owner or subuser)
+        if (!$this->userCanAccessServer($user, $server)) {
+            // Maybe the user is admin? If not, deny access
+            if (!PermissionHelper::hasPermission($user['uuid'], Permissions::ADMIN_SERVERS_VIEW) &&
+                !PermissionHelper::hasPermission($user['uuid'], Permissions::ADMIN_SERVERS_EDIT) &&
+                !PermissionHelper::hasPermission($user['uuid'], Permissions::ADMIN_SERVERS_DELETE)) {
+                return ApiResponse::error('Access denied: Server not accessible by user', 'ACCESS_DENIED', 403, []);
+            }
+        }
+
+        if (isset($server['suspended']) && $server['suspended'] == 1) {
+            return ApiResponse::error('Sorry, but you can\'t access servers while they are suspended.', 'SERVER_SUSPENDED', 403, []);
+        }
+
+        return $next($request);
+    }
+
+    /**
+     * Get the authenticated user from the request (if available).
+     */
+    public static function getCurrentUser(Request $request): ?array
+    {
+        return $request->attributes->get('user');
+    }
+
+    /**
+     * Get the server UUID from the request (if available).
+     */
+    public static function getServerUuid(Request $request): ?string
+    {
+        return $request->attributes->get('server') ?? $request->get('uuidShort');
+    }
+
+    /**
+     * Get server by UUID.
+     */
+    private function getServerByUuid(string $serverUuid): ?array
+    {
+        try {
+            return $this->getServerByShortUuid($serverUuid);
+        } catch (\Exception $e) {
+            App::getInstance(true)->getLogger()->warning('Error getting server by UUID: ' . $e->getMessage());
+            return null;
+        } catch (\PDOException $e) {
+            App::getInstance(true)->getLogger()->warning('Error getting server by UUID: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Check if the user can access the specified server (owner or subuser).
+     */
+    private function userCanAccessServer(array $user, array $server): bool
+    {
+        try {
+            // Use ServerGateway to check access (handles both owners and subusers)
+            return ServerGateway::canUserAccessServer($user['uuid'], $server['uuid']);
+        } catch (\Exception $e) {
+            // Log the error but deny access for security
+            error_log('Error checking server access: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    private function getServerByShortUuid(string $serverUuid): ?array
+    {
+        return Server::getServerByUuidShort($serverUuid);
+    }
+}
+```
+
+#### Usage in Routes
+
+```php
+// In route registration
+App::getInstance(true)->registerServerRoute(
+    $routes,
+    'server-console',
+    '/api/servers/{uuidShort}/console',
+    function (Request $request) {
+        return (new ServerController())->console($request);
+    }
+);
+```
+
+### WingsMiddleware
+
+Handles Wings daemon authentication.
+
+#### Implementation
+
+```php
+<?php
+
+namespace App\Middleware;
+
+use App\Chat\Node;
+use App\Helpers\ApiResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class WingsMiddleware implements MiddlewareInterface
+{
+    public function handle(Request $request, callable $next): Response
+    {
+        $token = $this->getWingsToken($request);
+
+        if ($token == null) {
+            return ApiResponse::error('You need authorization to hit this endpoint!', 'NO_WINGS_TOKEN', 401, []);
+        }
+
+        $token = str_replace('Bearer ', '', $token);
+        $tokenId = explode('.', $token)[0];
+        $tokenSecret = explode('.', $token)[1];
+
+        if (!Node::isWingsAuthValid($tokenId, $tokenSecret)) {
+            return ApiResponse::error('You are not authorized to hit this endpoint!', 'INVALID_WINGS_TOKEN', 401, []);
+        }
+
+        $request->attributes->set('wings_token', $token);
+        $request->attributes->set('wings_token_id', $tokenId);
+        $request->attributes->set('wings_token_secret', $tokenSecret);
+
+        return $next($request);
+    }
+
+    /**
+     * Get the Wings token from the request.
+     */
+    public static function getWingsToken(Request $request): ?string
+    {
+        return $request->headers->get('Authorization');
+    }
+}
+```
+
+#### Usage in Routes
+
+```php
+// In route registration
+App::getInstance(true)->registerWingsRoute(
+    $routes,
+    'wings-server-status',
+    '/api/wings/servers/{uuid}/status',
+    function (Request $request) {
+        return (new WingsController())->serverStatus($request);
+    }
+);
+```
+
+## Creating Custom Middleware
+
+### Basic Middleware Structure
+
+```php
+<?php
+
+namespace App\Middleware;
+
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class CustomMiddleware implements MiddlewareInterface
+{
+    public function handle(Request $request, callable $next): Response
+    {
+        // Pre-processing logic here
+        $this->preProcess($request);
+
+        // Call the next middleware or controller
+        $response = $next($request);
+
+        // Post-processing logic here
+        $this->postProcess($request, $response);
+
+        return $response;
+    }
+
+    private function preProcess(Request $request): void
+    {
+        // Add request attributes, validate data, etc.
+        $request->attributes->set('custom_data', 'some_value');
+    }
+
+    private function postProcess(Request $request, Response $response): void
+    {
+        // Modify response, add headers, etc.
+        $response->headers->set('X-Custom-Header', 'custom-value');
+    }
+}
+```
+
+### Rate Limiting Middleware
+
+```php
+<?php
+
+namespace App\Middleware;
+
+use App\Helpers\ApiResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class RateLimitMiddleware implements MiddlewareInterface
+{
+    private int $maxRequests;
+    private int $timeWindow;
+
+    public function __construct(int $maxRequests = 100, int $timeWindow = 3600)
+    {
+        $this->maxRequests = $maxRequests;
+        $this->timeWindow = $timeWindow;
+    }
+
+    public function handle(Request $request, callable $next): Response
+    {
+        $clientIp = $request->getClientIp();
+        $cacheKey = "rate_limit_{$clientIp}";
+
+        // Check current request count
+        $currentCount = $this->getRequestCount($cacheKey);
+
+        if ($currentCount >= $this->maxRequests) {
+            return ApiResponse::error('Rate limit exceeded', 'RATE_LIMIT_EXCEEDED', 429, [
+                'retry_after' => $this->timeWindow
+            ]);
+        }
+
+        // Increment request count
+        $this->incrementRequestCount($cacheKey);
+
+        return $next($request);
+    }
+
+    private function getRequestCount(string $cacheKey): int
+    {
+        // Implementation using cache or database
+        return Cache::get($cacheKey, 0);
+    }
+
+    private function incrementRequestCount(string $cacheKey): void
+    {
+        $current = $this->getRequestCount($cacheKey);
+        Cache::put($cacheKey, $current + 1, $this->timeWindow);
+    }
+}
+```
+
+### CORS Middleware
+
+```php
+<?php
+
+namespace App\Middleware;
+
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class CorsMiddleware implements MiddlewareInterface
+{
+    private array $allowedOrigins;
+    private array $allowedMethods;
+    private array $allowedHeaders;
+
+    public function __construct(
+        array $allowedOrigins = ['*'],
+        array $allowedMethods = ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        array $allowedHeaders = ['Content-Type', 'Authorization', 'X-Requested-With']
+    ) {
+        $this->allowedOrigins = $allowedOrigins;
+        $this->allowedMethods = $allowedMethods;
+        $this->allowedHeaders = $allowedHeaders;
+    }
+
+    public function handle(Request $request, callable $next): Response
+    {
+        // Handle preflight requests
+        if ($request->getMethod() === 'OPTIONS') {
+            $response = new Response();
+            $this->addCorsHeaders($response, $request);
+            return $response;
+        }
+
+        $response = $next($request);
+        $this->addCorsHeaders($response, $request);
+
+        return $response;
+    }
+
+    private function addCorsHeaders(Response $response, Request $request): void
+    {
+        $origin = $request->headers->get('Origin');
+
+        if (in_array($origin, $this->allowedOrigins) || in_array('*', $this->allowedOrigins)) {
+            $response->headers->set('Access-Control-Allow-Origin', $origin ?: '*');
+        }
+
+        $response->headers->set('Access-Control-Allow-Methods', implode(', ', $this->allowedMethods));
+        $response->headers->set('Access-Control-Allow-Headers', implode(', ', $this->allowedHeaders));
+        $response->headers->set('Access-Control-Allow-Credentials', 'true');
+        $response->headers->set('Access-Control-Max-Age', '86400');
+    }
+}
+```
+
+### Logging Middleware
+
+```php
+<?php
+
+namespace App\Middleware;
+
+use App\App;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class LoggingMiddleware implements MiddlewareInterface
+{
+    public function handle(Request $request, callable $next): Response
+    {
+        $startTime = microtime(true);
+        $logger = App::getInstance(true)->getLogger();
+
+        // Log request
+        $logger->info('Request started', [
+            'method' => $request->getMethod(),
+            'uri' => $request->getRequestUri(),
+            'ip' => $request->getClientIp(),
+            'user_agent' => $request->headers->get('User-Agent'),
+        ]);
+
+        $response = $next($request);
+
+        // Log response
+        $endTime = microtime(true);
+        $duration = round(($endTime - $startTime) * 1000, 2);
+
+        $logger->info('Request completed', [
+            'method' => $request->getMethod(),
+            'uri' => $request->getRequestUri(),
+            'status_code' => $response->getStatusCode(),
+            'duration_ms' => $duration,
+        ]);
+
+        return $response;
+    }
+}
+```
+
+## Middleware Registration
+
+### Automatic Registration
+
+Middleware is automatically registered when using route registration methods:
+
+```php
+// AuthMiddleware is automatically applied
+App::getInstance(true)->registerAuthRoute(
+    $routes,
+    'user-profile',
+    '/api/user/profile',
+    function (Request $request) {
+        return (new UserController())->profile($request);
+    }
+);
+
+// AdminMiddleware is automatically applied
+App::getInstance(true)->registerAdminRoute(
+    $routes,
+    'admin-users',
+    '/api/admin/users',
+    function (Request $request) {
+        return (new UsersController())->index($request);
+    },
+    Permissions::ADMIN_USERS_VIEW
+);
+
+// ServerMiddleware is automatically applied
+App::getInstance(true)->registerServerRoute(
+    $routes,
+    'server-console',
+    '/api/servers/{uuidShort}/console',
+    function (Request $request) {
+        return (new ServerController())->console($request);
+    }
+);
+
+// WingsMiddleware is automatically applied
+App::getInstance(true)->registerWingsRoute(
+    $routes,
+    'wings-server-status',
+    '/api/wings/servers/{uuid}/status',
+    function (Request $request) {
+        return (new WingsController())->serverStatus($request);
+    }
+);
+```
+
+### Manual Middleware Application
+
+For custom middleware, you can apply it manually in route definitions:
+
+```php
+// In route file
+return function (RouteCollection $routes): void {
+    $routes->add('custom-route', new Route('/api/custom', [
+        '_controller' => function (Request $request) {
+            // Apply custom middleware
+            $middleware = new CustomMiddleware();
+            return $middleware->handle($request, function (Request $req) {
+                return (new CustomController())->handle($req);
+            });
+        }
+    ]));
+};
+```
+
+## Middleware Best Practices
+
+### 1. Keep Middleware Focused
+
+Each middleware should have a single responsibility:
+
+```php
+// ✅ Good - Single responsibility
+class AuthMiddleware implements MiddlewareInterface
+{
+    public function handle(Request $request, callable $next): Response
+    {
+        // Only handle authentication
+        $this->authenticateUser($request);
+        return $next($request);
+    }
+}
+
+// ❌ Bad - Multiple responsibilities
+class AuthAndLoggingMiddleware implements MiddlewareInterface
+{
+    public function handle(Request $request, callable $next): Response
+    {
+        // Authentication logic
+        $this->authenticateUser($request);
+
+        // Logging logic
+        $this->logRequest($request);
+
+        // Rate limiting logic
+        $this->checkRateLimit($request);
+
+        return $next($request);
+    }
+}
+```
+
+### 2. Use Request Attributes
+
+Attach data to requests for downstream use:
+
+```php
+public function handle(Request $request, callable $next): Response
+{
+    $user = $this->authenticateUser($request);
+    $request->attributes->set('user', $user);
+    $request->attributes->set('auth_type', 'session');
+
+    return $next($request);
+}
+```
+
+### 3. Handle Errors Gracefully
+
+Always handle errors and return appropriate responses:
+
+```php
+public function handle(Request $request, callable $next): Response
+{
+    try {
+        $this->validateRequest($request);
+        return $next($request);
+    } catch (ValidationException $e) {
+        return ApiResponse::error('Validation failed', 'VALIDATION_ERROR', 400, [
+            'errors' => $e->getErrors()
+        ]);
+    } catch (\Exception $e) {
+        App::getInstance(true)->getLogger()->error('Middleware error: ' . $e->getMessage());
+        return ApiResponse::error('Internal server error', 'INTERNAL_ERROR', 500);
+    }
+}
+```
+
+### 4. Use Static Helper Methods
+
+Provide static methods for accessing middleware data:
+
+```php
+class AuthMiddleware implements MiddlewareInterface
+{
+    public function handle(Request $request, callable $next): Response
+    {
+        // Authentication logic
+        $user = $this->authenticateUser($request);
+        $request->attributes->set('user', $user);
+
+        return $next($request);
+    }
+
+    /**
+     * Get the authenticated user from the request.
+     */
+    public static function getCurrentUser(Request $request): ?array
+    {
+        return $request->attributes->get('user');
+    }
+
+    /**
+     * Check if the request is authenticated.
+     */
+    public static function isAuthenticated(Request $request): bool
+    {
+        return $request->attributes->has('user');
+    }
+}
+```
+
+### 5. Log Important Events
+
+Log authentication failures, authorization denials, and other important events:
+
+```php
+public function handle(Request $request, callable $next): Response
+{
+    $logger = App::getInstance(true)->getLogger();
+
+    try {
+        $user = $this->authenticateUser($request);
+        if (!$user) {
+            $logger->warning('Authentication failed', [
+                'ip' => $request->getClientIp(),
+                'user_agent' => $request->headers->get('User-Agent'),
+                'uri' => $request->getRequestUri(),
+            ]);
+            return ApiResponse::error('Authentication failed', 'AUTH_FAILED', 401);
+        }
+
+        return $next($request);
+    } catch (\Exception $e) {
+        $logger->error('Middleware exception', [
+            'exception' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ]);
+        return ApiResponse::error('Internal server error', 'INTERNAL_ERROR', 500);
+    }
+}
+```
+
+## Middleware Testing
+
+### Unit Testing Middleware
+
+```php
+<?php
+
+use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class AuthMiddlewareTest extends TestCase
+{
+    public function testAuthenticatedRequest()
+    {
+        $middleware = new AuthMiddleware();
+        $request = new Request();
+        $request->cookies->set('remember_token', 'valid-token');
+
+        $response = $middleware->handle($request, function (Request $req) {
+            $this->assertTrue($req->attributes->has('user'));
+            return new Response('OK');
+        });
+
+        $this->assertEquals(200, $response->getStatusCode());
+    }
+
+    public function testUnauthenticatedRequest()
+    {
+        $middleware = new AuthMiddleware();
+        $request = new Request();
+
+        $response = $middleware->handle($request, function (Request $req) {
+            return new Response('OK');
+        });
+
+        $this->assertEquals(400, $response->getStatusCode());
+    }
+}
+```
+
+### Integration Testing
+
+```php
+<?php
+
+use PHPUnit\Framework\TestCase;
+
+class MiddlewareIntegrationTest extends TestCase
+{
+    public function testAdminRouteWithPermission()
+    {
+        // Mock authenticated user with admin permission
+        $user = ['uuid' => 'test-uuid', 'role' => 'admin'];
+
+        // Test admin route access
+        $response = $this->makeRequest('/api/admin/users', [
+            'Authorization' => 'Bearer valid-api-key'
+        ]);
+
+        $this->assertEquals(200, $response->getStatusCode());
+    }
+
+    public function testAdminRouteWithoutPermission()
+    {
+        // Mock authenticated user without admin permission
+        $user = ['uuid' => 'test-uuid', 'role' => 'user'];
+
+        // Test admin route access
+        $response = $this->makeRequest('/api/admin/users', [
+            'Authorization' => 'Bearer valid-api-key'
+        ]);
+
+        $this->assertEquals(403, $response->getStatusCode());
+    }
+}
+```
