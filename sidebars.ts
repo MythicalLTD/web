@@ -15,6 +15,44 @@ const sidebars: SidebarsConfig = {
         'welcome',
         {
             type: 'category',
+            label: 'FeatherPanel',
+            collapsed: false,
+            items: [
+                'featherpanel/welcome-featherpanel',
+                'featherpanel/ssl-certificates',
+                'featherpanel/welcome-featherwings',
+                {
+                    type: 'category',
+                    label: 'Development Guides',
+                    items: [
+                        {
+                            type: 'category',
+                            label: 'Install',
+                            items: [
+                                'featherpanel/development-guides/install/install-featherpanel-devs',
+                            ]
+                        },
+                        {
+                            type: 'category',
+                            label: 'Codebase',
+                            items: [
+                                'featherpanel/development-guides/codebase/welcome-codebase',
+                            ]
+                        },
+                        {
+                            type: 'category',
+                            label: 'Plugins',
+                            items: [
+                                'featherpanel/development-guides/plugins/welcome-developers',
+                            ]
+                        }
+                    ]
+                }
+
+            ]
+        },
+        {
+            type: 'category',
             label: 'MythicalDash v3 (Remastered)',
             collapsed: false,
             items: [
@@ -114,14 +152,7 @@ const sidebars: SidebarsConfig = {
                 "mythicaldash-v3/faq",
             ]
         },
-        {
-            type: 'category',
-            label: 'FeatherPanel',
-            collapsed: true,
-            items: [
-                'featherpanel/welcome',
-            ]
-        },
+
     ]
     // By default, Docusaurus generates a sidebar from the docs folder structure
 };

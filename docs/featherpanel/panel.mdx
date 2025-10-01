@@ -1,0 +1,109 @@
+---
+id: welcome-featherpanel
+pagination_next: null
+pagination_prev: null
+---
+
+# Installing FeatherPanel
+
+## Supported Systems
+
+The following is a list of supported operating systems. Please note that this is not an exhaustive list—there is a high probability that you can run FeatherPanel on other Linux distributions with minimal adjustments. You are responsible for determining which packages may be necessary on those systems. Newer releases of the supported OSes below are also likely to work, even if not explicitly listed.
+
+| Operating System                | Version  | Supported | Notes                                                         |
+|---------------------------------|----------|-----------|---------------------------------------------------------------|
+| **Ubuntu**                      | 20.04    | ✅        | Documentation assumes Ubuntu 20.04 as the base OS.            |
+|                                 | 22.04    | ✅        |                                                               |
+|                                 | 24.04    | ✅        |                                                               |
+| **RHEL / Rocky Linux / AlmaLinux** | 8        | ✅        |                                                               |
+|                                 | 9        | ✅        |                                                               |
+| **Debian**                      | 11       | ✅        |                                                               |
+|                                 | 12       | ✅        |                                                               |
+
+If your system is not listed above, you may still be able to install and run FeatherPanel by installing the required dependencies for your distribution.
+
+
+# System Requirements
+
+To run FeatherPanel, you will need a Linux system capable of running Docker containers. Most VPS and almost all dedicated servers should be capable of running Docker, but there are edge cases.
+
+When your provider uses Virtuozzo, OpenVZ (or OVZ), or LXC virtualization, you will most likely be unable to run FeatherPanel. Some providers have made the necessary changes for nested virtualization to support Docker. Ask your provider's support team to make sure. KVM is guaranteed to work.
+
+The easiest way to check is to type `systemd-detect-virt`. If the result doesn't contain OpenVZ or LXC, it should be fine. The result of `none` will appear when running dedicated hardware without any virtualization.
+
+Should that not work for some reason, or you're still unsure, you can also run the command below.
+
+```bash
+sudo dmidecode -s system-manufacturer
+```
+
+Example output:
+```
+VMware, Inc.
+```
+
+## Dependencies
+
+- curl
+- Docker
+
+## Installing Docker
+
+For a quick install of Docker CE, you can execute the command below:
+
+```bash
+curl -sSL https://get.docker.com/ | CHANNEL=stable bash
+```
+
+If you would rather do a manual installation, please reference the [official Docker documentation](https://docs.docker.com/engine/install/) for how to install Docker CE on your server.
+
+## Check your Kernel
+
+Please be aware that some hosts install a modified kernel that does not support important docker features. Please check your kernel by running `uname -r`. If your kernel ends in `-xxxx-grs-ipv6-64` or `-xxxx-mod-std-ipv6-64` you're probably using a non-supported kernel.
+
+## Start Docker on Boot
+
+If you are on an operating system with systemd (Ubuntu 16+, Debian 8+, CentOS 7+) run the command below to have Docker start when you boot your machine.
+
+```bash
+sudo systemctl enable --now docker
+```
+
+## Enabling Swap
+
+### Recent Linux kernel
+
+Since the version 6.1 of the Linux kernel, swap is enabled by default. If you are running a kernel version 6.1 or newer, you can skip this step. To check your kernel version, run `uname -r`.
+
+On most systems, Docker will be unable to setup swap space by default. You can confirm this by running `docker info` and looking for the output of `WARNING: No swap limit support` near the bottom.
+
+Enabling swap is entirely optional, but we recommended doing it if you will be hosting for others and to prevent OOM errors.
+
+To enable swap, open `/etc/default/grub` as a root user and find the line starting with `GRUB_CMDLINE_LINUX_DEFAULT`. Make sure the line includes `swapaccount=1` somewhere inside the double-quotes.
+
+After that, run `sudo update-grub` followed by `sudo reboot` to restart the server and have swap enabled. Below is an example of what the line should look like, do not copy this line verbatim. It often has additional OS-specific parameters.
+
+```
+GRUB_CMDLINE_LINUX_DEFAULT="swapaccount=1"
+```
+
+### GRUB Configuration
+
+Some Linux distros may ignore `GRUB_CMDLINE_LINUX_DEFAULT`. Therefore you might have to use `GRUB_CMDLINE_LINUX` instead should the default one not work for you.
+
+
+## Installing FeatherPanel (Canary)
+
+:::warning Canary Release
+This is a **canary release** of FeatherPanel - it is even before alpha and is intended for early adopters and developers who want to start experimenting with FeatherPanel. **Do not use this in production environments** as it may contain bugs, incomplete features, or breaking changes.
+:::
+
+### Installation
+
+To get started with the canary release, run the following command:
+
+```bash
+curl -sSL https://get.featherpanel.com/canary.sh | bash
+```
+
+This will install the latest canary build of FeatherPanel on your system.

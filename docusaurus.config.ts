@@ -4,10 +4,12 @@ import type * as Preset from '@docusaurus/preset-classic';
 import tailwindPlugin from "./plugins/tailwind-config.js";
 import remarkgfm from "remark-gfm";
 
-
 const config: Config = {
   markdown: {
     mermaid: true,
+    hooks: {
+      onBrokenMarkdownLinks: 'ignore',
+    },
   },
   title: 'MythicalSystems LTD',
   tagline: 'We code the future.',
@@ -16,8 +18,6 @@ const config: Config = {
   baseUrl: '/',
   organizationName: 'mythicalltd',
   projectName: 'web',
-  onBrokenLinks: 'warn',
-  onBrokenMarkdownLinks: 'warn',
   i18n: {
     defaultLocale: 'en',
     locales: ['en'],
@@ -36,16 +36,16 @@ const config: Config = {
           onUntruncatedBlogPosts: 'ignore',
         },
         theme: {
-            customCss: [
-                require.resolve('./src/css/tailwind.css')
-            ]
+          customCss: [
+            require.resolve('./src/css/tailwind.css')
+          ]
         },
       } satisfies Preset.Options,
     ],
   ],
 
   themeConfig: {
-      metadata: [
+    metadata: [
       { name: 'keywords', content: 'mythicalsystems, mythicaldash, mythicalclient, mythicalbilling, mythicalsystems ltd, mythicalsystems info , mythicalsystems projects, mythicalsystems github, pterodactyl, stopabuse, nayskutuz, cassian gherman, nayskutzuftw, mythicaldoggo, mythicalsystems website, mythicalsystems info, mythical.systems, oldmythicalsystems, mythicaldoggo, nayskutzu, nayskutzuftw, polartoflex, multyplay,noxlcraft,mythic-romania,mythic-craft, mysticcraft,mythicaldash, mythicalclient, mythicalframework, mythicalframework api, api, mythicalframework docs, mythicalframework github, mythicalframework info, mythicalframework projects, mythicalframework website, documenation mythical, mythicaldocs, mythical website, hurawatch, testing, mythic, holaclient, hellactyl, pterodactyl, hosting, cms' },
       { name: 'twitter:card', content: 'summary_large_image' },
       { name: 'twitter:site', content: '@mythicalsystems' },

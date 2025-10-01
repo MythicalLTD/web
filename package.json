@@ -30,6 +30,7 @@
     "fortawesome": "^0.0.1-security",
     "framer-motion": "^11.11.17",
     "lucide-react": "^0.456.0",
+    "lunr": "^2.3.9",
     "mythicalsystems": "file:",
     "prism-react-renderer": "^2.3.0",
     "react": "^18.0.0",
