@@ -103,16 +103,16 @@ This is a **canary release** of FeatherWings - it is even before alpha and is in
 The first step for installing Wings is to ensure we have the required directory structure setup. To do so, run the commands below, which will create the base directory and download the wings executable.
 
 ```bash
-sudo mkdir -p /etc/pelican /var/run/wings
-sudo curl -L -o /usr/local/bin/wings "https://github.com/pelican-dev/wings/releases/latest/download/wings_linux_$([[ "$(uname -m)" == "x86_64" ]] && echo "amd64" || echo "arm64")"
-sudo chmod u+x /usr/local/bin/wings
+sudo mkdir -p /etc/featherpanel /var/run/wings
+sudo curl -L -o /usr/local/bin/featherwings "https://github.com/mythicalltd/featherwings/releases/latest/download/wings_linux_$([[ "$(uname -m)" == "x86_64" ]] && echo "amd64" || echo "arm64")"
+sudo chmod u+x /usr/local/bin/featherwings
 ```
 
 ### Configure
 
 Once you have installed Wings and the required components, the next step is to create a node on your installed Panel. Go to your Panel administrative view, select Nodes from the sidebar, and on the right side click Create New button.
 
-After you have created a node, click on it and there will be a tab called Configuration. Copy the code block content, create a new file at `/etc/pelican/config.yml`, paste the content into it and save.
+After you have created a node, click on it and there will be a tab called Configuration. Copy the code block content, create a new file at `/etc/featherpanel/config.yml`, paste the content into it and save.
 
 Alternatively, you can click on the Auto Deploy Command button, copy the sh command and paste it into your terminal.
 
@@ -145,10 +145,10 @@ PartOf=docker.service
 
 [Service]
 User=root
-WorkingDirectory=/etc/pelican
+WorkingDirectory=/etc/featherpanel
 LimitNOFILE=4096
-PIDFile=/var/run/wings/daemon.pid
-ExecStart=/usr/local/bin/wings
+PIDFile=/var/run/featherwings/daemon.pid
+ExecStart=/usr/local/bin/featherwings
 Restart=on-failure
 StartLimitInterval=180
 StartLimitBurst=30
