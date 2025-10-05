@@ -100,12 +100,21 @@ This is a **canary release** of FeatherWings - it is even before alpha and is in
 
 ### Installing Wings
 
-The first step for installing Wings is to ensure we have the required directory structure setup. To do so, run the commands below, which will create the base directory and download the wings executable.
+The first step for installing Wings is to ensure we have the required directory structure setup. To do so, run the commands below, which will create the base directories and download the featherwings executable.
 
 ```bash
-sudo mkdir -p /etc/featherpanel /var/run/featherwings
-sudo curl -L -o /usr/local/bin/featherwings "https://github.com/mythicalltd/featherwings/releases/latest/download/wings_linux_$([[ "$(uname -m)" == "x86_64" ]] && echo "amd64" || echo "arm64")"
-sudo chmod u+x /usr/local/bin/featherwings
+# Create directory structure
+sudo mkdir -p /etc/featherpanel
+sudo mkdir -p /var/lib/featherpanel/volumes
+sudo mkdir -p /var/lib/featherpanel/archives
+sudo mkdir -p /var/lib/featherpanel/backups
+sudo mkdir -p /var/log/featherpanel
+sudo mkdir -p /tmp/featherpanel
+sudo mkdir -p /var/run/featherwings
+
+# Download and install featherwings binary
+sudo curl -L -o /usr/local/bin/featherwings "https://github.com/MythicalLTD/FeatherWings/releases/latest/download/wings_linux_$([[ "$(uname -m)" == "x86_64" ]] && echo "amd64" || echo "arm64")"
+sudo chmod +x /usr/local/bin/featherwings
 ```
 
 ### Configure
@@ -127,18 +136,18 @@ See Creating SSL Certificates documentation page for how to create these certifi
 To start Wings, simply run the command below, which will start it in a debug mode. Once you confirmed that it is running without errors, use CTRL+C to terminate the process and daemonize it by following the instructions below. Depending on your server's internet connection pulling and starting Wings for the first time may take a few minutes.
 
 ```bash
-sudo wings --debug
+sudo featherwings --debug
 ```
 
 You may optionally add the `--debug` flag to run Wings in debug mode.
 
 ### Daemonizing (using systemd)
 
-Running Wings in the background is a simple task, just make sure that it runs without errors before doing this. Place the contents below in a file called `wings.service` in the `/etc/systemd/system` directory.
+Running Wings in the background is a simple task, just make sure that it runs without errors before doing this. Place the contents below in a file called `featherwings.service` in the `/etc/systemd/system` directory.
 
 ```ini
 [Unit]
-Description=Wings Daemon
+Description=FeatherWings Daemon
 After=docker.service
 Requires=docker.service
 PartOf=docker.service
@@ -146,13 +155,13 @@ PartOf=docker.service
 [Service]
 User=root
 WorkingDirectory=/etc/featherpanel
-LimitNOFILE=4096
-PIDFile=/var/run/featherwings/daemon.pid
 ExecStart=/usr/local/bin/featherwings
-Restart=on-failure
+Restart=always
+RestartSec=5
 StartLimitInterval=180
 StartLimitBurst=30
-RestartSec=5s
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
@@ -161,6 +170,8 @@ WantedBy=multi-user.target
 Then, run the commands below to reload systemd and start Wings.
 
 ```bash
-sudo systemctl enable --now wings
+sudo systemctl daemon-reload
+sudo systemctl enable featherwings
+sudo systemctl start featherwings
 ```
 
