@@ -29,7 +29,17 @@ const sidebars: SidebarsConfig = {
                             type: 'category',
                             label: 'Install',
                             items: [
+                                {
+                                    type: 'category',
+                                    label: 'OS Installation',
+                                    items: [
+                                        'featherpanel/development-guides/install/os/debian',
+                                        'featherpanel/development-guides/install/os/ubuntu',
+                                    ]
+                                },
                                 'featherpanel/development-guides/install/install-featherpanel-devs',
+                                'featherpanel/development-guides/install/update-featherpanel-devs',
+                                "featherpanel/development-guides/install/webserver",
                             ]
                         },
                         {

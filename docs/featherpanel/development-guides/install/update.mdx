@@ -1,0 +1,341 @@
+---
+id: 'update-featherpanel-devs'
+---
+
+# Updating FeatherPanel
+
+This guide covers updating your development installation of FeatherPanel to the latest version. Regular updates ensure you have the latest features, bug fixes, and security patches.
+
+:::warning Developer Installation Only
+This guide is specifically for **developer installations** of FeatherPanel. If you're running FeatherPanel in production using Docker, please refer to the standard update documentation instead.
+:::
+
+:::danger Backup First
+**Always create a backup before updating!** While we strive to make updates seamless, unexpected issues can occur. Having a backup ensures you can quickly restore your installation if something goes wrong.
+:::
+
+## Prerequisites
+
+Before updating, ensure you have:
+
+- Root or sudo access to your server
+- A recent backup of your database and files
+- Access to the server via SSH
+
+## Backup Your Installation
+
+### 1. Backup the Database
+
+Create a backup of your FeatherPanel database:
+
+```bash
+mysqldump -u featherpanel -p featherpanel > featherpanel_backup_$(date +%Y%m%d_%H%M%S).sql
+```
+
+Store this backup in a safe location outside of the `/var/www/featherpanel` directory.
+
+### 2. Backup Configuration Files
+
+Create a backup of your configuration files:
+
+```bash
+cp -r /var/www/featherpanel/backend/.env /var/www/featherpanel/backend/.env.backup
+```
+
+### 3. Optional: Full Directory Backup
+
+For extra safety, create a complete backup of the installation directory:
+
+```bash
+tar -czf featherpanel_backup_$(date +%Y%m%d_%H%M%S).tar.gz /var/www/featherpanel
+```
+
+## Update Process
+
+### 1. Enable Maintenance Mode (Optional)
+
+If you're running a development instance that others are using, you may want to enable maintenance mode to prevent errors during the update:
+
+```bash
+cd /var/www/featherpanel/backend
+touch storage/maintenance.lock
+```
+
+### 2. Stop Cron Jobs Temporarily
+
+To prevent cron jobs from running during the update, you can temporarily disable them:
+
+```bash
+sudo crontab -u www-data -e
+```
+
+Comment out the FeatherPanel cron lines by adding `#` at the beginning:
+
+```bash
+# * * * * * bash /var/www/featherpanel/backend/storage/cron/runner.bash >> /dev/null 2>&1
+# * * * * * php /var/www/featherpanel/backend/storage/cron/runner.php >> /dev/null 2>&1
+```
+
+Save and exit. You'll re-enable these after the update.
+
+### 3. Pull Latest Changes
+
+Navigate to your installation directory and pull the latest changes from the repository:
+
+```bash
+cd /var/www/featherpanel
+git stash
+git pull origin main
+git stash pop
+```
+
+:::info Merge Conflicts
+If you have local modifications and encounter merge conflicts, you'll need to resolve them manually. The `git stash` commands help preserve your local changes while pulling updates.
+:::
+
+### 4. Update Backend Dependencies
+
+Update all Composer dependencies for the backend:
+
+:::tip Development Dependencies
+If you're actively developing and need development dependencies, remove the `--no-dev` flag:
+```bash
+COMPOSER_ALLOW_SUPERUSER=1 composer install --working-dir=/var/www/featherpanel/backend
+```
+:::
+
+### 5. Update Frontend Dependencies
+
+Update all pnpm dependencies for the frontend:
+
+```bash
+pnpm install --dir /var/www/featherpanel/frontend/
+```
+
+### 6. Run Database Migrations
+
+Apply any new database migrations:
+
+```bash
+cd /var/www/featherpanel
+php app migrate
+```
+
+:::warning Migration Failures
+If a migration fails, **do not proceed** with the update. Restore your database backup and seek help from the development team or community.
+:::
+
+### 7. Rebuild the Frontend
+
+Rebuild the frontend with the latest changes:
+
+```bash
+cd /var/www/featherpanel/frontend
+pnpm build
+```
+
+:::tip Development Mode
+If you're actively developing, you can use the watch command instead:
+```bash
+pnpm watch
+```
+:::
+
+### 8. Fix Permissions
+
+Ensure proper permissions are set on all files:
+
+```bash
+chown -R www-data:www-data /var/www/featherpanel/*
+```
+
+### 9. Re-enable Cron Jobs
+
+Uncomment the cron job lines:
+
+```bash
+sudo crontab -u www-data -e
+```
+
+Remove the `#` from the FeatherPanel cron lines:
+
+```bash
+* * * * * bash /var/www/featherpanel/backend/storage/cron/runner.bash >> /dev/null 2>&1
+* * * * * php /var/www/featherpanel/backend/storage/cron/runner.php >> /dev/null 2>&1
+```
+
+### 10. Restart Web Server
+
+Restart your web server to apply all changes:
+
+```bash
+sudo systemctl restart nginx
+sudo systemctl restart php8.3-fpm
+```
+
+### 11. Disable Maintenance Mode
+
+If you enabled maintenance mode earlier, disable it now:
+
+```bash
+rm /var/www/featherpanel/backend/storage/maintenance.lock
+```
+
+## Verification
+
+### 1. Check Application Status
+
+Visit your FeatherPanel installation in a web browser and verify that:
+
+- The panel loads correctly
+- You can log in successfully
+- All features work as expected
+
+### 2. Check for Errors
+
+Review the error logs for any issues:
+
+```bash
+tail -f /var/www/featherpanel/backend/storage/logs/featherpanel-web.fplog
+```
+
+### 3. Verify Database Migrations
+
+Confirm all migrations ran successfully:
+
+```bash
+cd /var/www/featherpanel/backend
+php app migrate
+```
+
+## Troubleshooting
+
+### Update Failed
+
+If the update process fails:
+
+1. **Don't panic** - your backup is safe
+2. Review the error messages carefully
+3. Check the logs for detailed error information
+4. Restore from backup if necessary
+
+### Restore from Backup
+
+If you need to restore from your backup:
+
+#### Restore Database
+
+```bash
+mysql -u featherpanel -p featherpanel < featherpanel_backup_YYYYMMDD_HHMMSS.sql
+```
+
+#### Restore Configuration
+
+```bash
+cp /var/www/featherpanel/backend/.env.backup /var/www/featherpanel/backend/.env
+```
+
+#### Restore Full Installation (if you made a full backup)
+
+```bash
+cd /var/www
+tar -xzf featherpanel_backup_YYYYMMDD_HHMMSS.tar.gz
+```
+
+### Common Issues
+
+#### 1. Permission Errors
+
+If you encounter permission errors:
+
+```bash
+chown -R www-data:www-data /var/www/featherpanel/*
+chmod -R 755 /var/www/featherpanel
+```
+
+#### 2. Composer Memory Limit
+
+If Composer runs out of memory:
+
+```bash
+COMPOSER_MEMORY_LIMIT=-1 COMPOSER_ALLOW_SUPERUSER=1 composer install --working-dir=/var/www/featherpanel/backend
+```
+
+#### 3. Frontend Build Fails
+
+If the frontend build fails, try clearing the pnpm cache:
+
+```bash
+pnpm store prune
+pnpm install --dir /var/www/featherpanel/frontend/
+pnpm build --dir /var/www/featherpanel/frontend/
+```
+
+#### 4. Git Conflicts
+
+If you have merge conflicts that are difficult to resolve:
+
+```bash
+cd /var/www/featherpanel
+git reset --hard HEAD
+git pull origin main
+```
+
+:::warning Data Loss
+The `git reset --hard` command will discard all local changes. Make sure you've backed up any custom modifications before running this command.
+:::
+
+## Keeping Up to Date
+
+### Subscribe to Updates
+
+To stay informed about new releases and important updates:
+
+1. Watch the [FeatherPanel GitHub repository](https://github.com/mythicalltd/featherpanel)
+2. Join the development Discord server
+3. Follow the project on social media
+
+### Update Frequency
+
+For development installations, we recommend:
+
+- **Major updates**: As soon as they're available (after testing on a staging environment)
+- **Minor updates**: Within a week of release
+- **Security patches**: Immediately
+
+### Automated Update Reminders
+
+You can create a simple script to check for updates regularly:
+
+```bash
+#!/bin/bash
+cd /var/www/featherpanel
+git fetch origin main
+LOCAL=$(git rev-parse HEAD)
+REMOTE=$(git rev-parse origin/main)
+
+if [ "$LOCAL" != "$REMOTE" ]; then
+    echo "FeatherPanel update available!"
+    echo "Run: cd /var/www/featherpanel && git pull"
+fi
+```
+
+Save this as `/usr/local/bin/check-featherpanel-updates.sh` and run it periodically via cron.
+
+## Getting Help
+
+If you encounter issues during the update process:
+
+1. Check the [FeatherPanel documentation](https://docs.featherpanel.com)
+2. Review existing issues on [GitHub](https://github.com/mythicalltd/featherpanel/issues)
+3. Join the development Discord server for community support
+4. Create a new GitHub issue with detailed error information
+
+:::tip Be Prepared
+When seeking help, include:
+- Your operating system and version
+- The error message or behavior you're experiencing
+- Relevant log entries
+- Steps you've already tried
+:::
+

@@ -22,7 +22,7 @@ apt update
 apt install -y php8.3 php8.3-{common,cli,gd,mysql,mbstring,bcmath,xml,fpm,curl,zip,redis}
 
 # MariaDB repo setup script
-curl -sS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo bash
+curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | sudo bash
 
 # Install the rest of dependencies
 apt install -y mariadb-server nginx tar unzip git redis-server zip dos2unix

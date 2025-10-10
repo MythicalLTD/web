@@ -38,293 +38,179 @@ To run FeatherPanel in development mode, you will need:
 - At least 10GB of free disk space
 - Root or sudo access
 
-:::info Virtualization Check
-When your provider uses Virtuozzo, OpenVZ (or OVZ), or LXC virtualization, you will most likely be unable to run FeatherPanel. Some providers have made the necessary changes for nested virtualization to support Docker. Ask your provider's support team to make sure. KVM is guaranteed to work.
+# Installation Guide
 
-Check your virtualization type:
+FeatherPanel is a powerful web-based control panel designed to run on your own server. This guide will walk you through the complete installation process. Please note that root access to your server is required to install and operate this panel.
+
+Before proceeding, we strongly recommend reading through this entire guide to ensure a smooth installation process. Taking the time to understand each step will help prevent common installation issues.
+
+> ⚠️ **WARNING: DEVELOPMENT INSTALLATION ONLY!**  
+>
+> This method **WILL GIVE PLUGINS AND ALL PANEL CODE FULL ROOT ACCESS TO YOUR ENTIRE FILESYSTEM**.  
+> If you are hacked, the attacker could **compromise or delete everything on your server**.  
+>
+> **This guide is strictly for plugin developers and advanced contributors.**  
+>  
+> **DO NOT** use this method for production servers or for regular panel usage!  
+>  
+> For safe operation, you should always use the [Docker installation method](/docs/featherpanel/welcome-featherpanel) for FeatherPanel, which provides strong isolation and security.  
+>  
+> **Again: This is an unsafe method intended ONLY for quickly debugging, developing, or extending FeatherPanel. Proceed ONLY if you understand and accept the risks.**
+
+
+## Prerequisites
+
+### Installing Composer
+Composer is PHP's dependency manager, essential for managing the panel's PHP packages:
 ```bash
-systemd-detect-virt
+curl -sS https://getcomposer.org/installer | sudo php -- --install-dir=/usr/local/bin --filename=composer
 ```
 
-If the result doesn't contain OpenVZ or LXC, it should be fine. The result of `none` will appear when running dedicated hardware without any virtualization.
-:::
+### Installing Node Version Manager (NVM)
 
-### Dependencies
+To manage Node.js versions easily, it’s recommended to use [NVM (Node Version Manager)](https://github.com/nvm-sh/nvm).
 
-- `curl` - for downloading files
-- `git` - for cloning the repository
-- `Docker` - for containerization
-- `Docker Compose` - for multi-container orchestration
-
-## Installation Steps
-
-### 1. Install Docker
-
-For a quick installation of Docker CE, execute the following command:
-
+Install NVM with the following command:
 ```bash
-curl -sSL https://get.docker.com/ | CHANNEL=stable bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
 ```
 
-:::tip Manual Installation
-If you prefer a manual installation, please reference the [official Docker documentation](https://docs.docker.com/engine/install/) for your specific distribution.
-:::
-
-### 2. Verify Docker Installation
-
-Check that Docker is properly installed:
-
+After installation, either restart your terminal, or run these lines *exactly as shown* to load `nvm` into your current session:
 ```bash
-docker --version
-docker-compose --version
+export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 ```
 
-### 3. Start Docker Service
+> ℹ️  
+> The install script will automatically attempt to update your shell profile (`~/.bashrc`, `~/.zshrc`, etc.) to load nvm in the future.  
+> If your shell doesn't load nvm after a restart, check your profile files or manually add the above lines.
 
-Enable and start Docker on boot:
-
+You can verify that NVM is working by running:
 ```bash
-sudo systemctl enable --now docker
+nvm --version
 ```
 
-### 4. Check Kernel Compatibility
-
-Some hosts install modified kernels that don't support important Docker features. Check your kernel:
-
+Once NVM is installed, you can quickly install and switch Node.js versions as needed:
 ```bash
-uname -r
+nvm install --lts   # Install latest LTS version
 ```
 
-If your kernel ends in `-xxxx-grs-ipv6-64` or `-xxxx-mod-std-ipv6-64`, you're probably using an unsupported kernel.
+For more details and troubleshooting, see the [official NVM documentation](https://github.com/nvm-sh/nvm#installing-and-updating).
 
-### 5. Enable Swap (Optional but Recommended)
+### Installing pnpm
 
-Since Linux kernel version 6.1, swap is enabled by default. Check your kernel version:
+FeatherPanel's frontend uses pnpm, a fast and efficient package manager for Node.js, to manage dependencies.
 
+npm-check-updates is included to make it easy to check for and update outdated frontend packages. You can run `ncu` to check for package updates and `ncu -u` to upgrade your `package.json` dependencies automatically.
+
+Install pnpm globally with the following command:
 ```bash
-uname -r
+npm install -g pnpm npm-check-updates
 ```
 
-If you're running kernel 6.1 or newer, you can skip this step.
-
-To enable swap support for Docker:
-
-1. Open `/etc/default/grub` as root
-2. Find the line starting with `GRUB_CMDLINE_LINUX_DEFAULT`
-3. Add `swapaccount=1` inside the double-quotes
-4. Update GRUB and reboot:
-
+You can verify that pnpm is installed by running:
 ```bash
-sudo update-grub
-sudo reboot
+pnpm --version
 ```
 
-Example configuration:
-```
-GRUB_CMDLINE_LINUX_DEFAULT="quiet splash swapaccount=1"
-```
+> ℹ️  
+> If you encounter any issues, consult the [pnpm installation guide](https://pnpm.io/installation) for troubleshooting steps and additional installation methods.
 
-:::note GRUB Configuration
-Some Linux distributions may ignore `GRUB_CMDLINE_LINUX_DEFAULT`. If the default doesn't work, try using `GRUB_CMDLINE_LINUX` instead.
-:::
+Once pnpm is installed, you'll be able to install all frontend dependencies in later steps.
 
-## Development Setup
 
-### 1. Create Development Directory
+## Initial Setup
 
+Following these steps carefully will ensure a smooth installation process for FeatherPanel.
+
+
+### Downloading and Extracting Files
+
+Create the installation directory and download the latest release:
 ```bash
-sudo mkdir -p /var/www
+mkdir -p /var/www
 cd /var/www
-```
-
-### 2. Clone the Repository
-
-```bash
 git clone https://github.com/mythicalltd/featherpanel.git featherpanel
-cd featherpanel
 ```
 
-### 3. Start Development Environment
+Set appropriate permissions for the application directories:
+```bash
+chown -R www-data:www-data /var/www/featherpanel/*
+cd /var/www/featherpanel
+```
+
+### Installing Dependencies
+
+#### Backend
+Install all required dependencies:
+```bash
+COMPOSER_ALLOW_SUPERUSER=1 composer install --working-dir=/var/www/featherpanel/backend
+```
+
+#### Frontend
+Install all required dependencies:
 
 ```bash
-docker compose up -d -f docker-compose-dev.yml
+pnpm install --dir /var/www/featherpanel/frontend/
 ```
 
-### 4. Verify Installation
+### Creating Database and User
+Set up the database and create a user with appropriate permissions:
+```sql
+mariadb -u root -p
+CREATE USER 'featherpanel'@'127.0.0.1' IDENTIFIED BY 'yourPassword';
+CREATE DATABASE featherpanel;
+GRANT ALL PRIVILEGES ON featherpanel.* TO 'featherpanel'@'127.0.0.1' WITH GRANT OPTION;
+exit
+```
 
-Check that the containers are running:
+### Cron Job Configuration
+
+It's best practice to run the FeatherPanel cron jobs as the `www-data` user rather than `root`. To do this, edit the crontab for `www-data`:
 
 ```bash
-docker compose ps
+sudo crontab -u www-data -e
 ```
 
-The panel should now be accessible at `http://localhost:4830`.
-
-## Reverse Proxy Configuration
-
-To access your development panel from external networks, you'll need to set up a reverse proxy. Here are configurations for popular web servers:
-
-### Nginx Configuration
-
-#### HTTP Only (Development)
-
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-
-    location / {
-        proxy_pass http://localhost:4830;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_buffering off;
-    }
-}
-```
-
-#### HTTPS (Production)
-
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-    return 301 https://$server_name$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name your-domain.com;
-
-    ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
-    ssl_session_cache shared:le_nginx_SSL:10m;
-    ssl_session_timeout 1440m;
-    ssl_session_tickets off;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_prefer_server_ciphers off;
-    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
-
-    location / {
-        proxy_pass http://localhost:4830;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_buffering off;
-
-        # WebSocket support
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-    }
-}
-```
-
-### Apache Configuration
-
-#### HTTP Only (No SSL)
-
-```apache
-<VirtualHost *:80>
-    ServerName your-domain.com
-
-    ProxyPreserveHost On
-    ProxyPass / http://localhost:4830/
-    ProxyPassReverse / http://localhost:4830/
-</VirtualHost>
-```
-
-#### HTTPS (SSL)
-
-```apache
-<VirtualHost *:80>
-    ServerName your-domain.com
-    Redirect permanent / https://your-domain.com/
-</VirtualHost>
-
-<VirtualHost *:443>
-    ServerName your-domain.com
-
-    SSLEngine on
-    SSLCertificateFile /etc/letsencrypt/live/your-domain.com/fullchain.pem
-    SSLCertificateKeyFile /etc/letsencrypt/live/your-domain.com/privkey.pem
-
-    ProxyPreserveHost On
-    ProxyPass / http://localhost:4830/
-    ProxyPassReverse / http://localhost:4830/
-
-    # WebSocket support
-    ProxyPass /ws/ ws://localhost:4830/ws/
-    ProxyPassReverse /ws/ ws://localhost:4830/ws/
-</VirtualHost>
-```
-
-#### Enable Required Apache Modules
+Then add the following lines to the bottom of the file:
 
 ```bash
-sudo a2enmod ssl proxy proxy_http proxy_wstunnel
-sudo systemctl restart apache2
+* * * * * bash /var/www/featherpanel/backend/storage/cron/runner.bash >> /dev/null 2>&1
+* * * * * php /var/www/featherpanel/backend/storage/cron/runner.php >> /dev/null 2>&1
 ```
 
-## Development Workflow
+This will ensure the cron jobs run with the appropriate permissions for your web application.
 
-### Accessing the Panel
 
-Once everything is set up, you can access your development panel at:
+### Database Connection Setup
+Configure the database connection settings:
+```php
+php app setup
+```
 
-- **Local access**: `http://localhost:4830`
-- **External access**: `http://your-domain.com` (if reverse proxy is configured)
+### Running Database Migrations
+Apply the database migrations to set up the required tables and structure:
+```php
+php app migrate
+```
 
-### Stopping the Development Environment
+### Building the Frontend
 
-To stop the development environment:
+To build the frontend after installing dependencies, run:
 
 ```bash
-docker compose down
+cd /var/www/featherpanel/frontend
+pnpm build
 ```
 
-### Restarting the Development Environment
+This will generate the production-ready files in the `dist` directory, which can then be served by your web server.
 
-To restart the development environment:
-
-```bash
-docker compose up -d -f docker-compose-dev.yml
-```
-
-### Viewing Logs
-
-To view the logs of the development environment:
-
-```bash
-docker compose logs -f
-```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Port 4830 already in use**: Check if another service is using the port:
-   ```bash
-   sudo netstat -tlnp | grep 4830
-   ```
-
-2. **Docker permission issues**: Add your user to the docker group:
-   ```bash
-   sudo usermod -aG docker $USER
-   ```
-   Then log out and log back in.
-
-3. **Container won't start**: Check the logs:
-   ```bash
-   docker compose logs
-   ```
-
-### Getting Help
-
-If you encounter issues not covered in this guide:
-
-1. Check the [FeatherPanel GitHub repository](https://github.com/mythicalltd/featherpanel) for issues
-2. Join the development Discord server
-3. Create a new issue on GitHub with detailed error information
+> **Tip:**  
+> If you're a developer and want to test the app with live frontend updates as you code, use the watch command instead:
+>
+> ```bash
+> cd /var/www/featherpanel/frontend
+> pnpm watch
+> ```
+>
+> This will start the development server and automatically reload the frontend whenever you make changes.

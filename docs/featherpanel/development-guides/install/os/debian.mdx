@@ -1,29 +1,37 @@
 ---
-id: 'ubuntu'
+id: 'debian'
 ---
 
-# Ubuntu Installation
+# Debian Installation
 
 The commands below are simply an example of how you might install these dependencies. Please consult with your operating system's package manager to determine the correct packages to install.
 ```bash
 # Update the server
 apt update && apt upgrade -y
-# Add "add-apt-repository" command
-apt -y install software-properties-common curl apt-transport-https ca-certificates gnupg
+# Install necessary packages
+apt -y install software-properties-common curl ca-certificates gnupg2 sudo lsb-release make
+
 # Add additional repositories for PHP, Redis, and MariaDB
-LC_ALL=C.UTF-8 add-apt-repository -y ppa:ondrej/php
+echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/sury-php.list
+curl -fsSL https://packages.sury.org/php/apt.gpg | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/sury-keyring.gpg
+
 # Update repositories list
 apt update
-# Add universe repository if you are on Ubuntu 18.04
-apt-add-repository universe
-# Install Dependencies
-apt -y install php8.3 php8.3-{common,cli,gd,mysql,mbstring,bcmath,xml,fpm,curl,zip,redis} mariadb-server nginx tar unzip zip git redis-server make dos2unix
+
+# Install PHP and required extensions
+apt install -y php8.3 php8.3-{common,cli,gd,mysql,mbstring,bcmath,xml,fpm,curl,zip,redis}
+
+# MariaDB repo setup script
+curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | sudo bash
+
+# Install the rest of dependencies
+apt install -y mariadb-server nginx tar unzip git redis-server zip dos2unix
 ```
 
 
 <div className="mt-12 flex justify-center">
   <a 
-    href="/docs/mythicaldash-v3-remastered/install#installing-composer"
+    href="/docs/featherpanel/development-guides/install"
     className="group inline-flex items-center px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-indigo-500/50"
   >
     Continue to Next Step
