@@ -19,7 +19,7 @@ curl -fsSL https://packages.sury.org/php/apt.gpg | sudo gpg --dearmor -o /etc/ap
 apt update
 
 # Install PHP and required extensions
-apt install -y php8.3 php8.3-{common,cli,gd,mysql,mbstring,bcmath,xml,fpm,curl,zip,redis}
+apt install -y php8.3 php8.3-{common,cli,gd,mysql,mbstring,bcmath,xml,fpm,curl,zip,redis,mongodb}
 
 # MariaDB repo setup script
 curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | sudo bash
