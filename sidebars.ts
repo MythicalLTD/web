@@ -38,8 +38,8 @@ const sidebars: SidebarsConfig = {
                                     ]
                                 },
                                 'featherpanel/development-guides/install/install-featherpanel-devs',
-                                'featherpanel/development-guides/install/update-featherpanel-devs',
                                 "featherpanel/development-guides/install/webserver",
+                                'featherpanel/development-guides/install/update-featherpanel-devs',
                             ]
                         },
                         {
